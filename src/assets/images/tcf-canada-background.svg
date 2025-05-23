@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3c72" />
+      <stop offset="100%" stop-color="#2a5298" />
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="30" />
+    </filter>
+  </defs>
+  
+  <!-- Main Background -->
+  <rect width="100%" height="100%" fill="url(#bgGradient)" />
+  
+  <!-- Abstract Shapes -->
+  <circle cx="200" cy="200" r="300" fill="#ffffff" opacity="0.03" />
+  <circle cx="1700" cy="900" r="400" fill="#ffffff" opacity="0.02" />
+  
+  <!-- Canadian Flag Elements (Stylized) -->
+  <rect x="860" y="200" width="200" height="200" fill="#FF0000" opacity="0.15" />
+  <path d="M960 250 L980 300 L1030 300 L990 330 L1010 380 L960 350 L910 380 L930 330 L890 300 L940 300 Z" fill="#FF0000" opacity="0.2" />
+  
+  <!-- Abstract Wave Pattern -->
+  <path d="M0,600 C300,550 600,650 900,600 C1200,550 1500,650 1800,600 L1920,600 L1920,1080 L0,1080 Z" fill="#ffffff" opacity="0.05" />
+  
+  <!-- French Language Elements -->
+  <g opacity="0.1" fill="#ffffff">
+    <text x="300" y="500" font-family="Arial" font-size="60" font-weight="bold">TCF</text>
+    <text x="1500" y="400" font-family="Arial" font-size="40">CANADA</text>
+    <text x="200" y="700" font-family="Arial" font-size="30">Compréhension</text>
+    <text x="1600" y="700" font-family="Arial" font-size="30">Expression</text>
+    <text x="800" y="900" font-family="Arial" font-size="50">RÉUSSIR</text>
+  </g>
+  
+  <!-- Decorative Elements -->
+  <g opacity="0.07">
+    <rect x="100" y="300" width="100" height="5" fill="#ffffff" />
+    <rect x="1700" y="500" width="100" height="5" fill="#ffffff" />
+    <rect x="500" y="800" width="100" height="5" fill="#ffffff" />
+    <rect x="1300" y="300" width="100" height="5" fill="#ffffff" />
+  </g>
+  
+  <!-- Blurred Circles for Depth -->
+  <g filter="url(#blur)">
+    <circle cx="500" cy="500" r="100" fill="#4CAF50" opacity="0.1" />
+    <circle cx="1400" cy="300" r="80" fill="#FFC107" opacity="0.1" />
+    <circle cx="1000" cy="800" r="120" fill="#2196F3" opacity="0.1" />
+  </g>
+</svg>

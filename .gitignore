@@ -1,0 +1,41 @@
+# Ignorer les dépendances
+node_modules/
+
+# Ignorer les fichiers de build
+dist/
+build/
+
+# Ignorer les caches et fichiers générés
+.parcel-cache/
+.vite/
+.vscode/
+*.log
+
+# Ignorer les fichiers spécifiques à macOS
+.DS_Store
+
+# Ignorer les fichiers de configuration locale
+.env
+.env.local
+.env.*.local
+
+# Ignorer les clés privées
+*.pem
+*.pfx
+*.key
+
+# Ignorer les rapports de couverture de code
+coverage/
+
+# Ignorer les fichiers de lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Ignorer les fichiers de test
+*.test.js
+*.spec.js
+
+# Ignorer les fichiers temporaires
+*.tmp
+*~
