@@ -43,7 +43,19 @@ const TCFAdminService = {
   getSubjectById: async (id) => {
     try {
       const response = await axios.get(`${API_URL}/subjects/${id}`);
-      return response.data;
+      // Adapter les données du backend au format attendu par le frontend
+      const adaptedData = {
+        ...response.data,
+        plans: response.data.subscription_plan, // Convertir subscription_plan en plans pour le frontend
+        tasks: response.data.tasks.map(task => ({
+          ...task,
+          structure: task.description || task.structure || "",
+          minWordCount: task.min_word_count || 0,
+          wordCount: task.word_count || 0,
+          instructions: task.instructions || "" // Assurer que instructions est inclus
+        }))
+      };
+      return adaptedData;
     } catch (error) {
       console.error(`Erreur lors de la récupération du sujet TCF ${id}:`, error);
       throw error;
