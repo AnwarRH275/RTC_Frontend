@@ -91,6 +91,8 @@ function PaymentSuccess() {
           // Ajouter les informations du plan aux données utilisateur
           userData.plan = planInfo;
           console.log("Données utilisateur avec plan:", userData);
+
+          
           
           // Mettre à jour les données dans localStorage (pour référence future)
           localStorage.setItem("signupData", JSON.stringify(userData));
@@ -106,6 +108,28 @@ function PaymentSuccess() {
           setSuccess(true);
           // Nettoyer les données stockées
           localStorage.removeItem("signupData");
+
+          const response = await fetch("http://localhost:5001/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              username: userData.username, // Le backend accepte maintenant username ou email
+              password: userData.password
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.acces_token) {
+            // Stocker le token dans localStorage
+            localStorage.setItem("token", data.acces_token);
+            console.log(data.acces_token)
+
+          }
+
+
         }
       } catch (error) {
         console.error("Erreur lors de la finalisation de l'inscription:", error);
@@ -119,6 +143,7 @@ function PaymentSuccess() {
   }, [location.search, navigate]);
 
   const handleGoToDashboard = () => {
+
     navigate("/dashboard");
   };
 

@@ -209,6 +209,36 @@ function WrittenExpressionCard({ title, description, pack, duration, action, sha
               {action.label}
             </MDButton>
           </MuiLink>
+        ) : action.type === "function" ? (
+          <MDButton
+            onClick={action.onClick}
+            color={action.color ? action.color : "info"}
+            variant="gradient"
+            fullWidth
+            sx={{
+              borderRadius: "12px",
+              py: 1.2,
+              boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 6px 15px rgba(0, 0, 0, 0.15)',
+              },
+              fontWeight: 'bold',
+              letterSpacing: '0.5px',
+            }}
+          >
+            <MDBox sx={{
+              ...cardIconStyles,
+              mr: 1,
+              '& .MuiIcon-root': {
+                fontSize: '1.25rem',
+              }
+            }}>
+              <Icon>{action.icon || "play_arrow"}</Icon>
+            </MDBox>
+            {action.label}
+          </MDButton>
         ) : (
           <Link to={action.route} style={cardActionStyles}>
             <MDButton
@@ -261,8 +291,9 @@ WrittenExpressionCard.propTypes = {
   shadow: PropTypes.bool,
   bgColor: PropTypes.string, // Nouveau prop pour la couleur de fond
   action: PropTypes.shape({
-    type: PropTypes.oneOf(["external", "internal"]).isRequired,
-    route: PropTypes.string.isRequired,
+    type: PropTypes.oneOf(["external", "internal", "function"]).isRequired,
+    route: PropTypes.string,
+    onClick: PropTypes.func,
     color: PropTypes.oneOf([
       "primary",
       "secondary",

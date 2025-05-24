@@ -13,11 +13,21 @@ import "react-quill/dist/quill.bubble.css";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Icon from "@mui/material/Icon";
+import Box from "@mui/material/Box";
+import { useNavigate } from "react-router-dom";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDAlert from "components/MDAlert";
+import MDButton from "components/MDButton";
 
 // Simulateur TCF Canada React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -80,6 +90,26 @@ function TCFSimulatorWritten() {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [openRecap, setOpenRecap] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const navigate = useNavigate();
+
+  const handleOpenRecap = (subject) => {
+    setSelectedSubject(subject);
+    setOpenRecap(true);
+  };
+
+  const handleCloseRecap = () => {
+    setOpenRecap(false);
+    setSelectedSubject(null);
+  };
+
+  const handleStartExam = () => {
+    if (selectedSubject) {
+      navigate(`/tcf-simulator/written/${selectedSubject.id}`);
+    }
+    handleCloseRecap();
+  };
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -275,11 +305,10 @@ function TCFSimulatorWritten() {
                       bgColor={subject.bgColor}
                       duration={subject.duration || 60}
                       action={{
-                        type: "internal",
-                        route: `/tcf-simulator/written/${subject.id}`,
-                        color: "info",
+                        type: "function",
+                        onClick: () => handleOpenRecap(subject),
                         label: "Commencer le test",
-                        icon: "edit",
+                        color: "info",
                       }}
                     />
                   )}
@@ -289,6 +318,243 @@ function TCFSimulatorWritten() {
           )}
         </MDBox>
       </MDBox>
+      
+      {/* Dialog de récapitulatif moderne */}
+      <Dialog
+        open={openRecap}
+        onClose={handleCloseRecap}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'hidden',
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            textAlign: 'center',
+            py: 3,
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
+            }
+          }}
+        >
+          <MDBox display="flex" alignItems="center" justifyContent="center" flexDirection="column">
+            <Icon sx={{ fontSize: '2.5rem', mb: 1, opacity: 0.9 }}>assignment</Icon>
+            <MDTypography variant="h4" fontWeight="bold" color="white">
+              {selectedSubject?.name || "Mai 2025 : Combinaison N1"}
+            </MDTypography>
+            <Chip
+              label={selectedSubject?.pack || "Pack Écrit Standard"}
+              sx={{
+                mt: 1,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                fontWeight: 'bold',
+                borderRadius: '20px',
+              }}
+            />
+          </MDBox>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 0 }}>
+          <MDBox p={4}>
+            {/* Informations générales */}
+            <MDBox mb={4}>
+              <MDBox display="flex" alignItems="center" mb={2}>
+                <Icon sx={{ color: '#667eea', mr: 1 }}>schedule</Icon>
+                <MDTypography variant="h6" fontWeight="bold" color="text">
+                  Durée de l'examen
+                </MDTypography>
+              </MDBox>
+              <MDBox
+                sx={{
+                  background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+                  borderRadius: '12px',
+                  p: 2,
+                  border: '1px solid #e2e8f0',
+                }}
+              >
+                <MDTypography variant="body1" color="text" fontWeight="medium">
+                  {selectedSubject?.duration || 60} minutes
+                </MDTypography>
+              </MDBox>
+            </MDBox>
+            
+            <Divider sx={{ my: 3, borderColor: '#e2e8f0' }} />
+            
+            {/* Liste des tâches */}
+            <MDBox>
+              <MDBox display="flex" alignItems="center" mb={3}>
+                <Icon sx={{ color: '#667eea', mr: 1 }}>list_alt</Icon>
+                <MDTypography variant="h6" fontWeight="bold" color="text">
+                  Tâches à réaliser ({selectedSubject?.tasks?.length || 0})
+                </MDTypography>
+              </MDBox>
+              
+              <MDBox sx={{ maxHeight: '300px', overflowY: 'auto', pr: 1 }}>
+                {selectedSubject?.tasks?.map((task, index) => (
+                  <MDBox
+                    key={task.id || index}
+                    sx={{
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                      borderRadius: '16px',
+                      p: 3,
+                      mb: 2,
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 8px 15px -3px rgba(0, 0, 0, 0.1)',
+                      }
+                    }}
+                  >
+                    <MDBox display="flex" alignItems="center" mb={2}>
+                      <Chip
+                        label={`Tâche ${index + 1}`}
+                        size="small"
+                        sx={{
+                          backgroundColor: '#667eea',
+                          color: 'white',
+                          fontWeight: 'bold',
+                          mr: 2,
+                        }}
+                      />
+                      {task.wordCount && (
+                        <Chip
+                          label={`${task.wordCount} mots`}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            borderColor: '#667eea',
+                            color: '#667eea',
+                            fontWeight: 'medium',
+                          }}
+                        />
+                      )}
+                      {task.duration && (
+                        <Chip
+                          label={`${task.duration} min`}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            borderColor: '#667eea',
+                            color: '#667eea',
+                            fontWeight: 'medium',
+                            ml: 1,
+                          }}
+                        />
+                      )}
+                    </MDBox>
+                    
+                    {task.title && (
+                      <div 
+                        dangerouslySetInnerHTML={{ __html: task.title }}
+                        style={{
+                          fontSize: '1.25rem', // Equivalent to subtitle1
+                          fontWeight: 'bold',
+                          color: 'text.primary', // Assuming text color
+                          marginBottom: '8px', // Equivalent to mb={1}
+                        }}
+                      />
+                    )}
+                    
+                    {task.structure && (
+                      <div 
+                        dangerouslySetInnerHTML={{ __html: task.structure }}
+                        style={{
+                          fontSize: '1rem', // Equivalent to body2
+                          color: 'text.secondary', // Assuming text color with opacity
+                          opacity: 0.8,
+                        }}
+                      />
+                    )}
+                    
+                    {task.instructions && (
+                      <MDBox mt={2}>
+                        <div 
+                          dangerouslySetInnerHTML={{ __html: task.instructions }}
+                          style={{
+                            backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                            borderRadius: '8px',
+                            padding: '8px',
+                            fontSize: '1rem',
+                            lineHeight: '1.5',
+                          }}
+                        />
+                      </MDBox>
+                    )}
+                  </MDBox>
+                ))}
+              </MDBox>
+            </MDBox>
+          </MDBox>
+        </DialogContent>
+        
+        <DialogActions
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+            p: 3,
+            gap: 2,
+          }}
+        >
+          <MDButton
+            onClick={handleCloseRecap}
+            variant="outlined"
+            color="secondary"
+            sx={{
+              borderRadius: '12px',
+              px: 4,
+              py: 1.5,
+              fontWeight: 'bold',
+              borderWidth: '2px',
+              '&:hover': {
+                borderWidth: '2px',
+                transform: 'translateY(-1px)',
+              }
+            }}
+          >
+            <Icon sx={{ mr: 1 }}>arrow_back</Icon>
+            Retour
+          </MDButton>
+          
+          <MDButton
+            onClick={handleStartExam}
+            variant="gradient"
+            color="info"
+            sx={{
+              borderRadius: '12px',
+              px: 4,
+              py: 1.5,
+              fontWeight: 'bold',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: '0 8px 15px -3px rgba(102, 126, 234, 0.4)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 12px 20px -3px rgba(102, 126, 234, 0.4)',
+              }
+            }}
+          >
+            <Icon sx={{ mr: 1 }}>play_arrow</Icon>
+            Commencer l'examen
+          </MDButton>
+        </DialogActions>
+      </Dialog>
+      
       <Footer />
     </DashboardLayout>
   );

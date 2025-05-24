@@ -111,7 +111,7 @@ const SubscriptionPlans = ({ email }) => {
       usages: 5,
       color: 'standard',
       isPopular: false,
-      stripeProductId: 'prod_SKWM4seMoxaocw',
+      stripeProductId: 'prod_SMeQcS5gdyO7Nh',
       features: [
         `5 examens réels basés sur les sujets d'actualité 2025`,
         'Remarques personnalisées sur chaque production',
@@ -129,7 +129,7 @@ const SubscriptionPlans = ({ email }) => {
       usages: 15,
       color: 'performance',
       isPopular: true,
-      stripeProductId: 'prod_SKWO5IJ5QkHPiN',
+      stripeProductId: 'prod_SMePWWnxhhQXZJ',
       features: [
         `15 examens réels basés sur les sujets d'actualité 2025`,
         'Remarques personnalisées sur chaque production',
@@ -147,7 +147,7 @@ const SubscriptionPlans = ({ email }) => {
       usages: 30,
       color: 'pro',
       isPopular: false,
-      stripeProductId: 'prod_SKWPIe4wShqDD8',
+      stripeProductId: 'prod_SMeQ8tIJeu8sHA',
       features: [
         `30 examens réels basés sur les sujets d'actualité 2025`,
         'Remarques personnalisées sur chaque production',

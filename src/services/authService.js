@@ -42,6 +42,7 @@ const login = async (credentials) => {
 // Récupération du profil utilisateur
 const getCurrentUserPlan = async () => {
   try {
+    
     const response = await axios.get(`${API_URL}/MyPlan`, getAuthHeader());
     return response.data.subscription_plan;
   } catch (error) {
