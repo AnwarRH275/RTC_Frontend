@@ -106,7 +106,7 @@ function TCFSimulatorWritten() {
 
   const handleStartExam = () => {
     if (selectedSubject) {
-      navigate(`/tcf-simulator/written/${selectedSubject.id}`);
+      navigate(`/tcf-simulator/written/${selectedSubject.id}/exam`);
     }
     handleCloseRecap();
   };
@@ -191,14 +191,22 @@ function TCFSimulatorWritten() {
         pt={3} 
         pb={3} 
         sx={{
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)',
-          minHeight: '100vh'
+          background: 'linear-gradient(135deg, #e0f2f7 0%, #b2ebf2 100%)', // Lighter, more inviting gradient
+          minHeight: '100vh',
+          padding: { xs: 2, md: 4 }, // Add padding to the main container
         }}
       >
         <MDBox 
           mx="auto" 
           p={2} 
           maxWidth="1400px"
+          sx={{
+            backgroundColor: 'rgba(255, 255, 255, 0.9)', // Semi-transparent white background for content area
+            borderRadius: '16px', // Rounded corners for the content area
+            boxShadow: '0 10px 30px rgba(0,0,0,0.1)', // Subtle shadow
+            backdropFilter: 'blur(5px)', // Optional: add a blur effect
+            p: { xs: 3, md: 5 }, // Adjust padding inside the content area
+          }}
         >
           <MDBox 
             mb={4} 
@@ -214,7 +222,7 @@ function TCFSimulatorWritten() {
               fontWeight="bold" 
               mb={1}
               sx={{
-                background: 'linear-gradient(90deg, #2c3e50 0%, #4b6cb7 100%)',
+                background: 'linear-gradient(90deg, #0077b6 0%, #023e8a 100%)', // Updated gradient for title
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 textShadow: '0px 2px 5px rgba(0,0,0,0.1)',
@@ -272,6 +280,21 @@ function TCFSimulatorWritten() {
                       pack={subject.pack}
                       bgColor={subject.bgColor}
                       duration={subject.duration || 60}
+                      sx={{
+                        borderRadius: '12px', // Rounded corners for cards
+                        overflow: 'hidden', // Hide overflow for the top bar
+                        position: 'relative', // Needed for absolute positioning of top bar
+                        '&::before': { // Add a colored bar at the top
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: '6px', // Height of the color bar
+                          backgroundColor: subject.bgColor, // Use subject's color
+                        },
+                        pt: 2, // Add padding at the top to account for the bar
+                      }}
                     />
                   ) : subject.status === "locked" ? (
                     <LockedExpressionCard
@@ -288,6 +311,21 @@ function TCFSimulatorWritten() {
                       pack={subject.pack}
                       bgColor={subject.bgColor}
                       duration={subject.duration || 60}
+                      sx={{
+                        borderRadius: '12px', // Rounded corners for cards
+                        overflow: 'hidden', // Hide overflow for the top bar
+                        position: 'relative', // Needed for absolute positioning of top bar
+                        '&::before': { // Add a colored bar at the top
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: '6px', // Height of the color bar
+                          backgroundColor: subject.bgColor, // Use subject's color
+                        },
+                        pt: 2, // Add padding at the top to account for the bar
+                      }}
                     />
                   ) : (
                     <WrittenExpressionCard
@@ -309,6 +347,21 @@ function TCFSimulatorWritten() {
                         onClick: () => handleOpenRecap(subject),
                         label: "Commencer le test",
                         color: "info",
+                      }}
+                      sx={{
+                        borderRadius: '12px', // Rounded corners for cards
+                        overflow: 'hidden', // Hide overflow for the top bar
+                        position: 'relative', // Needed for absolute positioning of top bar
+                        '&::before': { // Add a colored bar at the top
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: '6px', // Height of the color bar
+                          backgroundColor: subject.bgColor, // Use subject's color
+                        },
+                        pt: 2, // Add padding at the top to account for the bar
                       }}
                     />
                   )}

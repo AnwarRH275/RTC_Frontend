@@ -23,6 +23,7 @@ import SignUp from "layouts/authentication/sign-up";
 import PaymentSuccess from "layouts/authentication/payment-success";
 import TCFSimulator from "layouts/tcf-simulator";
 import TCFSimulatorWritten from "layouts/tcf-simulator-written";
+import TCFExamInterface from "layouts/tcf-simulator-written/exam";
 import TCFAdminSimulator from "layouts/tcf-admin";
 
 const routes = [
@@ -49,6 +50,13 @@ const routes = [
     icon: <DescriptionIcon fontSize="small" />,
     route: "/tcf-simulator/written",
     component: <TCFSimulatorWritten />,
+  },
+  {
+    type: "route",
+    name: "Examen TCF Écrite",
+    key: "tcf-exam-written",
+    route: "/tcf-simulator/written/:subjectId/exam",
+    component: <TCFExamInterface />,
   },
   {
     type: "collapse",
