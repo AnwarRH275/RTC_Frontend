@@ -24,7 +24,9 @@ import PaymentSuccess from "layouts/authentication/payment-success";
 import TCFSimulator from "layouts/tcf-simulator";
 import TCFSimulatorWritten from "layouts/tcf-simulator-written";
 import TCFExamInterface from "layouts/tcf-simulator-written/exam";
+import TCFResultsInterface from "layouts/tcf-simulator-written/results";
 import TCFAdminSimulator from "layouts/tcf-admin";
+import UserManagement from "layouts/user-management";
 
 const routes = [
   {
@@ -59,6 +61,13 @@ const routes = [
     component: <TCFExamInterface />,
   },
   {
+    type: "route",
+    name: "Résultats TCF Écrite",
+    key: "tcf-results-written",
+    route: "/tcf-simulator/written/results/:subjectId",
+    component: <TCFResultsInterface />,
+  },
+  {
     type: "collapse",
     name: "Simulateur IA TCF Orale",
     key: "tcf-simulator-oral",
@@ -89,6 +98,14 @@ const routes = [
     icon: <Icon fontSize="small">notifications</Icon>,
     route: "/notifications",
     component: <Notifications />,
+  },
+  {
+    type: "collapse",
+    name: "Gestion Utilisateurs",
+    key: "user-management",
+    icon: <Icon fontSize="small">people</Icon>,
+    route: "/user-management",
+    component: <UserManagement />,
   },
   {
     type: "collapse",

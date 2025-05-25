@@ -1,0 +1,614 @@
+/**
+=========================================================
+* Réussir TCF Canada - v1.0.0
+=========================================================
+*/
+
+// @mui material components
+import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import TextField from "@mui/material/TextField";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+
+// @mui icons
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PersonIcon from "@mui/icons-material/Person";
+import EmailIcon from "@mui/icons-material/Email";
+import PhoneIcon from "@mui/icons-material/Phone";
+import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
+
+// Simulateur TCF Canada React components
+import MDBox from "components/MDBox";
+import MDTypography from "components/MDTypography";
+import MDButton from "components/MDButton";
+import MDInput from "components/MDInput";
+
+// Simulateur TCF Canada React example components
+import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import Footer from "examples/Footer";
+import DataTable from "examples/Tables/DataTable";
+
+// React hooks
+import { useState, useEffect } from "react";
+
+// Services
+import authService from "services/authService";
+
+function UserManagement() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    nom: "",
+    prenom: "",
+    tel: "",
+    sexe: "",
+    date_naissance: "",
+    subscription_plan: "",
+    role: ""
+  });
+
+  const subscriptionPlans = [
+    { value: "standard", label: "Pack Écrit Standard", color: "info" },
+    { value: "performance", label: "Pack Écrit Performance", color: "warning" },
+    { value: "pro", label: "Pack Écrit Pro", color: "success" },
+    { value: null, label: "Aucun plan", color: "secondary" }
+  ];
+
+  const userRoles = [
+    { value: "client", label: "Client" },
+    { value: "admin", label: "Administrateur" },
+    { value: "moderator", label: "Modérateur" }
+  ];
+
+  // Fetch users on component mount
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5001/auth/users');
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Erreur lors du chargement des utilisateurs:', error);
+      showSnackbar('Erreur lors du chargement des utilisateurs', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const handleOpenDialog = (user = null) => {
+    if (user) {
+      setEditMode(true);
+      setSelectedUser(user);
+      setFormData({
+        username: user.username || "",
+        email: user.email || "",
+        password: "",
+        nom: user.nom || "",
+        prenom: user.prenom || "",
+        tel: user.tel || "",
+        sexe: user.sexe || "",
+        date_naissance: user.date_naissance || "",
+        subscription_plan: user.subscription_plan || "",
+        role: user.role || "client"
+      });
+    } else {
+      setEditMode(false);
+      setSelectedUser(null);
+      setFormData({
+        username: "",
+        email: "",
+        password: "",
+        nom: "",
+        prenom: "",
+        tel: "",
+        sexe: "",
+        date_naissance: "",
+        subscription_plan: "",
+        role: "client"
+      });
+    }
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setEditMode(false);
+    setSelectedUser(null);
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      if (editMode) {
+        // Update user
+        const response = await fetch(`http://localhost:5001/auth/signup`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...formData,
+            plan: formData.subscription_plan
+          }),
+        });
+        
+        if (response.ok) {
+          showSnackbar('Utilisateur modifié avec succès');
+          fetchUsers();
+          handleCloseDialog();
+        } else {
+          throw new Error('Erreur lors de la modification');
+        }
+      } else {
+        // Create new user
+        const response = await authService.signup({
+          ...formData,
+          plan: formData.subscription_plan
+        });
+        
+        showSnackbar('Utilisateur créé avec succès');
+        fetchUsers();
+        handleCloseDialog();
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      showSnackbar(editMode ? 'Erreur lors de la modification' : 'Erreur lors de la création', 'error');
+    }
+  };
+
+  const handleDeleteUser = async (username) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+      try {
+        const response = await fetch(`http://localhost:5001/auth/delete/${username}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          showSnackbar('Utilisateur supprimé avec succès');
+          fetchUsers();
+        } else {
+          throw new Error('Erreur lors de la suppression');
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        showSnackbar('Erreur lors de la suppression', 'error');
+      }
+    }
+  };
+
+  const getPlanChip = (plan) => {
+    const planInfo = subscriptionPlans.find(p => p.value === plan) || subscriptionPlans[3];
+    return (
+      <Chip
+        label={planInfo.label}
+        color={planInfo.color}
+        size="small"
+        variant="outlined"
+      />
+    );
+  };
+
+  // Table columns and rows
+  const columns = [
+    { Header: "Utilisateur", accessor: "user", width: "20%", align: "left" },
+    { Header: "Contact", accessor: "contact", width: "18%", align: "left" },
+    { Header: "Informations", accessor: "info", width: "15%", align: "center" },
+    { Header: "Plan", accessor: "plan", width: "12%", align: "center" },
+    { Header: "Rôle", accessor: "role", width: "10%", align: "center" },
+    { Header: "Actions", accessor: "actions", width: "15%", align: "center" },
+  ];
+
+  const rows = users.map((user) => ({
+    user: (
+      <MDBox display="flex" alignItems="center" lineHeight={1}>
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            mr: 2
+          }}
+        >
+          <PersonIcon sx={{ color: "white", fontSize: 20 }} />
+        </Box>
+        <MDBox lineHeight={1}>
+          <MDTypography display="block" variant="button" fontWeight="medium">
+            {user.prenom} {user.nom}
+          </MDTypography>
+          <MDTypography variant="caption" color="text">
+            @{user.username}
+          </MDTypography>
+        </MDBox>
+      </MDBox>
+    ),
+    contact: (
+      <MDBox lineHeight={1}>
+        <MDBox display="flex" alignItems="center" mb={0.5}>
+          <EmailIcon sx={{ fontSize: 16, mr: 1, color: "text.secondary" }} />
+          <MDTypography variant="caption" color="text">
+            {user.email}
+          </MDTypography>
+        </MDBox>
+        <MDBox display="flex" alignItems="center">
+          <PhoneIcon sx={{ fontSize: 16, mr: 1, color: "text.secondary" }} />
+          <MDTypography variant="caption" color="text">
+            {user.tel || "Non renseigné"}
+          </MDTypography>
+        </MDBox>
+      </MDBox>
+    ),
+    info: (
+      <MDBox textAlign="center" lineHeight={1}>
+        <MDTypography variant="caption" color="text" fontWeight="medium">
+          {user.sexe || "Non renseigné"}
+        </MDTypography>
+        <MDTypography variant="caption" color="text" display="block">
+          {user.date_naissance || "Non renseigné"}
+        </MDTypography>
+      </MDBox>
+    ),
+    plan: getPlanChip(user.subscription_plan),
+    role: (
+      <Chip
+        label={userRoles.find(r => r.value === user.role)?.label || "Client"}
+        color={user.role === "admin" ? "error" : user.role === "moderator" ? "warning" : "primary"}
+        size="small"
+        variant="outlined"
+      />
+    ),
+    actions: (
+      <MDBox display="flex" justifyContent="center" gap={1}>
+        <Tooltip title="Modifier">
+          <IconButton
+          style={{color: "white"}}
+            size="small"
+            color="info"
+            onClick={() => handleOpenDialog(user)}
+            sx={{
+              background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+              color: "white",
+              "&:hover": {
+                background: "linear-gradient(135deg, #0052C6, #2394DF)",
+              }
+            }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Supprimer">
+          <IconButton
+            style={{color: "white"}}
+            size="small"
+            color="error"
+            onClick={() => handleDeleteUser(user.username)}
+            sx={{
+              background: "linear-gradient(135deg, #FF512F, #DD2476)",
+              color: "white",
+              "&:hover": {
+                background: "linear-gradient(135deg, #DF412F, #BD1456)",
+              }
+            }}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </MDBox>
+    ),
+  }));
+
+  return (
+    <DashboardLayout>
+      <DashboardNavbar />
+      <MDBox pt={6} pb={3}>
+        <Grid container spacing={6}>
+          <Grid item xs={12}>
+            <Card>
+              <MDBox
+                mx={2}
+                mt={-3}
+                py={3}
+                px={2}
+                variant="gradient"
+                bgColor="info"
+                borderRadius="lg"
+                coloredShadow="info"
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{
+                  background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+                }}
+              >
+                <MDBox>
+                  <MDTypography variant="h6" color="white">
+                    Gestion des Utilisateurs
+                  </MDTypography>
+                  <MDTypography variant="body2" color="white" opacity={0.8}>
+                    Gérez les comptes utilisateurs et leurs abonnements
+                  </MDTypography>
+                </MDBox>
+                <MDButton
+                  variant="contained"
+                  color="white"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpenDialog()}
+                  sx={{
+                    color: "#0062E6",
+                    fontWeight: "bold",
+                    "&:hover": {
+                      backgroundColor: "rgba(255, 255, 255, 0.9)",
+                    }
+                  }}
+                >
+                  Nouvel Utilisateur
+                </MDButton>
+              </MDBox>
+              <MDBox pt={3}>
+                <DataTable
+                  table={{ columns, rows }}
+                  isSorted={false}
+                  entriesPerPage={false}
+                  showTotalEntries={false}
+                  noEndBorder
+                  canSearch
+                />
+              </MDBox>
+            </Card>
+          </Grid>
+        </Grid>
+      </MDBox>
+
+      {/* Dialog for Add/Edit User */}
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: "0 8px 40px -12px rgba(0,0,0,0.3)",
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+            color: "white",
+            textAlign: "center",
+            py: 3
+          }}
+        >
+          <MDTypography variant="h5" color="white" fontWeight="bold">
+            {editMode ? "Modifier l'utilisateur" : "Nouvel utilisateur"}
+          </MDTypography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 4,mt:3 }}
+       
+        >
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <MDInput
+                label="Nom d'utilisateur"
+                fullWidth
+                value={formData.username}
+                onChange={(e) => handleInputChange("username", e.target.value)}
+                disabled={editMode}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <MDInput
+                label="Email"
+                type="email"
+                fullWidth
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            {!editMode && (
+              <Grid item xs={12}>
+                <MDInput
+                  label="Mot de passe"
+                  type="password"
+                  fullWidth
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  sx={{ mb: 2 }}
+                />
+              </Grid>
+            )}
+            <Grid item xs={12} md={6}>
+              <MDInput
+                label="Nom"
+                fullWidth
+                value={formData.nom}
+                onChange={(e) => handleInputChange("nom", e.target.value)}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <MDInput
+                label="Prénom"
+                fullWidth
+                value={formData.prenom}
+                onChange={(e) => handleInputChange("prenom", e.target.value)}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <MDInput
+                label="Téléphone"
+                fullWidth
+                value={formData.tel}
+                onChange={(e) => handleInputChange("tel", e.target.value)}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth variant="outlined" sx={{ minHeight: '45px' }}>
+                <InputLabel>Sexe</InputLabel>
+                <Select
+                  style={{minHeight: '44px' }}
+                  value={formData.sexe}
+                  onChange={(e) => handleInputChange('sexe', e.target.value)}
+                  label="Sexe"
+                >
+                  <MenuItem value="">Sélectionner le sexe</MenuItem>
+                  <MenuItem value="Homme">Homme</MenuItem>
+                  <MenuItem value="Femme">Femme</MenuItem>
+                  
+                </Select>
+              </FormControl>
+            </Grid>
+         
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth variant="outlined" sx={{ minHeight: '45px' }}>
+                <InputLabel>Rôle</InputLabel>
+                <Select
+                 style={{minHeight: '44px' }}
+                  value={formData.role}
+                  onChange={(e) => handleInputChange('role', e.target.value)}
+                  label="Rôle"
+                >
+                  {userRoles.map((role) => (
+                    <MenuItem key={role.value} value={role.value}>
+                      {role.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <MDInput
+                label="Date de naissance"
+                type="date"
+                fullWidth
+                value={formData.date_naissance}
+                onChange={(e) => handleInputChange("date_naissance", e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ mb: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth sx={{ mb: 2, minHeight: '45px' }}>
+                <InputLabel>Plan d'abonnement</InputLabel>
+                <Select
+                  style={{minHeight: '44px' }}
+                  value={formData.subscription_plan || ""}
+                  label="Plan d'abonnement"
+                  onChange={(e) => handleInputChange("subscription_plan", e.target.value)}
+                >
+                  {subscriptionPlans.map((plan) => (
+                    <MenuItem key={plan.value} value={plan.value}>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <SubscriptionsIcon fontSize="small" />
+                        {plan.label}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, justifyContent: "space-between" }}>
+          <Button
+            onClick={handleCloseDialog}
+            variant="outlined"
+            style={{color:'#000' }}
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: "bold"
+            }}
+          >
+            Annuler
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            style={{color:'#fff' }}
+            sx={{
+              background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: "bold",
+              "&:hover": {
+                background: "linear-gradient(135deg, #0052C6, #2394DF)",
+              }
+            }}
+          >
+            {editMode ? "Modifier" : "Créer"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%", borderRadius: 2 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      <Footer />
+    </DashboardLayout>
+  );
+}
+
+export default UserManagement;

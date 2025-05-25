@@ -330,7 +330,7 @@ function Cover() {
                         <MenuItem value="">-- Sélectionner --</MenuItem>
                         <MenuItem value="Homme">Homme</MenuItem>
                         <MenuItem value="Femme">Femme</MenuItem>
-                        <MenuItem value="Autre">Autre</MenuItem>
+                        
                       </Select>
                     </FormControl>
                   </MDBox>

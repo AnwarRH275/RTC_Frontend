@@ -14,18 +14,20 @@ const PlanCard = styled(Card)(({ theme, isPopular }) => ({
   boxShadow: isPopular 
     ? '0 10px 20px rgba(0, 123, 255, 0.3)' 
     : '0 6px 12px rgba(0, 0, 0, 0.1)',
-  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease', // Add border to transition
   overflow: 'hidden',
-  height: '100%',
+  height: 'auto', // Change height to auto
   display: 'flex',
   flexDirection: 'column',
-  position: 'relative',
+  position: 'relative', // Add position relative
   border: isPopular ? `2px solid ${theme.palette.primary.main}` : 'none',
   '&:hover': {
-    transform: 'translateY(-10px)',
+    transform: 'translateY(-2px)',
     boxShadow: isPopular 
       ? '0 15px 30px rgba(0, 123, 255, 0.4)' 
       : '0 12px 24px rgba(0, 0, 0, 0.15)',
+    zIndex: 1, // Add z-index to bring the hovered card to the front
+    border: isPopular ? `2px solid ${theme.palette.primary.dark}` : `2px solid ${theme.palette.grey[300]}`, // Add explicit border on hover
   },
 }));
 
@@ -35,8 +37,8 @@ const PlanHeader = styled(Box)(({ theme, color }) => ({
     : color === 'performance' 
       ? 'linear-gradient(135deg, #FF512F, #DD2476)' 
       : 'linear-gradient(135deg, #11998e, #38ef7d)',
-  padding: theme.spacing(2),
-  color: 'white',
+  padding: theme.spacing(0.5), // Further reduced padding
+  color: 'white', // Ensure text color is white
   textAlign: 'center',
 }));
 
@@ -90,9 +92,10 @@ const ActionButton = styled(Button)(({ theme, color }) => ({
 
 const PopularBadge = styled(Chip)(({ theme }) => ({
   position: 'absolute',
-  top: 15,
-  right: 15,
+  top: 30, // Adjusted top position
+  right: 10,
   backgroundColor: theme.palette.error.main,
+  boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)',
   color: 'white',
   fontWeight: 'bold',
   zIndex: 1,
@@ -211,7 +214,7 @@ const SubscriptionPlans = ({ email }) => {
           <PlanCard isPopular={plan.isPopular}>
             {plan.isPopular && <PopularBadge label="POPULAIRE" />}
             <PlanHeader color={plan.color}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>
+              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: plan.isPopular ? 2 : 'auto', position: 'relative' }}>
                 {plan.name}
               </Typography>
               <PlanPrice>

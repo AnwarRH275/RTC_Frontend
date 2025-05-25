@@ -51,6 +51,39 @@ const getCurrentUserPlan = async () => {
   }
 };
 
+// Récupération de tous les utilisateurs
+const getAllUsers = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/users`, getAuthHeader());
+    return response.data;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des utilisateurs:', error);
+    throw error;
+  }
+};
+
+// Mise à jour d'un utilisateur
+const updateUser = async (userData) => {
+  try {
+    const response = await axios.put(`${API_URL}/signup`, userData, getAuthHeader());
+    return response.data;
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
+    throw error;
+  }
+};
+
+// Suppression d'un utilisateur
+const deleteUser = async (username) => {
+  try {
+    const response = await axios.delete(`${API_URL}/delete/${username}`, getAuthHeader());
+    return response.data;
+  } catch (error) {
+    console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+    throw error;
+  }
+};
+
 // Déconnexion de l'utilisateur
 const logout = () => {
   localStorage.removeItem('token');
@@ -60,6 +93,9 @@ export default {
   signup,
   login,
   getCurrentUserPlan,
+  getAllUsers,
+  updateUser,
+  deleteUser,
   logout,
   getAuthHeader
 };

@@ -80,12 +80,17 @@ function TCFExamInterface() {
         setSubject(subjectData);
         setTimeRemaining(subjectData.duration * 60); // Convertir en secondes
         
-        // Initialiser les réponses vides
-        const initialResponses = {};
-        subjectData.tasks.forEach((task, index) => {
-          initialResponses[index] = '';
-        });
-        setResponses(initialResponses);
+        // Charger les réponses sauvegardées ou initialiser des réponses vides
+        const savedResponses = localStorage.getItem(`tcf-responses-${subjectId}`);
+        if (savedResponses) {
+          setResponses(JSON.parse(savedResponses));
+        } else {
+          const initialResponses = {};
+          subjectData.tasks.forEach((task, index) => {
+            initialResponses[index] = '';
+          });
+          setResponses(initialResponses);
+        }
       } catch (error) {
         console.error('Erreur lors du chargement du sujet:', error);
         navigate('/tcf-simulator/written');
@@ -114,16 +119,19 @@ function TCFExamInterface() {
     return () => clearInterval(interval);
   }, [isExamStarted, timeRemaining]);
 
-  // Auto-sauvegarde
+  // Auto-sauvegarde des réponses dans localStorage
   useEffect(() => {
-    if (isExamStarted) {
+    if (isExamStarted && Object.keys(responses).length > 0) {
       setAutoSaveStatus('saving');
+      // Sauvegarder immédiatement dans localStorage
+      localStorage.setItem(`tcf-responses-${subjectId}`, JSON.stringify(responses));
+      
       const timer = setTimeout(() => {
         setAutoSaveStatus('saved');
-      }, 1000);
+      }, 500);
       return () => clearTimeout(timer);
     }
-  }, [responses, isExamStarted]);
+  }, [responses, isExamStarted, subjectId]);
 
   // Formatage du temps
   const formatTime = (seconds) => {
@@ -133,28 +141,39 @@ function TCFExamInterface() {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Gestion des réponses
+  // Gestion des réponses avec sauvegarde automatique
   const handleResponseChange = (value) => {
-    setResponses(prev => ({
-      ...prev,
-      [currentTaskIndex]: value
-    }));
+    setResponses(prev => {
+      const newResponses = {
+        ...prev,
+        [currentTaskIndex]: value
+      };
+      // Sauvegarder immédiatement dans localStorage
+      localStorage.setItem(`tcf-responses-${subjectId}`, JSON.stringify(newResponses));
+      return newResponses;
+    });
   };
 
-  // Navigation entre tâches
+  // Navigation entre tâches avec sauvegarde
   const handleNextTask = () => {
     if (currentTaskIndex < subject.tasks.length - 1) {
+      // Sauvegarder avant de changer de tâche
+      localStorage.setItem(`tcf-responses-${subjectId}`, JSON.stringify(responses));
       setCurrentTaskIndex(prev => prev + 1);
     }
   };
 
   const handlePreviousTask = () => {
     if (currentTaskIndex > 0) {
+      // Sauvegarder avant de changer de tâche
+      localStorage.setItem(`tcf-responses-${subjectId}`, JSON.stringify(responses));
       setCurrentTaskIndex(prev => prev - 1);
     }
   };
 
   const handleTaskSelect = (index) => {
+    // Sauvegarder avant de changer de tâche
+    localStorage.setItem(`tcf-responses-${subjectId}`, JSON.stringify(responses));
     setCurrentTaskIndex(index);
   };
 
@@ -169,9 +188,11 @@ function TCFExamInterface() {
   };
 
   const confirmSubmitExam = () => {
-    // Ici, vous pouvez envoyer les réponses au serveur
-    console.log('Réponses soumises:', responses);
-    navigate('/tcf-simulator/written');
+    // Sauvegarder les réponses dans le localStorage
+    localStorage.setItem(`tcf-responses-${subjectId}`, JSON.stringify(responses));
+    
+    // Rediriger vers la page de résultats
+    navigate(`/tcf-simulator/written/results/${subjectId}`);
   };
 
   // Calcul du progrès
