@@ -218,7 +218,8 @@ function TCFExamInterface() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          p: 3
+          p: 3,
+          pl:25
         }}
       >
         <Fade in timeout={1000}>
@@ -332,7 +333,7 @@ function TCFExamInterface() {
   const currentTask = subject.tasks[currentTaskIndex];
 
   return (
-    <MDBox sx={{ minHeight: '100vh', backgroundColor: '#f0f5ff', display: 'flex', flexDirection: 'column' }}>
+    <MDBox sx={{ minHeight: '100vh', backgroundColor: '#f0f5ff', display: 'flex', flexDirection: 'column', ml: 25 }}>
       {/* Header avec timer et progrès */}
       <MDBox 
         sx={{

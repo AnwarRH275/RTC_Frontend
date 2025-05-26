@@ -106,7 +106,7 @@ function TCFResultsInterface() {
           traduction_reponse_ia: null
         };
         
-        return axios.post('http://127.0.0.1:5001/exam/exams', payload, {
+        return axios.post('http://127.0.0.1:5001/exam/exams/user', payload, {
           headers: {
             'accept': 'application/json',
             'Content-Type': 'application/json',
@@ -296,7 +296,8 @@ function TCFResultsInterface() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          p: 3
+          p: 3,
+          pl:25
         }}
       >
         <Card 
@@ -352,7 +353,8 @@ function TCFResultsInterface() {
       sx={{
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        py: 4
+        py: 4,
+        pl: 25
       }}
     >
       <Container maxWidth="lg">
@@ -401,17 +403,19 @@ function TCFResultsInterface() {
               </MDBox>
               
               <Chip 
-                label={results?.NoteExam+'  🏆​' || "Niveau B2"}
+                label={results?.NoteExam || "Niveau B2"}
+                icon={<Icon sx={{ color: '#667eea', fontSize: '1.2rem' }}>emoji_events</Icon>}
+                style={{ color: '#fff' }}
                 sx={{ 
                   backgroundColor: 'white',
-                  color: '#fff',
+                  color: '#667eea',
                   fontWeight: 'bold',
                   fontSize: '1.5rem',
                   p: 3,
                   height: 'auto',
                   borderRadius: 3,
                   boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                  '& .MuiChip-label': { px: 3, py: 1.5 }
+                  '& .MuiChip-label': { px: 2, py: 1.5 }
                 }}
               />
             </MDBox>

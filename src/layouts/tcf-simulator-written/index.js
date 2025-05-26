@@ -117,8 +117,21 @@ function TCFSimulatorWritten() {
         // Récupérer les sujets depuis le service TCFAdmin
         const writtenData = await TCFAdminService.getAllSubjects('Écrit');
         const userSubscriptionPlan = await authService.getCurrentUserPlan();
-        //const userSubscriptionPlan = userData?.subscription_plan || "Pack Écrit Standard";
+        // Récupérer les examens passés par l'utilisateur
+        const userExams = await authService.getUserExams();
         console.log(userSubscriptionPlan);
+        console.log('Examens utilisateur:', userExams);
+        
+        // Créer un Set des IDs de sujets déjà passés par l'utilisateur
+        // Utiliser un Set pour éviter les doublons
+        const completedSubjectIds = new Set();
+        
+        // Ajouter chaque ID de sujet au Set
+        userExams.forEach(exam => {
+          completedSubjectIds.add(exam.id_subject);
+        });
+        
+        console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
         
         // Transformer les données pour correspondre au format attendu
         const formattedSubjects = writtenData.map(subject => {
@@ -127,7 +140,10 @@ function TCFSimulatorWritten() {
         
           let status = "";
         
-          if (plan === "Pack Écrit Standard") {
+          // Vérifier si l'utilisateur a déjà passé cet examen
+          if (completedSubjectIds.has(subject.id)) {
+            status = "completed";
+          } else if (plan === "Pack Écrit Standard") {
             status = ""; // Toujours accessible
           } else if (plan === "Pack Écrit Performance") {
             if (userPlan === "standard") {
@@ -581,7 +597,7 @@ function TCFSimulatorWritten() {
               }
             }}
           >
-            <Icon sx={{ mr: 1 }}>arrow_back</Icon>
+            <Icon  sx={{ mr: 1 }}>arrow_back</Icon>
             Retour
           </MDButton>
           

@@ -51,6 +51,17 @@ const getCurrentUserPlan = async () => {
   }
 };
 
+// Récupération des examens passés par l'utilisateur
+const getUserExams = async () => {
+  try {
+    const response = await axios.get('http://localhost:5001/exam/exams/user', getAuthHeader());
+    return response.data;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des examens utilisateur:', error);
+    return [];
+  }
+};
+
 // Récupération de tous les utilisateurs
 const getAllUsers = async () => {
   try {
@@ -93,6 +104,7 @@ export default {
   signup,
   login,
   getCurrentUserPlan,
+  getUserExams,
   getAllUsers,
   updateUser,
   deleteUser,
