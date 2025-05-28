@@ -614,7 +614,7 @@ function TCFExamInterface() {
                     </Paper>
                   )}
                   
-                  {currentTask.structure && (
+                  {/* {currentTask.structure && (
                     <MDBox mb={2}>
                       <div 
                         dangerouslySetInnerHTML={{ __html: currentTask.structure }}
@@ -628,9 +628,9 @@ function TCFExamInterface() {
                         }}
                       />
                     </MDBox>
-                  )}
+                  )} */}
                   
-                  {currentTask.instructions && (
+                  {/* {currentTask.instructions && (
                     <Alert 
                       severity="info" 
                       sx={{ 
@@ -650,7 +650,7 @@ function TCFExamInterface() {
                         }}
                       />
                     </Alert>
-                  )}
+                  )} */}
                 </MDBox>
 
                 {/* Zone de saisie */}

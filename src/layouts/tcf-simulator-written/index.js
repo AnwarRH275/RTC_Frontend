@@ -161,11 +161,11 @@ function TCFSimulatorWritten() {
         
           return {
             id: subject.id,
-            name: subject.name + ' : ' + subject.combination,
+            name: "",
             blog: subject.blog || "",
             tasks: subject.tasks || [],
-            pack: plan || "Pack Écrit Standard",
-            bgColor: getColorByPlan(plan),
+            pack: subject.name + ' : ' + subject.combination,
+            bgColor: "#f72585",
             duration: subject.duration || 60,
             status: status
           };

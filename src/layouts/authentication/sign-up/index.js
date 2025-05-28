@@ -11,7 +11,8 @@ import { Link, useNavigate } from "react-router-dom";
 import Card from "@mui/material/Card";
 import Checkbox from "@mui/material/Checkbox";
 import Grid from "@mui/material/Grid";
-import { Stepper, Step, StepLabel, Box, FormControl, InputLabel, Select, MenuItem, Snackbar, Alert } from "@mui/material";
+import { Stepper, Step, StepLabel, Box, FormControl, InputLabel, Select, MenuItem, Snackbar, Alert, InputAdornment, IconButton } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
@@ -35,11 +36,13 @@ function Cover() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [countryCode, setCountryCode] = useState("+1");
   const [tel, setTel] = useState("");
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
-  const [sexe, setSexe] = useState("");
-  const [dateNaissance, setDateNaissance] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState("");
   const [openSnackbar, setOpenSnackbar] = useState(false);
@@ -47,11 +50,29 @@ function Cover() {
 
   const steps = ['Informations personnelles', 'Choisir un plan'];
 
+  const countryCodes = [
+    { code: "+1", country: "Canada/USA" },
+    { code: "+33", country: "France" },
+    { code: "+32", country: "Belgique" },
+    { code: "+41", country: "Suisse" },
+    { code: "+212", country: "Maroc" },
+    { code: "+213", country: "Algérie" },
+    { code: "+216", country: "Tunisie" },
+    { code: "+225", country: "Côte d'Ivoire" },
+    { code: "+221", country: "Sénégal" },
+    { code: "+237", country: "Cameroun" },
+  ];
+
   const handleNext = () => {
     if (activeStep === 0) {
       // Validation des champs du formulaire
-      if (!username || !email || !password || !tel || !nom || !prenom || !sexe || !dateNaissance) {
+      if (!username || !email || !password || !confirmPassword || !tel || !nom || !prenom) {
         setError("Veuillez remplir tous les champs");
+        setOpenSnackbar(true);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Les mots de passe ne correspondent pas");
         setOpenSnackbar(true);
         return;
       }
@@ -69,9 +90,9 @@ function Cover() {
         password: password,
         nom: nom,
         prenom: prenom,
-        tel: tel,
-        sexe: sexe,
-        date_naissance: dateNaissance
+        tel: countryCode +' '+ tel,
+        plan: selectedPlan?.id || null,
+        sold: selectedPlan?.sold || 0,
       };
       
       localStorage.setItem("signupData", JSON.stringify(formData));
@@ -85,17 +106,39 @@ function Cover() {
   };
 
   const handleSignUp = async () => {
+    // Déterminer le solde en fonction du plan choisi
+    let soldValue = 0;
+    if (selectedPlan) {
+      switch (selectedPlan.id) {
+        case 'standard':
+          soldValue = 5;
+          break;
+        case 'performance':
+          soldValue = 15;
+          break;
+        case 'pro':
+          soldValue = 30;
+          break;
+        default:
+          soldValue = 0;
+      }
+    }
+
     const userData = {
       username,
       email,
       password,
-      tel,
+      tel: countryCode + tel,
       nom,
       prenom,
-      sexe,
-      date_naissance: dateNaissance, // Correction de la faute de frappe
       plan: selectedPlan?.id || null,
+      sold: soldValue, // Ajout du solde en fonction du plan
     };
+
+    // Afficher les données envoyées pour le débogage
+    console.log("Données d'inscription envoyées:", userData);
+    console.log("Plan sélectionné:", selectedPlan?.id);
+    console.log("Solde attribué:", soldValue);
 
     try {
       const response = await authService.signup(userData);
@@ -108,27 +151,16 @@ function Cover() {
     }
   };
 
-  // Suppression de la fonction handleSelectPlan redondante
-  // const handleSelectPlan = (planId) => {
-  //   setSelectedPlan(planId);
-    
-  //   // Stocker les données du formulaire dans localStorage
-  //   const formData = {
-  //     username: username,
-  //     email: email,
-  //     password: password,
-  //     nom: nom,
-  //     prenom: prenom,
-  //     tel: tel,
-  //     sexe: sexe,
-  //     date_naissance: dateNaissance, // Utiliser dateNaissance ici aussi
-  //     plan: planId
-  //   };
-    
-  //   localStorage.setItem("signupData", JSON.stringify(formData));
-    
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
+  };
+
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleClickShowConfirmPassword = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   return (
@@ -261,15 +293,28 @@ function Cover() {
                     />
                   </MDBox>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid item xs={12} md={6}>
                   <MDBox mb={1}>
                     <MDInput 
-                      type="password" 
+                      type={showPassword ? "text" : "password"}
                       label="Mot de passe" 
                       variant="outlined" 
                       fullWidth 
                       value={password} 
                       onChange={(e) => setPassword(e.target.value)} 
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              aria-label="toggle password visibility"
+                              onClick={handleClickShowPassword}
+                              edge="end"
+                            >
+                              {showPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
@@ -282,6 +327,73 @@ function Cover() {
                   </MDBox>
                 </Grid>
                 <Grid item xs={12} md={6}>
+                  <MDBox mb={1}>
+                    <MDInput 
+                      type={showConfirmPassword ? "text" : "password"}
+                      label="Confirmer le mot de passe" 
+                      variant="outlined" 
+                      fullWidth 
+                      value={confirmPassword} 
+                      onChange={(e) => setConfirmPassword(e.target.value)} 
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              aria-label="toggle password visibility"
+                              onClick={handleClickShowConfirmPassword}
+                              edge="end"
+                            >
+                              {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{ 
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          '&:hover fieldset': {
+                            borderColor: '#0062E6',
+                          },
+                        },
+                      }}
+                    />
+                  </MDBox>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <MDBox mb={1}>
+                    <FormControl fullWidth variant="outlined" sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        height: '45px',
+                        '&:hover fieldset': {
+                          borderColor: '#0062E6',
+                        },
+                      },
+                      '& .MuiInputLabel-root': {
+                        transform: 'translate(14px, 18px) scale(1)',
+                      },
+                      '& .MuiInputLabel-shrink': {
+                        transform: 'translate(14px, -9px) scale(0.75)',
+                      },
+                    }}>
+                      <InputLabel id="country-code-label">Indicatif</InputLabel>
+                      <Select
+                        labelId="country-code-label"
+                        id="country-code"
+                        value={countryCode}
+                        label="Indicatif"
+                        onChange={(e) => setCountryCode(e.target.value)}
+                      >
+                        {countryCodes.map((country) => (
+                          <MenuItem key={country.code} value={country.code}>
+                            {country.code} ({country.country})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </MDBox>
+                </Grid>
+                <Grid item xs={12} md={8}>
                   <MDBox mb={1}>
                     <MDInput 
                       type="tel" 
@@ -290,61 +402,6 @@ function Cover() {
                       fullWidth 
                       value={tel} 
                       onChange={(e) => setTel(e.target.value)} 
-                      sx={{ 
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                          '&:hover fieldset': {
-                            borderColor: '#0062E6',
-                          },
-                        },
-                      }}
-                    />
-                  </MDBox>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <MDBox mb={1}>
-                    <FormControl fullWidth variant="outlined" sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        height: '45px', // Augmenter la hauteur
-                        '&:hover fieldset': {
-                          borderColor: '#0062E6',
-                        },
-                      },
-                      '& .MuiInputLabel-root': {
-                        // Ajuster la position du label si nécessaire
-                        transform: 'translate(14px, 18px) scale(1)',
-                      },
-                      '& .MuiInputLabel-shrink': {
-                        transform: 'translate(14px, -9px) scale(0.75)',
-                      },
-                    }}>
-                      <InputLabel id="sexe-label">Sexe</InputLabel>
-                      <Select
-                        labelId="sexe-label"
-                        id="sexe"
-                        value={sexe}
-                        label="Sexe"
-                        onChange={(e) => setSexe(e.target.value)}
-                      >
-                        <MenuItem value="">-- Sélectionner --</MenuItem>
-                        <MenuItem value="Homme">Homme</MenuItem>
-                        <MenuItem value="Femme">Femme</MenuItem>
-                        
-                      </Select>
-                    </FormControl>
-                  </MDBox>
-                </Grid>
-                <Grid item xs={12}>
-                  <MDBox mb={1}>
-                    <MDInput 
-                      type="date" 
-                      label="Date de naissance" 
-                      variant="outlined" 
-                      fullWidth 
-                      value={dateNaissance} 
-                      onChange={(e) => setDateNaissance(e.target.value)} 
-                      InputLabelProps={{ shrink: true }} 
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
@@ -431,7 +488,15 @@ function Cover() {
               <MDTypography variant="h5" fontWeight="medium" textAlign="center" mb={3}>
                 Choisissez votre plan pour commencer votre préparation au TCF Canada
               </MDTypography>
-              <SubscriptionPlans email={email} />
+              <SubscriptionPlans 
+                email={email} 
+                onSelectPlan={(plan) => {
+                  setSelectedPlan(plan);
+                  console.log("Plan sélectionné:", plan);
+                  // Procéder à l'inscription avec le plan sélectionné
+                  handleSignUp();
+                }}
+              />
               <MDBox mt={2} display="flex" justifyContent="space-between">
                 <MDButton 
                   variant="outlined" 

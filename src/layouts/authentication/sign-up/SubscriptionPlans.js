@@ -101,7 +101,7 @@ const PopularBadge = styled(Chip)(({ theme }) => ({
   zIndex: 1,
 }));
 
-const SubscriptionPlans = ({ email }) => {
+const SubscriptionPlans = ({ email, onSelectPlan }) => {
   const [loading, setLoading] = useState(false);
   
   // Configuration des plans avec les produits Stripe
@@ -161,6 +161,13 @@ const SubscriptionPlans = ({ email }) => {
       ],
     },
   ];
+
+  // Fonction pour sélectionner un plan directement (sans passer par Stripe)
+  const handleSelectPlan = (plan) => {
+    if (onSelectPlan) {
+      onSelectPlan(plan);
+    }
+  };
 
   // Fonction pour créer une session de paiement Stripe via le backend
   const handleCheckout = async (plan) => {
@@ -238,22 +245,26 @@ const SubscriptionPlans = ({ email }) => {
                 </FeatureItem>
               ))}
               <Box sx={{ flexGrow: 1, minHeight: 15 }} />
-              <ActionButton 
-                variant="contained" 
-                fullWidth 
-                color="primary" 
-                disableElevation
-                onClick={() => handleCheckout(plan)}
-                disabled={loading}
-                sx={{ 
-                  color: 'white',
-                  fontSize: '1.1rem',
-                  py: 1.5,
-                  boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
-                }}
-              >
-                {loading ? 'Chargement...' : 'Acheter maintenant'}
-              </ActionButton>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              
+                <ActionButton 
+                  variant="contained" 
+                  fullWidth 
+                  color="primary" 
+                  disableElevation
+                  onClick={() => handleCheckout(plan)}
+                  disabled={loading}
+                  sx={{ 
+                    color: 'white',
+                    fontSize: '1.1rem',
+                    py: 1.5,
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                    background: 'linear-gradient(135deg, #11998e, #38ef7d)'
+                  }}
+                >
+                  {loading ? 'Chargement...' : 'Payer maintenant'}
+                </ActionButton>
+              </Box>
             </PlanContent>
           </PlanCard>
         </Box>

@@ -32,6 +32,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import EmailIcon from "@mui/icons-material/Email";
 import PhoneIcon from "@mui/icons-material/Phone";
 import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
@@ -58,7 +60,11 @@ function UserManagement() {
   const [editMode, setEditMode] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-  
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [countryCode, setCountryCode] = useState("+1"); // Default country code
+
   // Form state
   const [formData, setFormData] = useState({
     username: "",
@@ -67,11 +73,23 @@ function UserManagement() {
     nom: "",
     prenom: "",
     tel: "",
-    sexe: "",
-    date_naissance: "",
     subscription_plan: "",
-    role: ""
+    role: "",
+    sold: ""
   });
+
+  const countryCodes = [
+    { code: "+1", label: "Canada/USA (+1)" },
+    { code: "+33", label: "France (+33)" },
+    { code: "+32", label: "Belgium (+32)" },
+    { code: "+49", label: "Germany (+49)" },
+    { code: "+44", label: "UK (+44)" },
+    { code: "+34", label: "Spain (+34)" },
+    { code: "+39", label: "Italy (+39)" },
+    { code: "+41", label: "Switzerland (+41)" },
+    { code: "+212", label: "Morocco (+212)" },
+    { code: "+213", label: "Algeria (+213)" },
+  ];
 
   const subscriptionPlans = [
     { value: "standard", label: "Pack Écrit Standard", color: "info" },
@@ -124,11 +142,11 @@ function UserManagement() {
         nom: user.nom || "",
         prenom: user.prenom || "",
         tel: user.tel || "",
-        sexe: user.sexe || "",
-        date_naissance: user.date_naissance || "",
         subscription_plan: user.subscription_plan || "",
         role: user.role || "client"
       });
+      setConfirmPassword("");
+      setCountryCode(user.tel ? user.tel.substring(0, user.tel.indexOf(user.tel.match(/\d/))) : "+1");
     } else {
       setEditMode(false);
       setSelectedUser(null);
@@ -139,11 +157,11 @@ function UserManagement() {
         nom: "",
         prenom: "",
         tel: "",
-        sexe: "",
-        date_naissance: "",
         subscription_plan: "",
         role: "client"
       });
+      setConfirmPassword("");
+      setCountryCode("+1");
     }
     setOpenDialog(true);
   };
@@ -159,6 +177,13 @@ function UserManagement() {
   };
 
   const handleSubmit = async () => {
+    if (!editMode && formData.password !== confirmPassword) {
+      showSnackbar("Les mots de passe ne correspondent pas", "error");
+      return;
+    }
+
+    const telWithCode = formData.tel ? `${countryCode} ${formData.tel}` : "";
+
     try {
       if (editMode) {
         // Update user
@@ -169,6 +194,7 @@ function UserManagement() {
           },
           body: JSON.stringify({
             ...formData,
+            tel: telWithCode,
             plan: formData.subscription_plan
           }),
         });
@@ -184,6 +210,7 @@ function UserManagement() {
         // Create new user
         const response = await authService.signup({
           ...formData,
+          tel: telWithCode,
           plan: formData.subscription_plan
         });
         
@@ -233,7 +260,7 @@ function UserManagement() {
   const columns = [
     { Header: "Utilisateur", accessor: "user", width: "20%", align: "left" },
     { Header: "Contact", accessor: "contact", width: "18%", align: "left" },
-    { Header: "Informations", accessor: "info", width: "15%", align: "center" },
+    { Header: "Solde", accessor: "info", width: "15%", align: "center" },
     { Header: "Plan", accessor: "plan", width: "12%", align: "center" },
     { Header: "Rôle", accessor: "role", width: "10%", align: "center" },
     { Header: "Actions", accessor: "actions", width: "15%", align: "center" },
@@ -285,10 +312,7 @@ function UserManagement() {
     info: (
       <MDBox textAlign="center" lineHeight={1}>
         <MDTypography variant="caption" color="text" fontWeight="medium">
-          {user.sexe || "Non renseigné"}
-        </MDTypography>
-        <MDTypography variant="caption" color="text" display="block">
-          {user.date_naissance || "Non renseigné"}
+          {user.sold || "0.00"} 
         </MDTypography>
       </MDBox>
     ),
@@ -482,6 +506,61 @@ function UserManagement() {
                 sx={{ mb: 2 }}
               />
             </Grid>
+            {!editMode && (
+              <>
+                <Grid item xs={12} md={6}>
+                  <MDInput
+                    label="Mot de passe"
+                    type={showPassword ? "text" : "password"}
+                    fullWidth
+                    value={formData.password}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    sx={{ mb: 2 }}
+                    InputProps={{
+                      endAdornment: (
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <MDInput
+                    label="Confirmer le mot de passe"
+                    type={showConfirmPassword ? "text" : "password"}
+                    fullWidth
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    sx={{ mb: 2 }}
+                    InputProps={{
+                      endAdornment: (
+                        <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      ),
+                    }}
+                  />
+                </Grid>
+              </>
+            )}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth variant="outlined" sx={{ mb: 2, minHeight: '45px' }}>
+                <InputLabel>Indicatif Pays</InputLabel>
+                <Select
+                  style={{ minHeight: '44px' }}
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  label="Indicatif Pays"
+                >
+                  {countryCodes.map((country) => (
+                    <MenuItem key={country.code} value={country.code}>
+                      {country.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid item xs={12} md={6}>
               <MDInput
                 label="Téléphone"
@@ -491,23 +570,6 @@ function UserManagement() {
                 sx={{ mb: 2 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth variant="outlined" sx={{ minHeight: '45px' }}>
-                <InputLabel>Sexe</InputLabel>
-                <Select
-                  style={{minHeight: '44px' }}
-                  value={formData.sexe}
-                  onChange={(e) => handleInputChange('sexe', e.target.value)}
-                  label="Sexe"
-                >
-                  <MenuItem value="">Sélectionner le sexe</MenuItem>
-                  <MenuItem value="Homme">Homme</MenuItem>
-                  <MenuItem value="Femme">Femme</MenuItem>
-                  
-                </Select>
-              </FormControl>
-            </Grid>
-         
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth variant="outlined" sx={{ minHeight: '45px' }}>
                 <InputLabel>Rôle</InputLabel>
@@ -524,17 +586,6 @@ function UserManagement() {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <MDInput
-                label="Date de naissance"
-                type="date"
-                fullWidth
-                value={formData.date_naissance}
-                onChange={(e) => handleInputChange("date_naissance", e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ mb: 2 }}
-              />
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth sx={{ mb: 2, minHeight: '45px' }}>
