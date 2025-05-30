@@ -47,13 +47,15 @@ import createCache from "@emotion/cache";
 import routes from "routes";
 
 // Simulateur TCF Canada React contexts
-import { useMaterialUIController, setMiniSidenav, setOpenConfigurator } from "context";
+import { useMaterialUIController, setMiniSidenav, setOpenConfigurator, InfoUserProvider } from "context";
 
 // Images
 import brandWhite from "assets/images/logo-ct.png";
 import brandDark from "assets/images/logo-ct-dark.png";
+import tcfCanadaLogo from "assets/logo-tfc-canada.png";
 
 export default function App() {
+  const { pathname } = useLocation();
   const [controller, dispatch] = useMaterialUIController();
   const {
     miniSidenav,
@@ -67,7 +69,7 @@ export default function App() {
   } = controller;
   const [onMouseEnter, setOnMouseEnter] = useState(false);
   const [rtlCache, setRtlCache] = useState(null);
-  const { pathname } = useLocation();
+  const [isExamStarted, setIsExamStarted] = useState(false);
 
   // Cache for the rtl
   useMemo(() => {
@@ -77,6 +79,33 @@ export default function App() {
     });
 
     setRtlCache(cacheRtl);
+  }, []);
+
+  // Vérifier l'état de l'examen depuis localStorage
+  useEffect(() => {
+    const checkExamStatus = () => {
+      const examStarted = localStorage.getItem('examStarted');
+      setIsExamStarted(examStarted === 'true');
+    };
+
+    checkExamStatus();
+    
+    // Écouter les changements dans localStorage
+    const handleStorageChange = (e) => {
+      if (e.key === 'examStarted') {
+        setIsExamStarted(e.newValue === 'true');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Vérifier périodiquement l'état (pour les changements dans le même onglet)
+    const interval = setInterval(checkExamStatus, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   // Open sidenav when mouse enter on mini sidenav
@@ -146,53 +175,58 @@ export default function App() {
     </MDBox>
   );
 
-  return direction === "rtl" ? (
-    <CacheProvider value={rtlCache}>
-      <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
-        <CssBaseline />
-        {layout === "dashboard" && (
-          <>
-            <Sidenav
-              color={sidenavColor}
-              brand={(transparentSidenav && !darkMode) || whiteSidenav ? brandDark : brandWhite}
-              brandName="Simulateur TCF Canada"
-              routes={routes}
-              onMouseEnter={handleOnMouseEnter}
-              onMouseLeave={handleOnMouseLeave}
-            />
-            <Configurator />
-            {configsButton}
-          </>
-        )}
-        {layout === "vr" && <Configurator />}
-        <Routes>
-          {getRoutes(routes)}
-          <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
-        </Routes>
-      </ThemeProvider>
-    </CacheProvider>
-  ) : (
-    <ThemeProvider theme={darkMode ? themeDark : theme}>
-      <CssBaseline />
-      {layout === "dashboard" && (
-        <>
-          <Sidenav
-            color={sidenavColor}
-            brand={(transparentSidenav && !darkMode) || whiteSidenav ? brandDark : brandWhite}
-            brandName="Réussir TCF Canada"
-            routes={routes}
-            onMouseEnter={handleOnMouseEnter}
-            onMouseLeave={handleOnMouseLeave}
-          />
-          <Configurator />
-          {configsButton}
-        </>
+  return (
+    <InfoUserProvider>
+      {direction === "rtl" ? (
+        <CacheProvider value={rtlCache}>
+          <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
+            <CssBaseline />
+            {layout === "dashboard" && !pathname.includes('/results') && !isExamStarted && (
+              <>
+                <Sidenav
+                  color={sidenavColor}
+                  brand={tcfCanadaLogo}
+                  brandName=""
+                  routes={routes}
+                  onMouseEnter={handleOnMouseEnter}
+                  onMouseLeave={handleOnMouseLeave}
+                />
+              
+                <Configurator />
+                {configsButton}
+              </>
+            )}
+            {layout === "vr" && <Configurator />}
+            <Routes>
+              {getRoutes(routes)}
+              <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
+            </Routes>
+          </ThemeProvider>
+        </CacheProvider>
+      ) : (
+        <ThemeProvider theme={darkMode ? themeDark : theme}>
+          <CssBaseline />
+          {layout === "dashboard" && !pathname.includes('/results') && !isExamStarted && (
+            <>
+              <Sidenav
+                color={sidenavColor}
+                brand={tcfCanadaLogo}
+                brandName=""
+                routes={routes}
+                onMouseEnter={handleOnMouseEnter}
+                onMouseLeave={handleOnMouseLeave}
+              />
+              {configsButton}
+              <Configurator />
+            </>
+          )}
+          {layout === "vr" && <Configurator />}
+          <Routes>
+            {getRoutes(routes)}
+            <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
+          </Routes>
+        </ThemeProvider>
       )}
-      {layout === "vr" && <Configurator />}
-      <Routes>
-        {getRoutes(routes)}
-        <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
-      </Routes>
-    </ThemeProvider>
+    </InfoUserProvider>
   );
 }

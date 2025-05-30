@@ -19,12 +19,14 @@ const TCFAdminService = {
       // Adapter les données du backend au format attendu par le frontend
       const adaptedData = response.data.map(subject => ({
         ...subject,
-        plans: subject.subscription_plan, // Convertir subscription_plan en plans pour le frontend
+        blog: subject.description || "", // Convertir description en blog pour le frontend
         tasks: subject.tasks.map(task => ({
           ...task,
-          structure: task.description || task.structure || "",
-          minWordCount: task.min_word_count || 0,
-          wordCount: task.word_count || 0
+          structure: task.structure || "",
+          instructions: task.instructions || "",
+          minWordCount: task.min_word_count !== null ? task.min_word_count : 60,
+          wordCount: task.max_word_count !== null ? task.max_word_count : 150,
+          documents: task.documents || []
         }))
       }));
       
@@ -46,13 +48,14 @@ const TCFAdminService = {
       // Adapter les données du backend au format attendu par le frontend
       const adaptedData = {
         ...response.data,
-        plans: response.data.subscription_plan, // Convertir subscription_plan en plans pour le frontend
+        blog: response.data.description || "", // Convertir description en blog pour le frontend
         tasks: response.data.tasks.map(task => ({
           ...task,
-          structure: task.description || task.structure || "",
-          minWordCount: task.min_word_count || 0,
-          wordCount: task.word_count || 0,
-          instructions: task.instructions || "" // Assurer que instructions est inclus
+          structure: task.structure || "",
+          instructions: task.instructions || "",
+          minWordCount: task.min_word_count !== null ? task.min_word_count : 60,
+          wordCount: task.max_word_count !== null ? task.max_word_count : 150,
+          documents: task.documents || []
         }))
       };
       return adaptedData;
@@ -72,16 +75,15 @@ const TCFAdminService = {
       // Adapter les données du frontend au format attendu par le backend
       const adaptedData = {
         ...subjectData,
-        subscription_plan: subjectData.plans, // Convertir plans en subscription_plan pour le backend
+        description: subjectData.blog || "", // Convertir blog en description pour le backend
         subject_type: 'Écrit', // Toujours définir le type comme 'Écrit'
         tasks: subjectData.tasks.map(task => ({
           title: task.title,
-          description: task.structure,
-          word_count: task.wordCount,
-          audio_duration: task.duration,
-          min_word_count: task.minWordCount,
-          instructions: task.instructions, // Ajouter le champ instructions
-          documents_de_reference: task.documentsDeReference // Ajouter le champ documents_de_reference
+          structure: task.structure,
+          instructions: task.instructions || "",
+          min_word_count: task.minWordCount !== null && task.minWordCount !== undefined ? task.minWordCount : 0,
+          max_word_count: task.wordCount !== null && task.wordCount !== undefined ? task.wordCount : 0,
+          documents: task.documents || []
         }))
       };
 
@@ -104,15 +106,15 @@ const TCFAdminService = {
       // Adapter les données du frontend au format attendu par le backend
       const adaptedData = {
         ...subjectData,
-        subscription_plan: subjectData.plans, // Convertir plans en subscription_plan pour le backend
+        description: subjectData.blog || "", // Convertir blog en description pour le backend
         subject_type: 'Écrit', // Toujours définir le type comme 'Écrit'
         tasks: subjectData.tasks.map(task => ({
           title: task.title,
-          description: task.structure,
-          word_count: task.wordCount,
-          audio_duration: task.duration,
-          min_word_count: task.minWordCount,
-          instructions: task.instructions // Ajouter le champ instructions
+          structure: task.structure,
+          instructions: task.instructions || "",
+          min_word_count: task.minWordCount !== null && task.minWordCount !== undefined ? task.minWordCount : 0,
+          max_word_count: task.wordCount !== null && task.wordCount !== undefined ? task.wordCount : 0,
+          documents: task.documents || []
         }))
       };
 

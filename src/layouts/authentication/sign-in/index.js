@@ -35,9 +35,12 @@ import BasicLayout from "layouts/authentication/components/BasicLayout";
 
 // Images
 import bgImage from "assets/images/bg-sign-in-modern.jpg";
+import authService from "services/authService";
+import { useInfoUser } from "context/InfoUserContext";
 
 function Basic() {
   const navigate = useNavigate();
+  const { loadUserInfo } = useInfoUser();
   const [rememberMe, setRememberMe] = useState(false);
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,32 +59,20 @@ function Basic() {
     }
     
     try {
-      // Appel à l'API d'authentification
-      const response = await fetch("http://localhost:5001/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          username: usernameOrEmail, // Le backend accepte maintenant username ou email
-          password: password
-        })
+      const response = await authService.login({
+        username: usernameOrEmail,
+        password: password,
       });
       
-      const data = await response.json();
-      
-      if (data.acces_token) {
-        // Stocker le token dans localStorage
-        localStorage.setItem("token", data.acces_token);
-        console.log(data.acces_token)
-        // Redirection vers le tableau de bord après connexion réussie
+      if (response.data.access_token) {
+        await loadUserInfo(); // Charger les informations utilisateur après une connexion réussie
         navigate("/dashboard");
       } else {
-        setError(data.message || "Échec de la connexion. Veuillez vérifier vos identifiants.");
+        setError(response.data.message || "Échec de la connexion. Veuillez vérifier vos identifiants.");
         setOpenSnackbar(true);
       }
     } catch (error) {
-      setError("Échec de la connexion. Veuillez vérifier vos identifiants.");
+      setError(error.message || "Échec de la connexion. Veuillez vérifier vos identifiants.");
       setOpenSnackbar(true);
       console.error("Erreur de connexion:", error);
     }

@@ -47,7 +47,7 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Simulateur IA TCF Écrite",
+    name: "Simulateur Expression Écrite",
     key: "tcf-simulator-written",
     icon: <DescriptionIcon fontSize="small" />,
     route: "/tcf-simulator/written",
@@ -69,7 +69,7 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Simulateur IA TCF Orale",
+    name: "Simulateur Expression Oral",
     key: "tcf-simulator-oral",
     icon: <RecordVoiceOverIcon fontSize="small" />,
     route: "/tcf-simulator/oral",
@@ -77,11 +77,10 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Cours",
-    key: "courses",
+    name: "Packs Nabil",
+    key: "packs-nabil",
     icon: <SchoolIcon fontSize="small" />,
-    route: "/tables",
-    component: <Tables />,
+    href: "https://reussir-tcfcanada.com/",
   },
   {
     type: "collapse",
@@ -91,14 +90,7 @@ const routes = [
     route: "/billing",
     component: <Billing />,
   },
-  {
-    type: "collapse",
-    name: "Notifications",
-    key: "notifications",
-    icon: <Icon fontSize="small">notifications</Icon>,
-    route: "/notifications",
-    component: <Notifications />,
-  },
+
   {
     type: "collapse",
     name: "Gestion Utilisateurs",
@@ -133,7 +125,7 @@ const routes = [
   },
 
   {
-    type: "collapse",
+    type: "route",
     name: "Payment Success",
     key: "payment-success",
     icon: <Icon fontSize="small">payment</Icon>,

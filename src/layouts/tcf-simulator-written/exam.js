@@ -42,6 +42,7 @@ import MDButton from "components/MDButton";
 
 // Services
 import TCFAdminService from "services/tcfAdminService";
+import authService from "services/authService";
 
 function TCFExamInterface() {
   const { subjectId } = useParams();
@@ -56,6 +57,15 @@ function TCFExamInterface() {
   const [isExamStarted, setIsExamStarted] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved');
+  const [userInfo, setUserInfo] = useState(null);
+  const [showCharacterTable, setShowCharacterTable] = useState(false);
+  
+  // Caractères spéciaux disponibles
+  const specialCharacters = [
+    ['é', 'è', 'ê', 'ë', 'à'],
+    ['â', 'ù', 'û', 'ç', 'ô'],
+    ['œ', 'æ']
+  ];
   
   // Configuration ReactQuill
   const quillModules = {
@@ -72,7 +82,7 @@ function TCFExamInterface() {
     'list', 'bullet'
   ];
 
-  // Chargement du sujet
+  // Chargement du sujet et des informations utilisateur
   useEffect(() => {
     const fetchSubject = async () => {
       try {
@@ -90,6 +100,12 @@ function TCFExamInterface() {
             initialResponses[index] = '';
           });
           setResponses(initialResponses);
+        }
+        
+        // Charger les informations utilisateur depuis le localStorage
+        const savedUserInfo = localStorage.getItem('user_info');
+        if (savedUserInfo) {
+          setUserInfo(JSON.parse(savedUserInfo));
         }
       } catch (error) {
         console.error('Erreur lors du chargement du sujet:', error);
@@ -109,6 +125,7 @@ function TCFExamInterface() {
       interval = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
+            localStorage.removeItem('examStarted');
             handleSubmitExam();
             return 0;
           }
@@ -177,10 +194,60 @@ function TCFExamInterface() {
     setCurrentTaskIndex(index);
   };
 
-  // Démarrage de l'examen
-  const handleStartExam = () => {
-    setIsExamStarted(true);
+  const handleSaveResponse = () => {
+    // La sauvegarde est déjà gérée par handleResponseChange via useEffect
+    // et par les navigations handleNextTask, handlePreviousTask, handleTaskSelect.
+    // Cette fonction peut être utilisée pour déclencher une sauvegarde manuelle si nécessaire
+    // ou pour afficher une confirmation à l'utilisateur.
+    // Pour l'instant, nous allons juste forcer une mise à jour de l'état de sauvegarde.
+    setAutoSaveStatus('saving');
+    localStorage.setItem(`tcf-responses-${subjectId}`, JSON.stringify(responses));
+    setTimeout(() => {
+      setAutoSaveStatus('saved');
+      if (currentTaskIndex === subject.tasks.length - 1) {
+        handleSubmitExam(); // Terminer l'examen si c'est la dernière tâche
+      } else {
+        handleNextTask(); // Passer à la tâche suivante
+      }
+    }, 500); // Attendre un court instant pour que l'état 'saved' soit visible
   };
+
+  // Démarrage de l'examen
+  const handleStartExam = async () => {
+    try {
+      // Récupérer les informations utilisateur depuis localStorage
+      const userInfoString = localStorage.getItem('user_info');
+      if (userInfoString) {
+        const userInfo = JSON.parse(userInfoString);
+        const currentSold = userInfo.sold;
+        
+        // Vérifier si l'utilisateur a suffisamment de crédits
+        if (currentSold > 0) {
+          // Décrémenter le solde de 1
+          const newSold = currentSold - 1;
+          
+          // Mettre à jour le solde dans localStorage
+          userInfo.sold = newSold;
+          localStorage.setItem('user_info', JSON.stringify(userInfo));
+          
+          // Mettre à jour le solde dans le backend via API
+          await authService.updateSold(userInfo.username, newSold);
+          
+          // Démarrer l'examen
+          setIsExamStarted(true);
+          localStorage.setItem('examStarted', 'true');
+        } else {
+          // Afficher un message d'erreur si pas assez de crédits
+          alert('Vous n\'avez pas suffisamment de crédits pour commencer cet examen.');
+        }
+      } else {
+        alert('Erreur: Informations utilisateur non trouvées.');
+      }
+    } catch (error) {
+       console.error('Erreur lors de la mise à jour du solde:', error);
+       alert('Erreur lors du démarrage de l\'examen. Veuillez réessayer.');
+     }
+   };
 
   // Soumission de l'examen
   const handleSubmitExam = () => {
@@ -191,6 +258,9 @@ function TCFExamInterface() {
     // Sauvegarder les réponses dans le localStorage
     localStorage.setItem(`tcf-responses-${subjectId}`, JSON.stringify(responses));
     
+    // Arrêter l'examen (supprimer l'état du localStorage)
+    localStorage.removeItem('examStarted');
+    
     // Rediriger vers la page de résultats
     navigate(`/tcf-simulator/written/results/${subjectId}`);
   };
@@ -199,6 +269,35 @@ function TCFExamInterface() {
   const getProgress = () => {
     const completedTasks = Object.values(responses).filter(response => response.trim().length > 0).length;
     return (completedTasks / subject?.tasks?.length || 0) * 100;
+  };
+
+  // Compteur de caractères
+  const getCharacterCount = () => {
+    const currentResponse = responses[currentTaskIndex] || '';
+    // Supprimer les balises HTML pour compter seulement le texte
+    const textOnly = currentResponse.replace(/<[^>]*>/g, '');
+    return textOnly.length;
+  };
+
+  // Insertion de caractères spéciaux
+  const insertSpecialCharacter = (character) => {
+    if (quillRef.current) {
+      const quill = quillRef.current.getEditor();
+      const range = quill.getSelection();
+      if (range) {
+        quill.insertText(range.index, character);
+        quill.setSelection(range.index + 1);
+      } else {
+        const length = quill.getLength();
+        quill.insertText(length - 1, character);
+        quill.setSelection(length);
+      }
+    }
+  };
+
+  // Basculer l'affichage du tableau de caractères
+  const toggleCharacterTable = () => {
+    setShowCharacterTable(!showCharacterTable);
   };
 
   if (!subject) {
@@ -333,392 +432,344 @@ function TCFExamInterface() {
   const currentTask = subject.tasks[currentTaskIndex];
 
   return (
-    <MDBox sx={{ minHeight: '100vh', backgroundColor: '#f0f5ff', display: 'flex', flexDirection: 'column', ml: 25 }}>
-      {/* Header avec timer et progrès */}
+    <MDBox 
+      sx={{ 
+        minHeight: '100vh', 
+        background: 'linear-gradient(135deg, #a8e6cf 0%, #88d8c0 25%, #7fcdcd 50%, #81c7d4 75%, #88c5db 100%)',
+        display: 'flex',
+        flexDirection: 'row',
+        p: 0,
+        m: 0
+      }}
+    >
+      {/* Barre latérale gauche - Navigation des tâches */}
       <MDBox 
         sx={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 1000,
-          backgroundColor: 'white',
-          borderBottom: '1px solid #e2e8f0',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-          width: '100%'
+          width: '200px',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          flexDirection: 'column',
+          p: 2,
+          gap: 1
         }}
       >
-        <Container maxWidth="xl">
-          <MDBox py={2}>
-            <Grid container alignItems="center" spacing={2}>
-              <Grid item xs={12} md={4}>
-                <MDBox display="flex" alignItems="center">
-                  <Avatar sx={{ bgcolor: '#3b82f6', mr: 2 }}>
-                    <Icon>description</Icon>
-                  </Avatar>
-                  <MDBox>
-                    <MDTypography variant="h6" fontWeight="bold" color="dark">
-                      {subject.name}
-                    </MDTypography>
-                    <MDTypography variant="caption" color="text">
-                      Tâche {currentTaskIndex + 1} sur {subject.tasks.length}
-                    </MDTypography>
-                  </MDBox>
-                </MDBox>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <MDBox textAlign="center">
-                  <MDTypography 
-                    variant="h4" 
-                    fontWeight="bold" 
-                    color={timeRemaining < 300 ? "error" : "info"}
-                    sx={{ 
-                      fontFamily: 'monospace',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: timeRemaining < 300 ? '#fee2e2' : '#eff6ff',
-                      padding: '4px 16px',
-                      borderRadius: '12px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                    }}
-                  >
-                    <Icon sx={{ mr: 1, color: timeRemaining < 300 ? '#ef4444' : '#3b82f6' }}>timer</Icon>
-                    {formatTime(timeRemaining)}
-                  </MDTypography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={(1 - timeRemaining / (subject.duration * 60)) * 100}
-                    sx={{ 
-                      mt: 1, 
-                      height: 8, 
-                      borderRadius: 4,
-                      backgroundColor: '#e2e8f0',
-                      '& .MuiLinearProgress-bar': {
-                        backgroundColor: timeRemaining < 300 ? '#ef4444' : '#3b82f6'
-                      }
-                    }}
-                  />
-                </MDBox>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <MDBox display="flex" justifyContent="flex-end" alignItems="center" gap={2}>
-                  <Tooltip title={autoSaveStatus === 'saving' ? 'Sauvegarde en cours...' : 'Toutes les modifications sont sauvegardées'}>
-                    <Chip 
-                      icon={<Icon>{autoSaveStatus === 'saving' ? 'sync' : 'check_circle'}</Icon>}
-                      label={autoSaveStatus === 'saving' ? 'Sauvegarde...' : 'Sauvegardé'}
-                      color={autoSaveStatus === 'saving' ? 'warning' : 'success'}
-                      size="small"
-                      sx={{ borderRadius: '8px' }}
-                    />
-                  </Tooltip>
-                  <MDButton 
-                    variant="contained" 
-                    color="error" 
-                    size="small"
-                    onClick={handleSubmitExam}
-                    sx={{ 
-                      borderRadius: '8px',
-                      boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)'
-                    }}
-                  >
-                    <Icon sx={{ mr: 0.5 }}>send</Icon>
-                    Terminer
-                  </MDButton>
-                </MDBox>
-              </Grid>
-            </Grid>
-            
-            {/* Barre de progrès des tâches avec indicateurs */}
-            <MDBox mt={2}>
-              <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                <MDTypography variant="body2" color="text">
-                  Progrès: {Math.round(getProgress())}% complété
-                </MDTypography>
-                <MDTypography variant="body2" color="text">
-                  {Object.values(responses).filter(r => r.trim().length > 0).length} sur {subject.tasks.length} tâches
-                </MDTypography>
-              </MDBox>
-              <LinearProgress 
-                variant="determinate" 
-                value={getProgress()}
-                sx={{ 
-                  height: 10, 
-                  borderRadius: 5,
-                  backgroundColor: '#e2e8f0',
-                  '& .MuiLinearProgress-bar': {
-                    backgroundColor: '#10b981'
-                  }
-                }}
-              />
-              
-              {/* Indicateurs de tâches */}
-              <MDBox display="flex" justifyContent="space-between" mt={1}>
-                {subject.tasks.map((task, index) => {
-                  const isCompleted = responses[index]?.trim().length > 0;
-                  const isCurrent = index === currentTaskIndex;
-                  return (
-                    <Tooltip key={index} title={`Tâche ${index + 1}${isCompleted ? ' - Complétée' : ''}`}>
-                      <Badge
-                        color={isCompleted ? 'success' : isCurrent ? 'info' : 'default'}
-                        variant={isCurrent ? 'dot' : 'standard'}
-                        overlap="circular"
-                        badgeContent={isCompleted ? '✓' : ''}
-                      >
-                        <Avatar 
-                          onClick={() => handleTaskSelect(index)}
-                          sx={{ 
-                            width: 28, 
-                            height: 28, 
-                            fontSize: '0.8rem',
-                            bgcolor: isCompleted ? '#10b981' : isCurrent ? '#3b82f6' : '#e2e8f0',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              transform: 'scale(1.1)',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                            }
-                          }}
-                        >
-                          {index + 1}
-                        </Avatar>
-                      </Badge>
-                    </Tooltip>
-                  );
-                })}
-              </MDBox>
-            </MDBox>
-          </MDBox>
-        </Container>
+        {subject.tasks.map((task, index) => {
+          const isCompleted = responses[index]?.trim().length > 0;
+          const isCurrent = index === currentTaskIndex;
+          return (
+            <MDButton
+              key={index}
+              onClick={() => handleTaskSelect(index)}
+              sx={{
+                backgroundColor: isCurrent ? '#4dd0e1' : 'rgba(255, 255, 255, 0.2)',
+                color: '#000',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                borderRadius: '8px',
+                p: 1.5,
+                textAlign: 'left',
+                justifyContent: 'flex-start',
+                border: isCurrent ? '2px solid #00acc1' : '1px solid rgba(255, 255, 255, 0.3)',
+                '&:hover': {
+                  backgroundColor: '#4dd0e1',
+                  transform: 'translateX(5px)'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              TACHE {index + 1}
+              {isCompleted && (
+                <Icon sx={{ ml: 'auto', fontSize: '16px', color: '#00695c' }}>check_circle</Icon>
+              )}
+            </MDButton>
+          );
+        })}
       </MDBox>
 
-      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 3 }}>
-        <Grid container spacing={3}>
-          {/* Navigation des tâches */}
-          <Grid item xs={12} lg={3}>
-            <Card sx={{ 
-              p: 2, 
-              height: 'fit-content', 
-              position: 'sticky', 
-              top: 180,
-              borderRadius: '16px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
-            }}>
-              <MDBox display="flex" alignItems="center" mb={2}>
-                <Icon sx={{ color: '#3b82f6', mr: 1 }}>navigation</Icon>
-                <MDTypography variant="h6" fontWeight="bold" color="dark">
-                  Navigation
-                </MDTypography>
-              </MDBox>
-              
-              <Stepper orientation="vertical" activeStep={currentTaskIndex} connector={<StepConnector sx={{ ml: '12px' }} />}>
-                {subject.tasks.map((task, index) => {
-                  const isCompleted = responses[index]?.trim().length > 0;
-                  return (
-                    <Step key={index} sx={{ cursor: 'pointer' }} onClick={() => handleTaskSelect(index)}>
-                      <StepLabel 
-                        sx={{ 
-                          '& .MuiStepLabel-label': {
-                            fontSize: '0.9rem',
-                            fontWeight: index === currentTaskIndex ? 'bold' : 'normal',
-                            color: index === currentTaskIndex ? '#3b82f6' : 'inherit'
-                          }
-                        }}
-                        StepIconComponent={() => (
-                          <Avatar
-                            sx={{
-                              width: 30,
-                              height: 30,
-                              fontSize: '1rem',
-                              fontWeight: 'bold',
-                           
-                              backgroundColor: isCompleted ? '#10b981' : 
-                                             index === currentTaskIndex ? '#3b82f6' : '#e2e8f0',
-                              boxShadow: index === currentTaskIndex ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none'
-                            }}
-                          >
-                            {isCompleted ? '✓' : index + 1}
-                          </Avatar>
-                        )}
-                      >
-                        <MDBox display="flex" justifyContent="space-between" alignItems="center" width="100%">
-                          <MDTypography variant="h6" fontWeight="bold" color="with">
-                            Tâche {index + 1}
-                          </MDTypography>
-                          {isCompleted && (
-                            <Chip 
-                              label="Complétée" 
-                              size="small" 
-                              color="success" 
-                              sx={{ height: 20, fontSize: '0.65rem' }}
-                            />
-                          )}
-                        </MDBox>
-                      </StepLabel>
-                    </Step>
-                  );
-                })}
-              </Stepper>
-            </Card>
-          </Grid>
+      {/* Zone centrale */}
+      <MDBox 
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          p: 3,
+          gap: 2
+        }}
+      >
+        {/* Zone d'instruction */}
+        <MDBox 
+          sx={{
+            backgroundColor: '#4dd0e1',
+            borderRadius: '20px',
+            p: 3,
+            border: '2px solid #00acc1',
+            minHeight: '120px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {currentTask.title && (
+     
+               <div 
+         
+               >
+               <h3>  Tache {currentTaskIndex + 1} : </h3>
+                 <p dangerouslySetInnerHTML={{ __html: currentTask.title }} />
+               </div>
+         
+           )}
+        </MDBox>
 
-          {/* Contenu principal */}
-          <Grid item xs={12} lg={9}>
-            <Zoom in timeout={500}>
-              <Card sx={{ 
-                p: 3, 
-                minHeight: '70vh',
-                borderRadius: '16px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
-              }}>
-                {/* En-tête de la tâche */}
-                <MDBox mb={3}>
-                  <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                    <MDBox display="flex" alignItems="center">
-                      <Avatar sx={{ bgcolor: '#3b82f6', mr: 1.5 }}>
-                        {currentTaskIndex + 1}
-                      </Avatar>
-                      <MDTypography variant="h5" fontWeight="bold" color="dark">
-                        Tâche {currentTaskIndex + 1}
-                      </MDTypography>
-                    </MDBox>
-                    <MDBox display="flex" gap={1}>
-                      <Chip 
-                        icon={<Icon fontSize="small">edit</Icon>}
-                        label={`${responses[currentTaskIndex]?.length || 0} caractères`}
-                        color="info"
-                        size="small"
-                        sx={{ borderRadius: '8px' }}
-                      />
-                      <Chip 
-                        icon={<Icon fontSize="small">schedule</Icon>}
-                        label={formatTime(timeRemaining)}
-                        color={timeRemaining < 300 ? "error" : "default"}
-                        size="small"
-                        sx={{ borderRadius: '8px' }}
-                      />
-                    </MDBox>
-                  </MDBox>
-                  
-                  {currentTask.title && (
-                    <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8fafc', borderRadius: '12px', mb: 2 }}>
-                      <div 
-                        dangerouslySetInnerHTML={{ __html: currentTask.title }}
-                        style={{
-                          fontSize: '1.1rem',
-                          fontWeight: 'bold',
-                          color: '#1f2937',
-                          marginBottom: '8px'
-                        }}
-                      />
-                    </Paper>
-                  )}
-                  
-                  {/* {currentTask.structure && (
-                    <MDBox mb={2}>
-                      <div 
-                        dangerouslySetInnerHTML={{ __html: currentTask.structure }}
-                        style={{
-                          fontSize: '0.9rem',
-                          color: '#6b7280',
-                          fontStyle: 'italic',
-                          padding: '8px 12px',
-                          borderLeft: '3px solid #3b82f6',
-                          backgroundColor: '#f0f5ff'
-                        }}
-                      />
-                    </MDBox>
-                  )} */}
-                  
-                  {/* {currentTask.instructions && (
-                    <Alert 
-                      severity="info" 
-                      sx={{ 
-                        mb: 2,
-                        borderRadius: '12px',
-                        '& .MuiAlert-icon': {
-                          color: '#3b82f6'
+        {/* Zone de réponse */}
+        <MDBox 
+          sx={{
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '20px',
+            p: 3,
+            border: '2px solid rgba(255, 255, 255, 0.5)',
+            flex: 1,
+            minHeight: '300px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <MDTypography 
+            variant="h6" 
+            fontWeight="bold" 
+            color="dark"
+            textAlign="center"
+            mb={3}
+          >
+            Zone de réponse
+          </MDTypography>
+          
+          {/* Affichage du contenu de la tâche */}
+          
+          {/* Zone de saisie */}
+          <Paper elevation={0} sx={{ p: 1, border: '1px solid #e2e8f0', borderRadius: '12px', flex: 1 }}>
+            <textarea
+              ref={quillRef}
+              value={responses[currentTaskIndex] || ''}
+              onChange={(e) => handleResponseChange(e.target.value)}
+              placeholder="Commencez à écrire votre réponse ici..."
+              style={{
+                width: '100%',
+                height: '100%',
+                minHeight: '200px',
+                padding: '10px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                fontSize: '16px',
+                resize: 'none', // Disable textarea resize handle
+                boxSizing: 'border-box' // Include padding and border in the element's total width and height
+              }}
+            />
+          </Paper>
+          <MDBox sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+            <MDButton
+              variant="contained"
+              color="info"
+              onClick={handlePreviousTask}
+              disabled={currentTaskIndex === 0}
+              sx={{
+                px: 3,
+                py: 1.5,
+                fontSize: '1rem',
+                borderRadius: '12px',
+                backgroundColor: '#3b82f6',
+                boxShadow: '0 8px 16px rgba(59, 130, 246, 0.3)',
+                '&:hover': {
+                  backgroundColor: '#2563eb',
+                  boxShadow: '0 8px 20px rgba(59, 130, 246, 0.4)',
+                },
+              }}
+            >
+              Précédent
+            </MDButton>
+            <MDButton
+              variant="contained"
+              color="success"
+              onClick={handleSaveResponse}
+              sx={{
+                px: 3,
+                py: 1.5,
+                fontSize: '1rem',
+                borderRadius: '12px',
+                backgroundColor: '#10b981',
+                boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
+                '&:hover': {
+                  backgroundColor: '#059669',
+                  boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)',
+                },
+              }}
+            >
+              {currentTaskIndex === subject.tasks.length - 1 ? 'Enregistrer et Terminer' : 'Enregistrer'}
+            </MDButton>
+          </MDBox>
+        </MDBox>
+      </MDBox>
+
+      {/* Barre latérale droite - Informations */}
+      <MDBox 
+        sx={{
+          width: '250px',
+          display: 'flex',
+          flexDirection: 'column',
+          p: 2,
+          gap: 2
+        }}
+      >
+        {/* Info candidat */}
+        <MDBox 
+          sx={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '15px',
+            p: 2,
+            textAlign: 'center'
+          }}
+        >
+          <MDTypography variant="h6" fontWeight="bold" color="dark">
+            Info candidat
+          </MDTypography>
+          <MDTypography variant="body2" color="dark">
+            {userInfo ? `${userInfo.prenom} ${userInfo.nom}` : 'Chargement...'}
+          </MDTypography>
+        </MDBox>
+
+        {/* Minuteur */}
+        <MDBox 
+          sx={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '15px',
+            p: 2,
+            textAlign: 'center'
+          }}
+        >
+          <MDTypography variant="h6" fontWeight="bold" color="dark" mb={1}>
+            Muniteur
+          </MDTypography>
+          <MDTypography 
+            variant="h3" 
+            fontWeight="bold" 
+            color={timeRemaining < 300 ? "error" : "dark"}
+            sx={{ 
+              fontFamily: 'monospace',
+              textAlign: 'center'
+            }}
+          >
+            {formatTime(timeRemaining)}
+          </MDTypography>
+        </MDBox>
+
+        {/* Outils */}
+        <MDBox 
+          sx={{
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '15px',
+            p: 2,
+            border: '2px solid rgba(255, 255, 255, 0.5)'
+          }}
+        >
+          {/* Compteur de caractères */}
+          <MDBox
+            sx={{
+              backgroundColor: '#4dd0e1',
+              color: '#000',
+              fontWeight: 'bold',
+              borderRadius: '10px',
+              mb: 1,
+              width: '100%',
+              p: 1,
+              textAlign: 'center'
+            }}
+          >
+            <MDTypography variant="body2" fontWeight="bold">
+              Caractères: {getCharacterCount()}
+            </MDTypography>
+          </MDBox>
+          
+          {/* Caractères spéciaux */}
+          <MDButton
+            onClick={toggleCharacterTable}
+            sx={{
+              backgroundColor: showCharacterTable ? '#26c6da' : '#4dd0e1',
+              color: '#000',
+              fontWeight: 'bold',
+              borderRadius: '10px',
+              width: '100%',
+              mb: showCharacterTable ? 1 : 0,
+              '&:hover': {
+                backgroundColor: '#26c6da'
+              }
+            }}
+          >
+            Caractères spéciaux
+          </MDButton>
+          
+          {/* Tableau de caractères spéciaux */}
+          {showCharacterTable && (
+            <MDBox 
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                borderRadius: '10px',
+                p: 1,
+                border: '1px solid #e0e0e0'
+              }}
+            >
+              <MDTypography variant="caption" fontWeight="bold" mb={1} display="block">
+                Tableau de Caractères
+              </MDTypography>
+              {specialCharacters.map((row, rowIndex) => (
+                <MDBox key={rowIndex} sx={{ display: 'flex', gap: 0.5, mb: 0.5, justifyContent: 'center' }}>
+                  {row.map((char, charIndex) => (
+                    <MDButton
+                      key={charIndex}
+                      onClick={() => insertSpecialCharacter(char)}
+                      sx={{
+                        minWidth: '30px',
+                        height: '30px',
+                        backgroundColor: '#f5f5f5',
+                        color: '#000',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        borderRadius: '6px',
+                        p: 0,
+                        '&:hover': {
+                          backgroundColor: '#e0e0e0'
                         }
                       }}
-                      icon={<Icon>info</Icon>}
                     >
-                      <div 
-                        dangerouslySetInnerHTML={{ __html: currentTask.instructions }}
-                        style={{
-                          fontSize: '0.9rem',
-                          lineHeight: '1.5'
-                        }}
-                      />
-                    </Alert>
-                  )} */}
+                      {char}
+                    </MDButton>
+                  ))}
                 </MDBox>
+              ))}
+            </MDBox>
+          )}
+        </MDBox>
 
-                {/* Zone de saisie */}
-                <MDBox>
-                  <MDBox display="flex" alignItems="center" mb={2}>
-                    <Icon sx={{ color: '#3b82f6', mr: 1 }}>create</Icon>
-                    <MDTypography variant="h6" color="dark">
-                      Votre réponse:
-                    </MDTypography>
-                  </MDBox>
-                  
-                  <Paper elevation={0} sx={{ p: 1, border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-                    <ReactQuill
-                      ref={quillRef}
-                      theme="snow"
-                      value={responses[currentTaskIndex] || ''}
-                      onChange={handleResponseChange}
-                      modules={quillModules}
-                      formats={quillFormats}
-                      placeholder="Commencez à écrire votre réponse ici..."
-                      style={{
-                        height: '200px',
-                        marginBottom: '50px',
-                        borderRadius: '12px',
-                        fontSize: '16px'
-                      }}
-                    />
-                  </Paper>
-                </MDBox>
-
-                {/* Navigation */}
-                <MDBox display="flex" justifyContent="space-between" mt={4}>
-                  <MDButton
-                    variant="outlined"
-                    color="secondary"
-                    onClick={handlePreviousTask}
-                    disabled={currentTaskIndex === 0}
-                    sx={{ 
-                      borderRadius: '8px',
-                      px: 3
-                    }}
-                  >
-                    <Icon sx={{ mr: 1 }}>arrow_back</Icon>
-                    Précédent
-                  </MDButton>
-                  
-                  <MDButton
-                    variant="contained"
-                    color="info"
-                    onClick={currentTaskIndex === subject.tasks.length - 1 ? handleSubmitExam : handleNextTask}
-                    sx={{ 
-                      borderRadius: '8px',
-                      px: 3,
-                      backgroundColor: currentTaskIndex === subject.tasks.length - 1 ? '#10b981' : '#3b82f6',
-                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-                    }}
-                  >
-                    {currentTaskIndex === subject.tasks.length - 1 ? 'Terminer' : 'Suivant'}
-                    <Icon sx={{ ml: 1 }}>
-                      {currentTaskIndex === subject.tasks.length - 1 ? 'check' : 'arrow_forward'}
-                    </Icon>
-                  </MDButton>
-                </MDBox>
-              </Card>
-            </Zoom>
-          </Grid>
-        </Grid>
-      </Container>
+        {/* Bouton Terminer */}
+        <MDButton 
+          variant="contained" 
+          color="error" 
+          onClick={handleSubmitExam}
+          sx={{ 
+            borderRadius: '12px',
+            p: 1.5,
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+            width: '100%'
+          }}
+        >
+          <Icon sx={{ mr: 1 }}>send</Icon>
+          Terminer l'examen
+        </MDButton>
+      </MDBox>
 
       {/* Dialog de confirmation */}
       <Dialog open={showSubmitDialog} onClose={() => setShowSubmitDialog(false)}>

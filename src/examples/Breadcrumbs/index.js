@@ -28,7 +28,8 @@ import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 
 function Breadcrumbs({ icon, title, route, light }) {
-  const routes = route.slice(0, -1);
+  // Ensure route is an array before slicing
+  const routes = Array.isArray(route) ? route.slice(0, -1) : [];
 
   return (
     <MDBox mr={{ xs: 0, xl: 8 }}>

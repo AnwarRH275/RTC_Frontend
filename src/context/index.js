@@ -19,8 +19,7 @@ Coded by www.creative-tim.com
 */
 
 import { createContext, useContext, useReducer, useMemo } from "react";
-
-// prop-types is a library for typechecking of props
+import { InfoUserProvider, useInfoUser } from "./InfoUserContext";
 import PropTypes from "prop-types";
 
 // Simulateur TCF Canada React main context
@@ -120,6 +119,8 @@ const setDirection = (dispatch, value) => dispatch({ type: "DIRECTION", value })
 const setLayout = (dispatch, value) => dispatch({ type: "LAYOUT", value });
 const setDarkMode = (dispatch, value) => dispatch({ type: "DARKMODE", value });
 
+// Export InfoUserContext
+
 export {
   MaterialUIControllerProvider,
   useMaterialUIController,
@@ -133,4 +134,7 @@ export {
   setDirection,
   setLayout,
   setDarkMode,
+  // InfoUser context
+  InfoUserProvider,
+  useInfoUser,
 };

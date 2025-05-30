@@ -4,7 +4,7 @@
 =========================================================
 */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // react-router-dom components
 import { useLocation, NavLink } from "react-router-dom";
@@ -17,6 +17,9 @@ import List from "@mui/material/List";
 import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
 import Icon from "@mui/material/Icon";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+import Tooltip from "@mui/material/Tooltip";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
@@ -37,12 +40,19 @@ import {
   setTransparentSidenav,
   setWhiteSidenav,
 } from "context";
+import { Margin, Padding } from "@mui/icons-material";
 
 function Sidenav({ color, brand, brandName, routes, ...rest }) {
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentSidenav, whiteSidenav, darkMode, sidenavColor } = controller;
   const location = useLocation();
   const collapseName = location.pathname.replace("/", "");
+  
+  // État pour stocker les informations de l'utilisateur
+  const [userInfo, setUserInfo] = useState(() => {
+    const storedUserInfo = localStorage.getItem('user_info');
+    return storedUserInfo ? JSON.parse(storedUserInfo) : null;
+  });
 
   let textColor = "white";
 
@@ -137,11 +147,11 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       variant="permanent"
       ownerState={{ transparentSidenav, whiteSidenav, miniSidenav, darkMode }}
     >
-      <MDBox pt={3} pb={1} px={4} textAlign="center">
+      <MDBox pt={2} pb={1} px={6} textAlign="center">
         <MDBox
           display={{ xs: "block", xl: "none" }}
           position="absolute"
-          top={0}
+          top={-5}
           right={0}
           p={1.625}
           onClick={closeSidenav}
@@ -151,8 +161,8 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
             <Icon sx={{ fontWeight: "bold" }}>close</Icon>
           </MDTypography>
         </MDBox>
-        <MDBox component={NavLink} to="/" display="flex" alignItems="center">
-          {brand && <MDBox component="img" src={brand} alt="Brand" width="2rem" />}
+        <MDBox component={NavLink} to="/" display="flex" alignItems="center" justifyContent="center" style={{backgroundColor:"#fff" , padding:5 , borderRadius:"5%", boxShadow: "0px 4px 8px rgba(236, 228, 228, 0.1)" }}>
+          {brand && <MDBox component="img" src={brand} alt="Brand" width="8rem" alignItems="center" justifyContent="center" style={{marginLeft:12 }} />}
           <MDBox
             width={!brandName && "100%"}
             sx={(theme) => sidenavLogoLabel(theme, { miniSidenav })}
@@ -171,17 +181,58 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       />
       <List>{renderRoutes}</List>
       <MDBox p={2} mt="auto">
-        <MDButton
-          component="a"
-          href="https://www.creative-tim.com/product/material-dashboard-pro-react"
-          target="_blank"
-          rel="noreferrer"
-          variant="gradient"
-          color={sidenavColor}
-          fullWidth
-        >
-          upgrade to pro
-        </MDButton>
+        <MDBox sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <MDBox sx={{ position: 'relative', width: '100%' }}>
+            <MDButton
+              component="a"
+              href=""
+              target="_blank"
+              rel="noreferrer"
+              variant="gradient"
+              color={sidenavColor}
+              fullWidth
+            >
+              upgrade to pro
+            </MDButton>
+            {userInfo && (
+              <Box sx={{
+                position: 'absolute',
+                top: '-10px',
+                right: '-10px',
+                width: '55px',
+                height: '55px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(74, 144, 226, 0.4)',
+                border: '3px solid #fff',
+                animation: 'pulse 2s infinite',
+             
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                 
+                }
+              }}>
+                <Box sx={{
+                  textAlign: 'center',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  fontSize: '10px',
+                  lineHeight: 1
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                    {Math.round((userInfo.sold / userInfo.total_sold) * 100) || 0}%
+                  </div>
+                  <div style={{ fontSize: '12px', opacity: 0.9 }}>
+                    {userInfo.sold || 0}/{userInfo.total_sold || 0}
+                  </div>
+                </Box>
+              </Box>
+            )}
+          </MDBox>
+        </MDBox>
       </MDBox>
     </SidenavRoot>
   );

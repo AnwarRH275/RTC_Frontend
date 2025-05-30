@@ -16,9 +16,9 @@ Coded by www.creative-tim.com
 import { useState, useEffect } from "react";
 
 // react-router components
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 
-// prop-types is a library for typechecking of props.
+// prop-types is a library for typechecking of props
 import PropTypes from "prop-types";
 
 // @material-ui core components
@@ -28,37 +28,40 @@ import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import Icon from "@mui/material/Icon";
 
-// Simulateur TCF Canada React components
+// Material Dashboard 2 React components
 import MDBox from "components/MDBox";
 import MDInput from "components/MDInput";
+import MDBadge from "components/MDBadge";
+import MDTypography from "components/MDTypography";
 
-// Simulateur TCF Canada React example components
+// Material Dashboard 2 React example components
 import Breadcrumbs from "examples/Breadcrumbs";
 import NotificationItem from "examples/Items/NotificationItem";
 
 // Custom styles for DashboardNavbar
-import {
-  navbar,
-  navbarContainer,
-  navbarRow,
-  navbarIconButton,
-  navbarMobileMenu,
-} from "examples/Navbars/DashboardNavbar/styles";
+import { navbar, navbarContainer, navbarRow, navbarIconButton, navbarMobileMenu } from "examples/Navbars/DashboardNavbar/styles";
 
-// Simulateur TCF Canada React context
-import {
-  useMaterialUIController,
-  setTransparentNavbar,
-  setMiniSidenav,
-  setOpenConfigurator,
-} from "context";
+// Material Dashboard 2 React context
+import { useMaterialUIController, setTransparentNavbar, setMiniSidenav, setOpenConfigurator } from "context";
+
+// Custom imports for user info and logout
+// import { useInfoUser } from "../../../context"; // Removed
+import authService from "../../../services/authService";
+import MDButton from "components/MDButton";
 
 function DashboardNavbar({ absolute, light, isMini }) {
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentNavbar, fixedNavbar, openConfigurator, darkMode } = controller;
   const [openMenu, setOpenMenu] = useState(false);
-  const route = useLocation().pathname.split("/").slice(1);
+  const route = useLocation().pathname.slice(1).split('/');
+  const navigate = useNavigate();
+
+  // Initialize infoUser state by reading from localStorage directly
+  const [infoUser, setInfoUser] = useState(() => {
+    const storedUserInfo = localStorage.getItem('user_info');
+    return storedUserInfo ? JSON.parse(storedUserInfo) : null;
+  });
 
   useEffect(() => {
     // Setting the navbar type
@@ -68,15 +71,14 @@ function DashboardNavbar({ absolute, light, isMini }) {
       setNavbarType("static");
     }
 
-    // A function that sets the transparent state of the navbar.
+    // A function that sets the transparent state of the navbar based on the scroll position.
     function handleTransparentNavbar() {
       setTransparentNavbar(dispatch, (fixedNavbar && window.scrollY === 0) || !fixedNavbar);
     }
 
-    /** 
-     The event listener that's calling the handleTransparentNavbar function when 
-     scrolling the window.
-    */
+    /**
+     The event listener that's calling the handleTransparentNavbar function when scrolling.
+     */
     window.addEventListener("scroll", handleTransparentNavbar);
 
     // Call the handleTransparentNavbar function to set the state with the initial value.
@@ -86,10 +88,16 @@ function DashboardNavbar({ absolute, light, isMini }) {
     return () => window.removeEventListener("scroll", handleTransparentNavbar);
   }, [dispatch, fixedNavbar]);
 
+  console.log('infoUser dans DashboardNavbar:', infoUser);
+
   const handleMiniSidenav = () => setMiniSidenav(dispatch, !miniSidenav);
-  const handleConfiguratorOpen = () => setOpenConfigurator(dispatch, !openConfigurator);
   const handleOpenMenu = (event) => setOpenMenu(event.currentTarget);
   const handleCloseMenu = () => setOpenMenu(false);
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/authentication/sign-in");
+  };
 
   // Render the notifications menu
   const renderMenu = () => (
@@ -110,13 +118,12 @@ function DashboardNavbar({ absolute, light, isMini }) {
     </Menu>
   );
 
-  // Styles for the navbar icons
   const iconsStyle = ({ palette: { dark, white, text }, functions: { rgba } }) => ({
     color: () => {
       let colorValue = light || darkMode ? white.main : dark.main;
 
       if (transparentNavbar && !light) {
-        colorValue = darkMode ? rgba(text.main, 0.6) : text.main;
+        colorValue = rgba(text.main, 0.6);
       }
 
       return colorValue;
@@ -135,15 +142,22 @@ function DashboardNavbar({ absolute, light, isMini }) {
         </MDBox>
         {isMini ? null : (
           <MDBox sx={(theme) => navbarRow(theme, { isMini })}>
-            <MDBox pr={1}>
-              <MDInput label="Search here" />
+            <MDBox pr={1} display="flex" alignItems="center">
+              <MDTypography variant="h6" color={light ? "white" : "dark"} mr={1}>
+                {infoUser?.nom ? `${infoUser.prenom} ${infoUser.nom}` : (infoUser ? 'Nom: Non spécifié' : 'Chargement...')}
+              </MDTypography>
+         
             </MDBox>
             <MDBox color={light ? "white" : "inherit"}>
-              <Link to="/authentication/sign-in/basic">
-                <IconButton sx={navbarIconButton} size="small" disableRipple>
-                  <Icon sx={iconsStyle}>account_circle</Icon>
-                </IconButton>
-              </Link>
+              <MDButton
+                variant="gradient"
+                color="error"
+                onClick={handleLogout}
+                size="small"
+                sx={{ mr: 1 }}
+              >
+                 <Icon sx={{ mr: 0.5 }}>logout</Icon> Déconnexion
+              </MDButton>
               <IconButton
                 size="small"
                 disableRipple
@@ -151,27 +165,13 @@ function DashboardNavbar({ absolute, light, isMini }) {
                 sx={navbarMobileMenu}
                 onClick={handleMiniSidenav}
               >
-                <Icon sx={iconsStyle} fontSize="medium">
-                  {miniSidenav ? "menu_open" : "menu"}
-                </Icon>
+                <Icon sx={iconsStyle}>{miniSidenav ? "menu_open" : "menu"}</Icon>
               </IconButton>
               <IconButton
                 size="small"
                 disableRipple
                 color="inherit"
                 sx={navbarIconButton}
-                onClick={handleConfiguratorOpen}
-              >
-                <Icon sx={iconsStyle}>settings</Icon>
-              </IconButton>
-              <IconButton
-                size="small"
-                disableRipple
-                color="inherit"
-                sx={navbarIconButton}
-                aria-controls="notification-menu"
-                aria-haspopup="true"
-                variant="contained"
                 onClick={handleOpenMenu}
               >
                 <Icon sx={iconsStyle}>notifications</Icon>

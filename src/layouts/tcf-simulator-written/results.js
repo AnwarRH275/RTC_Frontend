@@ -237,7 +237,7 @@ function TCFResultsInterface() {
                 Correction en cours
               </MDTypography>
               <MDTypography variant="body1" color="text" mb={4}>
-                Notre IA analyse vos réponses et prépare votre évaluation détaillée...
+                Analyse vos réponses et prépare votre évaluation détaillée...
               </MDTypography>
               
               <MDBox 
@@ -257,21 +257,6 @@ function TCFResultsInterface() {
                     borderTop: '8px solid #667eea',
                     borderRadius: '50%',
                     animation: `${spinAnimation} 1s linear infinite`
-                  }}
-                />
-              </MDBox>
-              
-              <MDBox mb={2}>
-                <LinearProgress 
-                  variant="indeterminate" 
-                  sx={{ 
-                    height: 8, 
-                    borderRadius: 4,
-                    backgroundColor: '#e3f2fd',
-                    '& .MuiLinearProgress-bar': {
-                      background: 'linear-gradient(90deg, #667eea, #764ba2)',
-                      borderRadius: 4
-                    }
                   }}
                 />
               </MDBox>
@@ -330,7 +315,7 @@ function TCFResultsInterface() {
             <MDButton 
               variant="contained" 
               color="info" 
-              onClick={() => navigate('/tcf-simulator/written')}
+              onClick={() => { navigate('/tcf-simulator/written'); window.location.reload(); }}
               sx={{
                 borderRadius: 3,
                 px: 4,
@@ -611,7 +596,7 @@ function TCFResultsInterface() {
                       variant="contained" 
                       color="info" 
                       size="large"
-                      onClick={() => navigate('/tcf-simulator/written')}
+                      onClick={() => { navigate('/tcf-simulator/written'); window.location.reload(); }}
                       disabled={saving}
                       sx={{ 
                         px: 6, 

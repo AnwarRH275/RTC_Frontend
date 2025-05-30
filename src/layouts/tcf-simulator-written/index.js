@@ -392,10 +392,11 @@ function TCFSimulatorWritten() {
       <Dialog
         open={openRecap}
         onClose={handleCloseRecap}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
         PaperProps={{
           sx: {
+            left: 12,
             borderRadius: '20px',
             background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',

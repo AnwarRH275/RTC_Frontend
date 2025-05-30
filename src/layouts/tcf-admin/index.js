@@ -68,7 +68,6 @@ function TCFAdminSimulator() {
   // États pour les filtres
   const [filters, setFilters] = useState({
     status: "tous",
-    plans: "tous",
     dateFrom: "",
     dateTo: "",
     searchTerm: ""
@@ -81,7 +80,6 @@ function TCFAdminSimulator() {
       id: 1,
       name: "Environnement et développement durable",
       date: "2023-10-15",
-      plans: "Pack Écrit Performance",
       status: "Actif", // Ajout de l'état initial
       duration: 60, // Ajout de la durée initiale
       tasks: [
@@ -109,7 +107,6 @@ function TCFAdminSimulator() {
       id: 2,
       name: "Technologie et société",
       date: "2023-11-20",
-      plans: "Pack Écrit Pro",
       status: "Actif", // Ajout de l'état initial
       duration: 60, // Ajout de la durée initiale
       tasks: [
@@ -145,7 +142,6 @@ function TCFAdminSimulator() {
       id: 1,
       name: "Vie quotidienne au Canada",
       date: "2023-09-05",
-      plans: "Pack Écrit Standard",
       status: "Actif", // Ajout de l'état initial
       duration: 60, // Ajout de la durée initiale
       tasks: [
@@ -173,7 +169,6 @@ function TCFAdminSimulator() {
       id: 2,
       name: "Culture et traditions",
       date: "2023-12-10",
-      plans: "Pack Écrit Performance",
       status: "Actif", // Ajout de l'état initial
       duration: 60, // Ajout de la durée initiale
       tasks: [
@@ -203,7 +198,6 @@ function TCFAdminSimulator() {
   const [formData, setFormData] = useState({
     name: "",
     date: new Date().toISOString().split("T")[0],
-    plans: "Pack Écrit Performance",
     status: "Actif", 
     duration: 60, 
     combination: "", 
@@ -279,7 +273,6 @@ useEffect(() => {
         return false;
       }
 
-      // Filtre par Plan abonnement
       if (filters.plans !== "tous" && subject.plans !== filters.plans) {
         return false;
       }
@@ -317,7 +310,9 @@ useEffect(() => {
       const updatedTasks = subject.tasks.map(task => ({
         ...task,
         instructions: task.instructions || "",
-        minWordCount: task.minWordCount || (tabValue === 0 ? 60 : 0)
+        minWordCount: task.minWordCount !== null && task.minWordCount !== undefined ? task.minWordCount : (tabValue === 0 ? 60 : 0),
+        wordCount: task.wordCount !== null && task.wordCount !== undefined ? task.wordCount : (tabValue === 0 ? 150 : 3),
+        documents: task.documents || []
       }));
       
       setFormData({
@@ -410,18 +405,18 @@ const handleSaveSubject = async () => {
 
   try {
     // Préparer les données pour l'API
+    console.log()
     const apiData = {
       ...formData,
       subject_type: 'Écrit', // Toujours définir comme 'Écrit'
-      subscription_plan: formData.plans, // Adapter le nom du champ
       tasks: formData.tasks.map(task => ({
         title: task.title,
         structure: task.structure,
         instructions: task.instructions || "",
-        min_word_count: task.minWordCount || 0,
-        word_count: task.wordCount || 0,
+        min_word_count: task.minWordCount !== null && task.minWordCount !== undefined ? task.minWordCount : 0,
+        max_word_count: task.wordCount !== null && task.wordCount !== undefined ? task.wordCount : 0,
         duration: task.duration || 0,
-        documents_de_reference: task.documents_de_reference || ""
+        documents: task.documents || []
       }))
     };
 
@@ -509,7 +504,6 @@ const handleDeleteSubject = async (id) => {
     { Header: "Description", accessor: "blog", width: "20%", align: "left" },
     { Header: "État", accessor: "status", align: "center" },
     { Header: "Durée (minutes)", accessor: "duration", align: "center" },
-    { Header: "Plan abonnement", accessor: "plans", align: "center" },
     { Header: "Nombre de tâches", accessor: "taskCount", align: "center" },
     { Header: "Actions", accessor: "actions", align: "center" },
   ];
@@ -536,11 +530,6 @@ const handleDeleteSubject = async (id) => {
       duration: (
         <MDTypography variant="button" fontWeight="medium">
           {subject.duration}
-        </MDTypography>
-      ),
-      plans: (
-        <MDTypography variant="button" fontWeight="medium">
-          {subject.plans}
         </MDTypography>
       ),
       taskCount: (
@@ -697,24 +686,6 @@ const handleDeleteSubject = async (id) => {
                       </MDBox>
 
                       <MDBox width={{ xs: "100%", sm: "47%", md: "30%" }}>
-                        <FormControl fullWidth>
-                          <InputLabel>Plan abonnement</InputLabel>
-                          <Select
-                            name="plans"
-                            value={filters.plans}
-                            onChange={handleFilterChange}
-                            label="Plan abonnement"
-                            sx={{ height: '44px' }}
-                          >
-                            <MenuItem value="tous">Tous</MenuItem>
-                            <MenuItem value="Pack Écrit Standard">Pack Écrit Standard</MenuItem>
-                            <MenuItem value="Pack Écrit Performance">Pack Écrit Performance</MenuItem>
-                            <MenuItem value="Pack Écrit Pro">Pack Écrit Pro</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </MDBox>
-
-                      <MDBox width={{ xs: "100%", sm: "47%", md: "30%" }}>
                         <MDInput
                           fullWidth
                           label="Date de début"
@@ -812,22 +783,7 @@ const handleDeleteSubject = async (id) => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth margin="dense">
-                <InputLabel>Plan abonnement</InputLabel>
-                <Select
-                  name="plans"
-                  value={formData.plans}
-                  onChange={handleInputChange}
-                  label="Plan abonnement"
-                  sx={{ height: '44px' }}
-                >
-                  <MenuItem value="Pack Écrit Standard">Pack Écrit Standard</MenuItem>
-                  <MenuItem value="Pack Écrit Performance">Pack Écrit Performance</MenuItem>
-                  <MenuItem value="Pack Écrit Pro">Pack Écrit Pro</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+           
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth margin="dense">
                 <InputLabel>État</InputLabel>
@@ -854,7 +810,6 @@ const handleDeleteSubject = async (id) => {
                 onChange={handleInputChange}
               />
             </Grid>
-
             <Grid item xs={12}>
               <MDTypography variant="subtitle2" mb={1}>
                 Description sujet
@@ -1062,7 +1017,7 @@ const handleDeleteSubject = async (id) => {
                         label={`Nombre de mots minimum`}
                         type="number"
                         fullWidth
-                        value={task.minWordCount || 0}
+                        value={task.minWordCount !== null && task.minWordCount !== undefined ? task.minWordCount : 0}
                         onChange={(e) => handleTaskChange(index, "minWordCount", parseInt(e.target.value, 10))}
                       />
                     </Grid>
