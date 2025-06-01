@@ -21,6 +21,8 @@ import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Icon from "@mui/material/Icon";
 import Box from "@mui/material/Box";
+import Pagination from "@mui/material/Pagination";
+import Stack from "@mui/material/Stack";
 import { useNavigate } from "react-router-dom";
 
 // Simulateur TCF Canada React components
@@ -100,7 +102,21 @@ function TCFSimulatorWritten() {
   const [openRetakeDialog, setOpenRetakeDialog] = useState(false);
   const [retakeData, setRetakeData] = useState(null);
   const [retakeSubjectId, setRetakeSubjectId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
   const navigate = useNavigate();
+
+  // Calcul de la pagination
+  const totalPages = Math.ceil(subjects.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentSubjects = subjects.slice(startIndex, endIndex);
+
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
+    // Scroll vers le haut lors du changement de page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleOpenRecap = (subject) => {
     setSelectedSubject(subject);
@@ -416,8 +432,9 @@ function TCFSimulatorWritten() {
               </MDAlert>
             </MDBox>
           ) : (
+            <>
             <Grid container spacing={4}>
-              {subjects.map((subject) => (
+              {currentSubjects.map((subject) => (
                 <Grid item xs={12} md={6} lg={4} key={subject.id}>
                   {subject.status === "completed" ? (
                     <CompletedExpressionCard
@@ -525,6 +542,68 @@ function TCFSimulatorWritten() {
                 </Grid>
               ))}
             </Grid>
+            
+            {/* Pagination moderne */}
+            {totalPages > 1 && (
+              <MDBox 
+                display="flex" 
+                justifyContent="center" 
+                alignItems="center"
+                mt={6}
+                mb={2}
+              >
+                <Stack spacing={2}>
+                  <Pagination
+                    count={totalPages}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                    size="large"
+                    showFirstButton
+                    showLastButton
+                    sx={{
+                      '& .MuiPaginationItem-root': {
+                        fontSize: '1rem',
+                        fontWeight: 500,
+                        minWidth: '44px',
+                        height: '44px',
+                        margin: '0 4px',
+                        borderRadius: '12px',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+                        },
+                        '&.Mui-selected': {
+                          background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+                          color: 'white',
+                          fontWeight: 600,
+                          boxShadow: '0 4px 16px rgba(33, 150, 243, 0.4)',
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                            transform: 'translateY(-2px)',
+                          },
+                        },
+                        '&.MuiPaginationItem-firstLast, &.MuiPaginationItem-previousNext': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          '&:hover': {
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            transform: 'translateY(-2px)',
+                          },
+                        },
+                      },
+                    }}
+                  />
+                  <MDBox textAlign="center" mt={2}>
+                    <MDTypography variant="body2" color="text" opacity={0.7}>
+                      Page {currentPage} sur {totalPages} • {subjects.length} sujets au total
+                    </MDTypography>
+                  </MDBox>
+                </Stack>
+              </MDBox>
+            )}
+            </>
           )}
         </MDBox>
       </MDBox>

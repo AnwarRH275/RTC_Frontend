@@ -33,6 +33,7 @@ import EmailIcon from "@mui/icons-material/Email";
 import PhoneIcon from "@mui/icons-material/Phone";
 import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
 import Visibility from "@mui/icons-material/Visibility";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 // Simulateur TCF Canada React components
@@ -57,6 +58,7 @@ function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openBalanceDialog, setOpenBalanceDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
@@ -64,7 +66,8 @@ function UserManagement() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [countryCode, setCountryCode] = useState("+1"); // Default country code
-
+  const [balanceType, setBalanceType] = useState("sold"); // Type de solde à modifier: "sold" ou "total_sold"
+  const [newBalanceValue, setNewBalanceValue] = useState("");
   // Form state
   const [formData, setFormData] = useState({
     username: "",
@@ -170,6 +173,56 @@ function UserManagement() {
     setOpenDialog(false);
     setEditMode(false);
     setSelectedUser(null);
+  };
+
+  const handleOpenBalanceDialog = (user) => {
+    setSelectedUser(user);
+    setNewBalanceValue(balanceType === "sold" ? user.sold || "0" : user.total_sold || "0");
+    setOpenBalanceDialog(true);
+  };
+
+  const handleCloseBalanceDialog = () => {
+    setOpenBalanceDialog(false);
+    setSelectedUser(null);
+    setNewBalanceValue("");
+  };
+
+  const handleBalanceTypeChange = (type) => {
+    setBalanceType(type);
+    if (selectedUser) {
+      setNewBalanceValue(type === "sold" ? selectedUser.sold || "0" : selectedUser.total_sold || "0");
+    }
+  };
+
+  const handleUpdateBalance = async () => {
+    try {
+      const endpoint = balanceType === "sold" ? "/auth/update-sold" : "/auth/update-total-sold";
+      const paramName = balanceType === "sold" ? "new_sold_value" : "new_total_sold_value";
+      
+      const response = await fetch(`http://localhost:5001${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          username: selectedUser.username,
+          [paramName]: parseFloat(newBalanceValue)
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        showSnackbar(`Solde ${balanceType === "sold" ? "" : "total "} mis à jour avec succès`);
+        fetchUsers();
+        handleCloseBalanceDialog();
+      } else {
+        throw new Error('Erreur lors de la mise à jour du solde');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      showSnackbar('Erreur lors de la mise à jour du solde', 'error');
+    }
   };
 
   const handleInputChange = (field, value) => {
@@ -312,7 +365,7 @@ function UserManagement() {
     info: (
       <MDBox textAlign="center" lineHeight={1}>
         <MDTypography variant="caption" color="text" fontWeight="medium">
-          {user.sold || "0.00"} 
+          {user.sold || "0.00"} / {user.total_sold || "0.00"}
         </MDTypography>
       </MDBox>
     ),
@@ -342,6 +395,23 @@ function UserManagement() {
             }}
           >
             <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Modifier le solde">
+          <IconButton
+            style={{color: "white"}}
+            size="small"
+            color="success"
+            onClick={() => handleOpenBalanceDialog(user)}
+            sx={{
+              background: "linear-gradient(135deg, #2ECC71, #27AE60)",
+              color: "white",
+              "&:hover": {
+                background: "linear-gradient(135deg, #27AE60, #229954)",
+              }
+            }}
+          >
+            <AccountBalanceWalletIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Supprimer">
@@ -637,6 +707,134 @@ function UserManagement() {
             }}
           >
             {editMode ? "Modifier" : "Créer"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog for Balance Modification */}
+      <Dialog
+        open={openBalanceDialog}
+        onClose={handleCloseBalanceDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: "0 8px 40px -12px rgba(0,0,0,0.3)",
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: "linear-gradient(135deg, #2ECC71, #27AE60)",
+            color: "white",
+            textAlign: "center",
+            py: 3
+          }}
+        >
+          <MDTypography variant="h5" color="white" fontWeight="bold">
+            Modifier le solde
+          </MDTypography>
+          {selectedUser && (
+            <MDTypography variant="subtitle2" color="white" opacity={0.8}>
+              Utilisateur: {selectedUser.prenom} {selectedUser.nom} (@{selectedUser.username})
+            </MDTypography>
+          )}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 4, mt: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <FormControl component="fieldset">
+                <MDTypography variant="subtitle2" fontWeight="medium" mb={2}>
+                  Type de solde à modifier:
+                </MDTypography>
+                <Grid container spacing={2}>
+                  <Grid item>
+                    <Button
+                      variant={balanceType === "sold" ? "contained" : "outlined"}
+                      onClick={() => handleBalanceTypeChange("sold")}
+                      sx={{
+                        background: balanceType === "sold" ? "linear-gradient(135deg, #2ECC71, #27AE60)" : "transparent",
+                        color: balanceType === "sold" ? "white" : "#2ECC71",
+                        borderColor: "#2ECC71",
+                        "&:hover": {
+                          background: balanceType === "sold" ? "linear-gradient(135deg, #27AE60, #229954)" : "rgba(46, 204, 113, 0.1)",
+                        }
+                      }}
+                    >
+                      Solde actuel
+                    </Button>
+                  </Grid>
+                  <Grid item>
+                    <Button
+                      variant={balanceType === "total_sold" ? "contained" : "outlined"}
+                      onClick={() => handleBalanceTypeChange("total_sold")}
+                      sx={{
+                        background: balanceType === "total_sold" ? "linear-gradient(135deg, #2ECC71, #27AE60)" : "transparent",
+                        color: balanceType === "total_sold" ? "white" : "#2ECC71",
+                        borderColor: "#2ECC71",
+                        "&:hover": {
+                          background: balanceType === "total_sold" ? "linear-gradient(135deg, #27AE60, #229954)" : "rgba(46, 204, 113, 0.1)",
+                        }
+                      }}
+                    >
+                      Solde total
+                    </Button>
+                  </Grid>
+                </Grid>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <MDInput
+                label={balanceType === "sold" ? "Nouveau solde" : "Nouveau solde total"}
+                type="number"
+                fullWidth
+                value={newBalanceValue}
+                onChange={(e) => setNewBalanceValue(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <MDBox display="flex" alignItems="center" mr={1}>
+                      <AccountBalanceWalletIcon color="success" />
+                    </MDBox>
+                  ),
+                }}
+              />
+              <MDTypography variant="caption" color="text" mt={1} display="block">
+                {balanceType === "sold" ? 
+                  "Le solde actuel représente les crédits disponibles pour l'utilisateur." : 
+                  "Le solde total représente tous les crédits achetés par l'utilisateur."}
+              </MDTypography>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, justifyContent: "space-between" }}>
+          <Button
+            onClick={handleCloseBalanceDialog}
+            variant="outlined"
+            style={{color:'#000' }}
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: "bold"
+            }}
+          >
+            Annuler
+          </Button>
+          <Button
+            onClick={handleUpdateBalance}
+            variant="contained"
+            style={{color:'#fff' }}
+            sx={{
+              background: "linear-gradient(135deg, #2ECC71, #27AE60)",
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: "bold",
+              "&:hover": {
+                background: "linear-gradient(135deg, #27AE60, #229954)",
+              }
+            }}
+          >
+            Mettre à jour
           </Button>
         </DialogActions>
       </Dialog>

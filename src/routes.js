@@ -80,7 +80,7 @@ const routes = [
     name: "Packs Nabil",
     key: "packs-nabil",
     icon: <SchoolIcon fontSize="small" />,
-    href: "https://reussir-tcfcanada.com/",
+    href: "https://examens.preptcfcanada.com/iump-subscription-plan/",
   },
   {
     type: "collapse",
