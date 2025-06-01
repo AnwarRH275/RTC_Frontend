@@ -21,7 +21,7 @@ import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 
-function CompletedExpressionCard({ title, description, pack, duration, action, shadow, bgColor }) {
+function CompletedExpressionCard({ title, description, pack, duration, action, shadow, bgColor, onTaskClick, onResultClick, onRetakeClick }) {
   const cardActionStyles = {
     display: "flex",
     alignItems: "center",
@@ -45,7 +45,7 @@ function CompletedExpressionCard({ title, description, pack, duration, action, s
         flexDirection: "column",
         p: 1.5,
         borderRadius: "15px",
-        filter: "grayscale(0.8)", // Effet grisé
+        // filter: "grayscale(0.8)", // Effet grisé
         opacity: 0.85,
         position: "relative",
       }}
@@ -58,6 +58,7 @@ function CompletedExpressionCard({ title, description, pack, duration, action, s
         mt={-3}
         height="120px"
         sx={{
+          filter: "grayscale(0.8)", // Effet grisé
           background: `linear-gradient(135deg, ${bgColor} 0%, ${bgColor === '#007bff' ? '#0056b3' : bgColor === '#ff416c' ? '#ff4b2b' : bgColor === '#28a745' ? '#218838' : '#004ba0'} 100%)`,
           boxShadow: ({ boxShadows: { lg } }) => lg,
           display: 'flex',
@@ -110,7 +111,7 @@ function CompletedExpressionCard({ title, description, pack, duration, action, s
               {duration} min
             </MDTypography>
           </MDBox>
-          <MDBox ml="auto">
+          <MDBox ml="auto" display="flex" flexDirection="column" alignItems="flex-end">
             <MDButton 
               variant="outlined" 
               color="dark" 
@@ -120,13 +121,30 @@ function CompletedExpressionCard({ title, description, pack, duration, action, s
                 opacity: 0.6,
                 '&:hover': {
                   cursor: 'not-allowed'
-                }
+                },
+                mb: 1 // Margin bottom for spacing
               }}
             >
               Déjà complété
             </MDButton>
+           
           </MDBox>
+          
         </MDBox>
+        <MDBox display="flex" justifyContent="space-between" width="100%">
+              <MDButton variant="gradient" color="info" size="small" sx={{ mr: 0.5 }} onClick={onTaskClick}>
+                <Icon sx={{ mr: 0.5, fontSize: '1.2rem' }}>assignment</Icon>
+                Tâche
+              </MDButton>
+              <MDButton variant="gradient" color="success" size="small" sx={{ mr: 0.5 }} onClick={onResultClick}>
+                <Icon sx={{ mr: 0.5, fontSize: '1.5rem' }}>assessment</Icon>
+                Résultat
+              </MDButton>
+              <MDButton variant="gradient" color="error" size="small" onClick={onRetakeClick}>
+                <Icon sx={{ mr: 0.5, fontSize: '1.5rem' }}>replay</Icon>
+                Repasser
+              </MDButton>
+            </MDBox>
       </MDBox>
     </Card>
   );
@@ -145,6 +163,9 @@ CompletedExpressionCard.propTypes = {
   }),
   shadow: PropTypes.bool,
   bgColor: PropTypes.string,
+  onTaskClick: PropTypes.func,
+  onResultClick: PropTypes.func,
+  onRetakeClick: PropTypes.func,
 };
 
 // Default props for the CompletedExpressionCard
@@ -152,6 +173,9 @@ CompletedExpressionCard.defaultProps = {
   shadow: true,
   bgColor: "#3a86ff",
   action: null,
+  onTaskClick: () => {},
+  onResultClick: () => {},
+  onRetakeClick: () => {},
 };
 
 export default CompletedExpressionCard;

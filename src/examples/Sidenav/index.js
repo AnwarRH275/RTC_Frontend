@@ -161,16 +161,46 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
             <Icon sx={{ fontWeight: "bold" }}>close</Icon>
           </MDTypography>
         </MDBox>
-        <MDBox component={NavLink} to="/" display="flex" alignItems="center" justifyContent="center" style={{backgroundColor:"#fff" , padding:5 , borderRadius:"5%", boxShadow: "0px 4px 8px rgba(236, 228, 228, 0.1)" }}>
-          {brand && <MDBox component="img" src={brand} alt="Brand" width="8rem" alignItems="center" justifyContent="center" style={{marginLeft:12 }} />}
-          <MDBox
-            width={!brandName && "100%"}
-            sx={(theme) => sidenavLogoLabel(theme, { miniSidenav })}
-          >
-            <MDTypography component="h6" variant="button" fontWeight="medium" color={textColor}>
-              {brandName}
-            </MDTypography>
-          </MDBox>
+        <MDBox 
+          component={NavLink} 
+          to="/" 
+          display="flex" 
+          alignItems="center" 
+          justifyContent={miniSidenav ? "center" : "flex-start"} 
+          sx={{
+            backgroundColor: "#fff", 
+            padding: miniSidenav ? 1 : 2, 
+            borderRadius: "5%", 
+            boxShadow: "0px 4px 8px rgba(236, 228, 228, 0.1)",
+            maxWidth: "100%",
+            overflow: "hidden",
+            transition: "all 0.3s ease"
+          }}
+        >
+          {brand && (
+            <MDBox 
+              component="img" 
+              src={brand} 
+              alt="Brand" 
+              width={miniSidenav ? "2.5rem" : "8rem"} 
+              sx={{
+                maxWidth: "100%",
+                height: "auto",
+                transition: "all 0.3s ease",
+                marginLeft: miniSidenav ? 0 : 1
+              }} 
+            />
+          )}
+          {!miniSidenav && (
+            <MDBox
+              width={!brandName && "100%"}
+              sx={(theme) => sidenavLogoLabel(theme, { miniSidenav })}
+            >
+              <MDTypography component="h6" variant="button" fontWeight="medium" color={textColor}>
+                {brandName}
+              </MDTypography>
+            </MDBox>
+          )}
         </MDBox>
       </MDBox>
       <Divider
@@ -180,9 +210,121 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
         }
       />
       <List>{renderRoutes}</List>
-      <MDBox p={2} mt="auto">
-        <MDBox sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <MDBox sx={{ position: 'relative', width: '100%' }}>
+      <MDBox p={miniSidenav ? 1 : 2} mt="auto">
+        <MDBox sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          transition: 'all 0.3s ease'
+        }}>
+          {/* Plan Information Section */}
+          {userInfo && (
+            <MDBox sx={{
+              width: '100%',
+              mb: 2,
+              p: miniSidenav ? 1 : 1.5,
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(53, 122, 189, 0.1) 100%)',
+              border: '1px solid rgba(74, 144, 226, 0.2)',
+              transition: 'all 0.3s ease'
+            }}>
+              {!miniSidenav && (
+                <MDTypography
+                  variant="caption"
+                  color={textColor}
+                  fontWeight="medium"
+                  textTransform="uppercase"
+                  sx={{ opacity: 0.8, mb: 0.8, fontSize: '0.95rem' ,justifyContent:'center',alignItems:'center',display:'flex' }}
+                >
+                  Plan actuel
+                </MDTypography>
+              )}
+              <MDBox sx={{ 
+                 display: 'flex', 
+                 flexDirection: 'column',
+                 gap: 1.5,
+                 padding: '12px',
+                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                 borderRadius: '12px',
+                 border: '1px solid rgba(255, 255, 255, 0.1)'
+               }}>
+                 {/* En-tête du tableau */}
+                 <MDBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <MDTypography variant="caption" sx={{ color: '#fff', fontSize: '11px', fontWeight: 'bold', opacity: 0.8 }}>
+                     PLAN 
+                   </MDTypography>
+                   <MDTypography variant="caption" sx={{ color: '#fff', fontSize: '11px', fontWeight: 'bold', opacity: 0.8 }}>
+                     USAGE
+                   </MDTypography>
+                 </MDBox>
+                 
+                 {/* Contenu principal */}
+                 <MDBox sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <MDBox sx={{ flex: 1 }}>
+                     <MDTypography variant="caption" sx={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>
+                       {userInfo.subscription_plan || 'Free'}
+                     </MDTypography>
+                     <MDTypography variant="caption" sx={{ color: '#fff', fontSize: '10px', display: 'block', opacity: 0.7 }}>
+                    
+                     </MDTypography>
+                   </MDBox>
+                   
+                   <Tooltip title={`${Math.round((userInfo.sold / userInfo.total_sold) * 100) || 0}% - ${userInfo.sold || 0}/${userInfo.total_sold || 0} usages`} placement="top" arrow>
+                     <Box sx={{
+                       width: miniSidenav ? '45px' : '55px',
+                       height: miniSidenav ? '45px' : '55px',
+                       borderRadius: '50%',
+                       background: 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)',
+                       display: 'flex',
+                       flexDirection: 'column',
+                       alignItems: 'center',
+                       justifyContent: 'center',
+                       boxShadow: '0 4px 12px rgba(74, 144, 226, 0.4)',
+                       border: '3px solid #fff',
+                       transition: 'all 0.3s ease',
+                       cursor: 'pointer',
+                       '&:hover': {
+                         transform: 'scale(1.1)',
+                         boxShadow: '0 6px 16px rgba(74, 144, 226, 0.5)'
+                       }
+                     }}>
+                       <MDTypography
+                         variant="caption"
+                         sx={{
+                           color: '#fff',
+                           fontWeight: 'bold',
+                           fontSize: miniSidenav ? '14px' : '16px',
+                           lineHeight: 1
+                         }}
+                       >
+                         {Math.round((userInfo.sold / userInfo.total_sold) * 100) || 0}%
+                       </MDTypography>
+                       <MDTypography
+                         variant="caption"
+                         sx={{
+                           color: '#fff',
+                           fontSize: miniSidenav ? '10px' : '11px',
+                           lineHeight: 1,
+                           opacity: 0.9,
+                           marginTop: '2px',
+                           fontWeight: '500'
+                         }}
+                       >
+                         {userInfo.sold || 0}/{userInfo.total_sold || 0}
+                       </MDTypography>
+                     </Box>
+                   </Tooltip>
+                 </MDBox>
+               </MDBox>
+            </MDBox>
+          )}
+          
+          {/* Upgrade Button */}
+          <MDBox sx={{ 
+            position: 'relative', 
+            width: '100%',
+            transition: 'all 0.3s ease'
+          }}>
             <MDButton
               component="a"
               href=""
@@ -191,46 +333,17 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
               variant="gradient"
               color={sidenavColor}
               fullWidth
+              sx={{
+                fontSize: miniSidenav ? '0.65rem' : '0.75rem',
+                padding: miniSidenav ? '0.5rem 0.5rem' : '0.75rem 1.25rem',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+                overflow: 'hidden',
+                transition: 'all 0.3s ease'
+              }}
             >
-              upgrade to pro
+              {miniSidenav ? 'PRO' : 'upgrade to pro'}
             </MDButton>
-            {userInfo && (
-              <Box sx={{
-                position: 'absolute',
-                top: '-10px',
-                right: '-10px',
-                width: '55px',
-                height: '55px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(74, 144, 226, 0.4)',
-                border: '3px solid #fff',
-                animation: 'pulse 2s infinite',
-             
-                '&:hover': {
-                  transform: 'scale(1.1)',
-                 
-                }
-              }}>
-                <Box sx={{
-                  textAlign: 'center',
-                  color: '#fff',
-                  fontWeight: 'bold',
-                  fontSize: '10px',
-                  lineHeight: 1
-                }}>
-                  <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                    {Math.round((userInfo.sold / userInfo.total_sold) * 100) || 0}%
-                  </div>
-                  <div style={{ fontSize: '12px', opacity: 0.9 }}>
-                    {userInfo.sold || 0}/{userInfo.total_sold || 0}
-                  </div>
-                </Box>
-              </Box>
-            )}
           </MDBox>
         </MDBox>
       </MDBox>

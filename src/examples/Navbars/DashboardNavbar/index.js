@@ -26,6 +26,12 @@ import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import Avatar from "@mui/material/Avatar";
+import Badge from "@mui/material/Badge";
+import Divider from "@mui/material/Divider";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 import Icon from "@mui/material/Icon";
 
 // Material Dashboard 2 React components
@@ -53,7 +59,8 @@ function DashboardNavbar({ absolute, light, isMini }) {
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentNavbar, fixedNavbar, openConfigurator, darkMode } = controller;
-  const [openMenu, setOpenMenu] = useState(false);
+  const [openNotificationMenu, setOpenNotificationMenu] = useState(false);
+  const [openUserMenu, setOpenUserMenu] = useState(false);
   const route = useLocation().pathname.slice(1).split('/');
   const navigate = useNavigate();
 
@@ -91,8 +98,10 @@ function DashboardNavbar({ absolute, light, isMini }) {
   console.log('infoUser dans DashboardNavbar:', infoUser);
 
   const handleMiniSidenav = () => setMiniSidenav(dispatch, !miniSidenav);
-  const handleOpenMenu = (event) => setOpenMenu(event.currentTarget);
-  const handleCloseMenu = () => setOpenMenu(false);
+  const handleOpenNotificationMenu = (event) => setOpenNotificationMenu(event.currentTarget);
+  const handleCloseNotificationMenu = () => setOpenNotificationMenu(false);
+  const handleOpenUserMenu = (event) => setOpenUserMenu(event.currentTarget);
+  const handleCloseUserMenu = () => setOpenUserMenu(false);
 
   const handleLogout = () => {
     authService.logout();
@@ -100,21 +109,121 @@ function DashboardNavbar({ absolute, light, isMini }) {
   };
 
   // Render the notifications menu
-  const renderMenu = () => (
+  const renderNotificationMenu = () => (
     <Menu
-      anchorEl={openMenu}
+      anchorEl={openNotificationMenu}
       anchorReference={null}
       anchorOrigin={{
         vertical: "bottom",
-        horizontal: "left",
+        horizontal: "right",
       }}
-      open={Boolean(openMenu)}
-      onClose={handleCloseMenu}
-      sx={{ mt: 2 }}
+      transformOrigin={{
+        vertical: "top",
+        horizontal: "right",
+      }}
+      open={Boolean(openNotificationMenu)}
+      onClose={handleCloseNotificationMenu}
+      sx={{ 
+        mt: 1.5,
+        '& .MuiPaper-root': {
+          borderRadius: 2,
+          minWidth: 280,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        }
+      }}
     >
-      <NotificationItem icon={<Icon>email</Icon>} title="Check new messages" />
-      <NotificationItem icon={<Icon>podcasts</Icon>} title="Manage Podcast sessions" />
-      <NotificationItem icon={<Icon>shopping_cart</Icon>} title="Payment successfully completed" />
+      <MDBox px={2} py={1}>
+        <MDTypography variant="h6" fontWeight="medium">
+          Notifications
+        </MDTypography>
+      </MDBox>
+      <Divider />
+      <NotificationItem icon={<Icon>email</Icon>} title="Nouveau message reçu" />
+      <NotificationItem icon={<Icon>assignment</Icon>} title="Examen terminé avec succès" />
+      <NotificationItem icon={<Icon>payment</Icon>} title="Paiement confirmé" />
+      <Divider />
+      <MenuItem sx={{ justifyContent: 'center', py: 1 }}>
+        <MDTypography variant="button" color="primary" fontWeight="medium">
+          Voir toutes les notifications
+        </MDTypography>
+      </MenuItem>
+    </Menu>
+  );
+
+  // Render the user menu
+  const renderUserMenu = () => (
+    <Menu
+      anchorEl={openUserMenu}
+      anchorReference={null}
+      anchorOrigin={{
+        vertical: "bottom",
+        horizontal: "right",
+      }}
+      transformOrigin={{
+        vertical: "top",
+        horizontal: "right",
+      }}
+      open={Boolean(openUserMenu)}
+      onClose={handleCloseUserMenu}
+      sx={{ 
+        mt: 1.5,
+        '& .MuiPaper-root': {
+          borderRadius: 2,
+          minWidth: 220,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        }
+      }}
+    >
+      <MDBox px={2} py={2}>
+        <MDBox display="flex" alignItems="center" mb={1}>
+          <Avatar
+            sx={{ 
+              width: 40, 
+              height: 40, 
+              mr: 1.5,
+              background: 'linear-gradient(45deg, #1A73E8, #4285F4)',
+              fontSize: '1rem',
+              fontWeight: 'bold'
+            }}
+          >
+            {infoUser?.prenom ? infoUser.prenom.charAt(0).toUpperCase() : 'U'}
+          </Avatar>
+          <MDBox>
+            <MDTypography variant="button" fontWeight="medium" color="text">
+              {infoUser?.prenom || 'Prénom'} {infoUser?.nom || 'Nom'}
+            </MDTypography>
+            <MDTypography variant="caption" color="text" display="block">
+              {infoUser?.email || 'email@example.com'}
+            </MDTypography>
+          </MDBox>
+        </MDBox>
+      </MDBox>
+      <Divider />
+      <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profile'); }}>
+        <ListItemIcon>
+          <Icon fontSize="small">person</Icon>
+        </ListItemIcon>
+        <ListItemText>
+          <MDTypography variant="button">Mon Profil</MDTypography>
+        </ListItemText>
+      </MenuItem>
+      <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/billing'); }}>
+        <ListItemIcon>
+          <Icon fontSize="small">settings</Icon>
+        </ListItemIcon>
+        <ListItemText>
+          <MDTypography variant="button">Paramètres</MDTypography>
+        </ListItemText>
+      </MenuItem>
+      <Divider />
+      <MenuItem onClick={() => { handleCloseUserMenu(); handleLogout(); }}>
+        <ListItemIcon>
+          <Icon fontSize="small" sx={{ color: 'error.main' }}>logout</Icon>
+        </ListItemIcon>
+        <ListItemText>
+          <MDTypography variant="button" color="error">Déconnexion</MDTypography>
+        </ListItemText>
+      </MenuItem>
     </Menu>
   );
 
@@ -142,41 +251,89 @@ function DashboardNavbar({ absolute, light, isMini }) {
         </MDBox>
         {isMini ? null : (
           <MDBox sx={(theme) => navbarRow(theme, { isMini })}>
-            <MDBox pr={1} display="flex" alignItems="center">
-              <MDTypography variant="h6" color={light ? "white" : "dark"} mr={1}>
-                {infoUser?.nom ? `${infoUser.prenom} ${infoUser.nom}` : (infoUser ? 'Nom: Non spécifié' : 'Chargement...')}
-              </MDTypography>
-         
-            </MDBox>
-            <MDBox color={light ? "white" : "inherit"}>
-              <MDButton
-                variant="gradient"
-                color="error"
-                onClick={handleLogout}
-                size="small"
-                sx={{ mr: 1 }}
-              >
-                 <Icon sx={{ mr: 0.5 }}>logout</Icon> Déconnexion
-              </MDButton>
+            <MDBox display="flex" alignItems="center" gap={2}>
+              {/* Menu toggle button */}
               <IconButton
                 size="small"
                 disableRipple
                 color="inherit"
-                sx={navbarMobileMenu}
+                sx={{
+                  ...navbarMobileMenu,
+                  '&:hover': {
+                    backgroundColor: 'rgba(0,0,0,0.04)',
+                    borderRadius: 2
+                  }
+                }}
                 onClick={handleMiniSidenav}
               >
                 <Icon sx={iconsStyle}>{miniSidenav ? "menu_open" : "menu"}</Icon>
               </IconButton>
+
+              {/* Notifications */}
               <IconButton
-                size="small"
+                size="medium"
                 disableRipple
                 color="inherit"
-                sx={navbarIconButton}
-                onClick={handleOpenMenu}
+                sx={{
+                  ...navbarIconButton,
+                  '&:hover': {
+                    backgroundColor: 'rgba(0,0,0,0.04)',
+                    borderRadius: 2
+                  }
+                }}
+                onClick={handleOpenNotificationMenu}
               >
-                <Icon sx={iconsStyle}>notifications</Icon>
+                <Badge 
+                  badgeContent={3} 
+                  color="error"
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      fontSize: '0.75rem',
+                      height: 18,
+                      minWidth: 18
+                    }
+                  }}
+                >
+                  <Icon sx={iconsStyle}>notifications</Icon>
+                </Badge>
               </IconButton>
-              {renderMenu()}
+
+              {/* User Avatar */}
+              <IconButton
+                size="medium"
+                disableRipple
+                color="inherit"
+                sx={{
+                  p: 0.5,
+                  '&:hover': {
+                    backgroundColor: 'rgba(0,0,0,0.04)',
+                    borderRadius: 2
+                  }
+                }}
+                onClick={handleOpenUserMenu}
+              >
+                <Avatar
+                  sx={{ 
+                    width: 36, 
+                    height: 36,
+                    background: 'linear-gradient(45deg, #1A73E8, #4285F4)',
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold',
+                    border: '2px solid rgba(255,255,255,0.2)',
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      transform: 'scale(1.05)',
+                      boxShadow: '0 4px 12px rgba(26, 115, 232, 0.3)'
+                    }
+                  }}
+                >
+                  {infoUser?.prenom ? infoUser.prenom.charAt(0).toUpperCase() : 'U'}
+                </Avatar>
+              </IconButton>
+
+              {/* Render menus */}
+              {renderNotificationMenu()}
+              {renderUserMenu()}
             </MDBox>
           </MDBox>
         )}

@@ -1,9 +1,3 @@
-/**
-=========================================================
-* Interface de Résultats TCF Canada - v2.2.0
-=========================================================
-*/
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -16,10 +10,10 @@ import Icon from "@mui/material/Icon";
 import Box from "@mui/material/Box";
 import Fade from "@mui/material/Fade";
 import Zoom from "@mui/material/Zoom";
-import Paper from "@mui/material/Paper";
+
 import Avatar from "@mui/material/Avatar";
 import Chip from "@mui/material/Chip";
-import Container from "@mui/material/Container";
+
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -194,7 +188,7 @@ function TCFResultsInterface() {
       <MDBox 
         sx={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, rgba(79, 204, 231, 1) 100%)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -277,7 +271,7 @@ function TCFResultsInterface() {
       <MDBox 
         sx={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, rgba(79, 204, 231, 1) 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -336,28 +330,33 @@ function TCFResultsInterface() {
   return (
     <MDBox 
       sx={{
-        minHeight: '100vh',
+
+        width: '100%',
+        height: '100%',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        py: 4,
-        pl: 25
+        p: 0,
+        overflow: 'auto'
       }}
     >
-      <Container maxWidth="lg">
+      <MDBox sx={{ width: '100%', p: 0, m: 0 }}>
         <Zoom in timeout={800}>
           <Card 
             sx={{ 
-              borderRadius: 4,
+              borderRadius: 0,
               overflow: 'hidden',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+              boxShadow: 'none',
               background: 'rgba(255,255,255,0.98)',
-              backdropFilter: 'blur(10px)'
+              backdropFilter: 'blur(10px)',
+              height: '100vh',
+              display: 'flex',
+              flexDirection: 'column'
             }}
           >
             {/* En-tête */}
             <MDBox 
               p={4} 
               sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, rgba(79, 204, 231, 1) 100%)',
                 display: 'flex',
                 flexDirection: { xs: 'column', md: 'row' },
                 alignItems: 'center',
@@ -375,11 +374,11 @@ function TCFResultsInterface() {
                     boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
                   }}
                 >
-                  <Icon sx={{ fontSize: 35 }}>verified</Icon>
+                  <Icon sx={{ fontSize: 35 }}>task_alt</Icon>
                 </Avatar>
                 <MDBox>
                   <MDTypography variant="h3" fontWeight="bold" color="white" mb={1}>
-                    Résultats de votre évaluation
+                  Résultats de votre évaluation
                   </MDTypography>
                   <MDTypography variant="h6" color="white" opacity={0.9}>
                     {subject?.name || 'Examen TCF'}
@@ -388,8 +387,8 @@ function TCFResultsInterface() {
               </MDBox>
               
               <Chip 
-                label={results?.NoteExam || "Niveau B2"}
-                icon={<Icon sx={{ color: '#667eea', fontSize: '1.2rem' }}>emoji_events</Icon>}
+                label={ '  🏆​  ' + results?.NoteExam || "Niveau B2"}
+               
                 style={{ color: '#fff' }}
                 sx={{ 
                   backgroundColor: 'white',
@@ -406,11 +405,11 @@ function TCFResultsInterface() {
             </MDBox>
             
             {/* Contenu principal */}
-            <MDBox p={4}>
-              <Grid container spacing={4}>
-                {/* Corrections par tâche */}
-                <Grid item xs={12} lg={7}>
-                  <MDBox mb={4}>
+            <MDBox p={2} sx={{ flex: 1, overflow: 'auto' }}>
+              <Grid container spacing={2}>
+                  {/* Corrections par tâche */}
+                  <Grid item xs={12} lg={9}>
+                    <MDBox mb={2}>
                     <MDTypography variant="h4" fontWeight="bold" mb={4} color="dark">
                       <Icon sx={{ mr: 2, verticalAlign: 'middle', color: '#667eea' }}>assignment_turned_in</Icon>
                       Corrections détaillées
@@ -420,12 +419,13 @@ function TCFResultsInterface() {
                       <Fade in timeout={500 + (index * 300)} key={index}>
                         <Card 
                           sx={{ 
-                            mb: 3, 
+                            mb: 4, 
                             overflow: 'hidden',
                             boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
                             borderRadius: 3,
                             border: '1px solid rgba(102, 126, 234, 0.1)',
                             transition: 'all 0.3s ease',
+                            minHeight: '400px',
                             '&:hover': {
                               transform: 'translateY(-2px)',
                               boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
@@ -459,9 +459,57 @@ function TCFResultsInterface() {
                           </MDBox>
                           
                           <MDBox p={3}>
-                            <MDTypography variant="body1" color="text" lineHeight={1.8}>
-                              {correction}
-                            </MDTypography>
+                            {/* Section avec deux colonnes: Votre réponse et Correction proposée */}
+                            <Grid container spacing={3}>
+                              {/* Votre réponse */}
+                              <Grid item xs={12} md={5}>
+                                <MDBox 
+                                  p={3} 
+                                  sx={{
+                                    background: '#f8f9fa',
+                                    borderRadius: 2,
+                                    border: '1px solid #e9ecef',
+                                    height: '100%',
+                                    minHeight: '250px',
+                                    overflow: 'auto'
+                                  }}
+                                >
+                                  <MDTypography variant="h6" fontWeight="bold" color="dark" mb={2}>
+                                    Votre réponse:
+                                  </MDTypography>
+                                  <MDTypography variant="body2" color="text" lineHeight={1.8}>
+                                    {responses[index] || 'Aucune réponse fournie'}
+                                  </MDTypography>
+                                  <MDBox mt={2} display="flex" justifyContent="flex-end">
+                                    <MDTypography variant="caption" color="text">
+                                      {responses[index] ? responses[index].split(/\s+/).filter(word => word.length > 0).length : 0} mots
+                                    </MDTypography>
+                                  </MDBox>
+                                </MDBox>
+                              </Grid>
+                              
+                              {/* Correction proposée */}
+                              <Grid item xs={12} md={7}>
+                                <MDBox 
+                                  p={3} 
+                                  sx={{
+                                    background: '#f0f9ff',
+                                    borderRadius: 2,
+                                    border: '1px solid #cfe2ff',
+                                    height: '100%',
+                                    minHeight: '250px',
+                                    overflow: 'auto'
+                                  }}
+                                >
+                                  <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
+                                    Correction proposée:
+                                  </MDTypography>
+                                  <MDTypography variant="body2" color="text" lineHeight={1.8}>
+                                    {correction}
+                                  </MDTypography>
+                                </MDBox>
+                              </Grid>
+                            </Grid>
                           </MDBox>
                         </Card>
                       </Fade>
@@ -474,10 +522,10 @@ function TCFResultsInterface() {
                 </Grid>
                 
                 {/* Points forts et à améliorer */}
-                <Grid item xs={12} lg={5}>
+                <Grid item xs={12} lg={3}>
                   <MDBox mb={4}>
                     <MDTypography variant="h4" fontWeight="bold" mb={4} color="dark">
-                      <Icon sx={{ mr: 2, verticalAlign: 'middle', color: '#10b981' }}>thumb_up</Icon>
+                      <Icon sx={{ mr: 2, verticalAlign: 'middle', color: '#10b981' }}>recommend</Icon>
                       Points forts
                     </MDTypography>
                     
@@ -596,7 +644,7 @@ function TCFResultsInterface() {
                       variant="contained" 
                       color="info" 
                       size="large"
-                      onClick={() => { navigate('/tcf-simulator/written'); window.location.reload(); }}
+                      onClick={() => { navigate('/simulateur-tcf-canada/expression-ecrits'); window.location.reload(); }}
                       disabled={saving}
                       sx={{ 
                         px: 6, 
@@ -614,7 +662,7 @@ function TCFResultsInterface() {
                       }}
                     >
                       <Icon sx={{ mr: 2 }}>arrow_back</Icon>
-                      Retour aux sujets
+                      Retour aux exams
                     </MDButton>
                   </MDBox>
                 </Grid>
@@ -622,7 +670,7 @@ function TCFResultsInterface() {
             </MDBox>
           </Card>
         </Zoom>
-      </Container>
+      </MDBox>
     </MDBox>
   );
 }

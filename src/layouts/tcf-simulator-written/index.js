@@ -39,6 +39,7 @@ import LockedExpressionCard from "examples/Cards/TCFCards/LockedExpressionCard";
 
 // Services
 import TCFAdminService from "services/tcfAdminService";
+import attemptService from "services/attemptService";
 
 // Images
 import writtenExpressionImage from "assets/images/tcf/written-expression-1.svg";
@@ -91,7 +92,14 @@ function TCFSimulatorWritten() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openRecap, setOpenRecap] = useState(false);
+  const [openTaskRecap, setOpenTaskRecap] = useState(false);
+  const [openResults, setOpenResults] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(null);
+  const [examResults, setExamResults] = useState(null);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [openRetakeDialog, setOpenRetakeDialog] = useState(false);
+  const [retakeData, setRetakeData] = useState(null);
+  const [retakeSubjectId, setRetakeSubjectId] = useState(null);
   const navigate = useNavigate();
 
   const handleOpenRecap = (subject) => {
@@ -104,11 +112,141 @@ function TCFSimulatorWritten() {
     setSelectedSubject(null);
   };
 
+  const handleOpenTaskRecap = (subject) => {
+    setSelectedSubject(subject);
+    setOpenTaskRecap(true);
+  };
+
+  const handleCloseTaskRecap = () => {
+    setOpenTaskRecap(false);
+    setSelectedSubject(null);
+  };
+
+  const handleOpenResults = async (subject) => {
+    setSelectedSubject(subject);
+    setLoadingResults(true);
+    setOpenResults(true);
+    
+    try {
+      // Récupérer les examens de l'utilisateur pour ce sujet
+      const userExams = await authService.getUserExams();
+      const subjectExams = userExams.filter(exam => exam.id_subject === subject.id);
+      
+      // Récupérer les réponses de l'utilisateur depuis le localStorage
+      const storedResponses = localStorage.getItem(`tcf-responses-${subject.id}`);
+      const userResponses = storedResponses ? JSON.parse(storedResponses) : {};
+      
+      if (subjectExams.length > 0) {
+        // Grouper les examens par sujet et tâche pour reconstituer les résultats complets
+        const examsByTask = {};
+        subjectExams.forEach(exam => {
+          const taskId = exam.id_task || exam.task?.id || 1;
+          if (!examsByTask[taskId] || new Date(exam.date_passage) > new Date(examsByTask[taskId].date_passage)) {
+            examsByTask[taskId] = exam;
+          }
+        });
+        
+        // Reconstituer le format attendu par la modal (similaire à results.js)
+        const formattedResults = {
+          NoteExam: Object.values(examsByTask)[0]?.score || "Non éligible (langue non lisible)",
+          corrections_taches: Object.keys(examsByTask)
+            .sort((a, b) => parseInt(a) - parseInt(b))
+            .map(taskId => examsByTask[taskId].reponse_ia || "Aucune correction disponible"),
+          pointsForts: Object.values(examsByTask)
+            .map(exam => exam.points_fort)
+            .filter(point => point && point.trim())
+            .flatMap(point => point.split(',').map(p => p.trim()))
+            .filter(point => point),
+          pointsAmeliorer: Object.values(examsByTask)
+            .map(exam => exam.point_faible)
+            .filter(point => point && point.trim())
+            .flatMap(point => point.split(',').map(p => p.trim()))
+            .filter(point => point),
+          // Ajouter les réponses de l'utilisateur
+          user_responses: userResponses
+        };
+        
+        // Si aucun point fort/faible n'est trouvé, utiliser des valeurs par défaut
+        if (formattedResults.pointsForts.length === 0) {
+          formattedResults.pointsForts = ["Aucun point fort détecté (pas de contenu lisible)"];
+        }
+        if (formattedResults.pointsAmeliorer.length === 0) {
+          formattedResults.pointsAmeliorer = ["Le texte est incompréhensible et ne répond pas à la consigne"];
+        }
+        
+        setExamResults(formattedResults);
+      } else {
+        setExamResults(null);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des résultats:', error);
+      setExamResults(null);
+    } finally {
+      setLoadingResults(false);
+    }
+  };
+
+  const handleCloseResults = () => {
+    setOpenResults(false);
+    setSelectedSubject(null);
+    setExamResults(null);
+  };
+
   const handleStartExam = () => {
     if (selectedSubject) {
-      navigate(`/tcf-simulator/written/${selectedSubject.id}/exam`);
+      navigate(`/simulateur-tcf-canada/expression-ecrits/${selectedSubject.id}/exam`);
     }
     handleCloseRecap();
+  };
+
+  const handleRetakeExam = async (subjectId) => {
+    try {
+      // Vérifier le nombre de tentatives
+      const attemptData = await attemptService.checkAttempts(subjectId);
+      
+      if (attemptData.can_attempt) {
+        // Ouvrir la modal de confirmation
+        setRetakeData(attemptData);
+        setRetakeSubjectId(subjectId);
+        setOpenRetakeDialog(true);
+      } else {
+        // Ouvrir la modal d'erreur (tentatives épuisées)
+        setRetakeData({ ...attemptData, error: 'max_attempts' });
+        setRetakeSubjectId(subjectId);
+        setOpenRetakeDialog(true);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification des tentatives:', error);
+      // Ouvrir la modal d'erreur (erreur technique)
+      setRetakeData({ error: 'technical_error' });
+      setRetakeSubjectId(subjectId);
+      setOpenRetakeDialog(true);
+    }
+   };
+
+  const handleConfirmRetake = async () => {
+    try {
+      // Incrémenter le compteur de tentatives
+      await attemptService.incrementAttempt(retakeSubjectId);
+      
+      // Fermer la modal
+      setOpenRetakeDialog(false);
+      setRetakeData(null);
+      setRetakeSubjectId(null);
+      
+      // Rediriger vers l'examen
+      navigate(`/simulateur-tcf-canada/expression-ecrits/${retakeSubjectId}/exam?isRetake=true`);
+    } catch (error) {
+      console.error('Erreur lors de l\'incrémentation des tentatives:', error);
+      // Afficher une erreur dans la modal
+      setRetakeData({ error: 'technical_error' });
+    }
+  };
+
+  const handleCloseRetakeDialog = () => {
+    setOpenRetakeDialog(false);
+    setRetakeData(null);
+    setRetakeSubjectId(null);
   };
 
   useEffect(() => {
@@ -284,6 +422,9 @@ function TCFSimulatorWritten() {
                   {subject.status === "completed" ? (
                     <CompletedExpressionCard
                       title={subject.name}
+                      onTaskClick={() => handleOpenTaskRecap(subject)}
+                      onResultClick={() => handleOpenResults(subject)}
+                      onRetakeClick={() => handleRetakeExam(subject.id)}
                       description={
                         <ReactQuill
                           value={subject.blog || "Sujet d'expression écrite"}
@@ -392,7 +533,7 @@ function TCFSimulatorWritten() {
       <Dialog
         open={openRecap}
         onClose={handleCloseRecap}
-        maxWidth="lg"
+        maxWidth="1350px"
         fullWidth
         PaperProps={{
           sx: {
@@ -602,8 +743,338 @@ function TCFSimulatorWritten() {
             Retour
           </MDButton>
           
+          <MDButton onClick={handleStartExam} color="info" variant="gradient">
+            Commencer le test
+          </MDButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog for Task Recap */}
+      <Dialog open={openTaskRecap} onClose={handleCloseTaskRecap} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <MDTypography variant="h5" fontWeight="bold">
+            Consultation de la Tâche
+          </MDTypography>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedSubject && (
+            <MDBox>
+              <MDTypography variant="h6" mb={1}>
+                Tâches:
+              </MDTypography>
+              {selectedSubject.tasks && selectedSubject.tasks.length > 0 ? (
+                selectedSubject.tasks.map((task, index) => (
+                  <MDBox key={index} mb={2} p={2} sx={{ border: "1px solid #eee", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
+                    <MDTypography variant="body2" fontWeight="medium">
+                      Tâche {index + 1}:<span  dangerouslySetInnerHTML={{ __html:  task.title}} />
+                    </MDTypography>
+                    <MDTypography variant="body2" color="text" mt={1} dangerouslySetInnerHTML={{ __html: task.description }} />
+                  </MDBox>
+                ))
+              ) : (
+                <MDTypography variant="body2" color="text">
+                  Aucune tâche disponible pour ce sujet.
+                </MDTypography>
+              )}
+            </MDBox>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <MDButton onClick={handleCloseTaskRecap} color="secondary">
+            Fermer
+          </MDButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog for Exam Results */}
+      <Dialog
+        open={openResults}
+        onClose={handleCloseResults}
+        maxWidth="1350px"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'hidden',
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            textAlign: 'center',
+            py: 3,
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
+            }
+          }}
+        >
+          <MDBox display="flex" alignItems="center" justifyContent="center" flexDirection="column">
+            <Icon sx={{ fontSize: '2.5rem', mb: 1, opacity: 0.9 }}>check_circle</Icon>
+            <MDTypography variant="h4" fontWeight="bold" color="white">
+              Résultats de votre évaluation
+            </MDTypography>
+            <MDTypography variant="body1" color="white" opacity={0.9} mt={1}>
+              Mai 2026
+            </MDTypography>
+            <Chip
+              label={examResults?.NoteExam || "Non éligible (langue non lisible)"}
+              sx={{
+                mt: 2,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                fontWeight: 'bold',
+                borderRadius: '20px',
+                fontSize: '0.9rem',
+                px: 2,
+                py: 1
+              }}
+            />
+          </MDBox>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 0 }}>
+          {loadingResults ? (
+            <MDBox display="flex" justifyContent="center" p={4}>
+              <CircularProgress color="info" />
+            </MDBox>
+          ) : examResults ? (
+            <MDBox p={4}>
+              <Grid container spacing={4}>
+                {/* Corrections détaillées */}
+                <Grid item xs={12} md={8}>
+                  <MDBox
+                    sx={{
+                      background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+                      borderRadius: '16px',
+                      p: 3,
+                      mb: 3,
+                      border: '1px solid #e2e8f0',
+                    }}
+                  >
+                    <MDBox display="flex" alignItems="center" mb={3}>
+                      <Icon sx={{ color: '#667eea', mr: 1, fontSize: '1.5rem' }}>assignment_turned_in</Icon>
+                      <MDTypography variant="h6" fontWeight="bold" color="text">
+                        Corrections détaillées
+                      </MDTypography>
+                    </MDBox>
+                    
+                    {examResults.corrections_taches?.map((correction, index) => (
+                      <MDBox
+                        key={index}
+                        sx={{
+                          background: 'white',
+                          borderRadius: '12px',
+                          p: 3,
+                          border: '1px solid #e2e8f0',
+                          mb: 2
+                        }}
+                      >
+                        <MDBox display="flex" alignItems="center" mb={2}>
+                          <Chip
+                            label={`Tâche ${index + 1}`}
+                            size="small"
+                            sx={{
+                              backgroundColor: '#667eea',
+                              color: 'white',
+                              fontWeight: 'bold',
+                              mr: 2,
+                            }}
+                          />
+                        </MDBox>
+                        
+                        {/* Section avec deux colonnes: Votre réponse et Correction proposée */}
+                        <Grid container spacing={3}>
+                          {/* Votre réponse */}
+                          <Grid item xs={12} md={5}>
+                            <MDBox 
+                              p={3} 
+                              sx={{
+                                background: '#f8f9fa',
+                                borderRadius: 2,
+                                border: '1px solid #e9ecef',
+                                height: '100%',
+                                minHeight: '250px',
+                                overflow: 'auto'
+                              }}
+                            >
+                              <MDTypography variant="h6" fontWeight="bold" color="dark" mb={2}>
+                                Votre réponse:
+                              </MDTypography>
+                              <MDTypography variant="body2" color="text" lineHeight={1.8}>
+                                {examResults.user_responses[index] || 'Aucune réponse fournie'}
+                              </MDTypography>
+                              <MDBox mt={2} display="flex" justifyContent="flex-end">
+                                <MDTypography variant="caption" color="text">
+                                  {examResults.user_responses[index] ? examResults.user_responses[index].split(/\s+/).filter(word => word.length > 0).length : 0} mots
+                                </MDTypography>
+                              </MDBox>
+                            </MDBox>
+                          </Grid>
+                          
+                          {/* Correction proposée */}
+                          <Grid item xs={12} md={7}>
+                            <MDBox 
+                              p={3} 
+                              sx={{
+                                background: '#f0f9ff',
+                                borderRadius: 2,
+                                border: '1px solid #cfe2ff',
+                                height: '100%',
+                                minHeight: '250px',
+                                overflow: 'auto'
+                              }}
+                            >
+                              <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
+                                Correction proposée:
+                              </MDTypography>
+                              <MDTypography variant="body2" color="text" lineHeight={1.8}>
+                                {correction}
+                              </MDTypography>
+                            </MDBox>
+                          </Grid>
+                        </Grid>
+                      </MDBox>
+                    )) || (
+                      <MDBox
+                        sx={{
+                          background: 'white',
+                          borderRadius: '12px',
+                          p: 3,
+                          border: '1px solid #e2e8f0',
+                          mb: 2
+                        }}
+                      >
+                        <MDTypography variant="body2" color="text" sx={{ lineHeight: 1.6 }}>
+                          Aucune correction disponible pour le moment.
+                        </MDTypography>
+                      </MDBox>
+                    )}
+                  </MDBox>
+                </Grid>
+                
+                {/* Points forts et à améliorer */}
+                <Grid item xs={12} md={4}>
+                  {/* Points forts */}
+                  <MDBox
+                    sx={{
+                      background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                      borderRadius: '16px',
+                      p: 3,
+                      mb: 3,
+                      border: '1px solid #a7f3d0',
+                    }}
+                  >
+                    <MDBox display="flex" alignItems="center" mb={2}>
+                      <Icon sx={{ color: '#059669', mr: 1 }}>recommend</Icon>
+                      <MDTypography variant="h6" fontWeight="bold" color="#059669">
+                        Points forts
+                      </MDTypography>
+                    </MDBox>
+                    
+                    <MDBox
+                      sx={{
+                        background: 'rgba(255,255,255,0.7)',
+                        borderRadius: '8px',
+                        p: 2,
+                      }}
+                    >
+                      {examResults.pointsForts?.map((point, index) => (
+                        <MDBox key={index} display="flex" alignItems="flex-start" mb={1}>
+                          <Icon sx={{ color: '#059669', mr: 1, fontSize: '1rem', mt: 0.2 }}>check_circle</Icon>
+                          <MDTypography variant="body2" color="#059669" fontWeight="medium" sx={{ flex: 1 }}>
+                            {point}
+                          </MDTypography>
+                        </MDBox>
+                      )) || (
+                        <MDTypography variant="body2" color="#059669" fontWeight="medium">
+                          Aucun point fort détecté (pas de contenu lisible)
+                        </MDTypography>
+                      )}
+                    </MDBox>
+                  </MDBox>
+                  
+                  {/* Points à améliorer */}
+                  <MDBox
+                    sx={{
+                      background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                      borderRadius: '16px',
+                      p: 3,
+                      border: '1px solid #fde68a',
+                    }}
+                  >
+                    <MDBox display="flex" alignItems="center" mb={2}>
+                      <Icon sx={{ color: '#d97706', mr: 1 }}>insights</Icon>
+                      <MDTypography variant="h6" fontWeight="bold" color="#d97706">
+                        Points à améliorer
+                      </MDTypography>
+                    </MDBox>
+                    
+                    <MDBox sx={{ space: 1 }}>
+                      {examResults.pointsAmeliorer?.map((point, index) => (
+                        <MDBox
+                          key={index}
+                          sx={{
+                            background: 'rgba(255,255,255,0.7)',
+                            borderRadius: '8px',
+                            p: 2,
+                            mb: 1,
+                            display: 'flex',
+                            alignItems: 'flex-start'
+                          }}
+                        >
+                          <Icon sx={{ color: '#d97706', mr: 1, fontSize: '1rem', mt: 0.2 }}>circle</Icon>
+                          <MDTypography variant="body2" color="#d97706" sx={{ flex: 1 }}>
+                            {point}
+                          </MDTypography>
+                        </MDBox>
+                      )) || (
+                        <MDBox
+                          sx={{
+                            background: 'rgba(255,255,255,0.7)',
+                            borderRadius: '8px',
+                            p: 2,
+                            mb: 1,
+                          }}
+                        >
+                          <MDTypography variant="body2" color="#d97706">
+                            Le texte est incompréhensible et ne répond pas à la consigne
+                          </MDTypography>
+                        </MDBox>
+                      )}
+                    </MDBox>
+                  </MDBox>
+                </Grid>
+              </Grid>
+            </MDBox>
+          ) : (
+            <MDBox p={4} textAlign="center">
+              <MDTypography variant="body1" color="text">
+                Aucun résultat trouvé pour ce sujet.
+              </MDTypography>
+            </MDBox>
+          )}
+        </DialogContent>
+        
+        <DialogActions
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+            p: 3,
+            justifyContent: 'center'
+          }}
+        >
           <MDButton
-            onClick={handleStartExam}
+            onClick={handleCloseResults}
             variant="gradient"
             color="info"
             sx={{
@@ -611,17 +1082,163 @@ function TCFSimulatorWritten() {
               px: 4,
               py: 1.5,
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 8px 15px -3px rgba(102, 126, 234, 0.4)',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 12px 20px -3px rgba(102, 126, 234, 0.4)',
-              }
+              minWidth: '200px'
             }}
           >
-            <Icon sx={{ mr: 1 }}>play_arrow</Icon>
-            Commencer l'examen
+            <Icon sx={{ mr: 1 }}>arrow_back</Icon>
+            RETOUR AUX EXAMS
           </MDButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de confirmation pour repasser l'examen */}
+      <Dialog
+        open={openRetakeDialog}
+        onClose={handleCloseRetakeDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'hidden',
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: retakeData?.error ? 
+              'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 
+              'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            color: 'white',
+            textAlign: 'center',
+            py: 3,
+            position: 'relative',
+          }}
+        >
+          <Icon sx={{ fontSize: '2.5rem', mb: 1 }}>
+            {retakeData?.error ? 'error' : 'refresh'}
+          </Icon>
+          <MDTypography variant="h5" fontWeight="bold" color="white">
+            {retakeData?.error === 'max_attempts' ? 'Tentatives épuisées' :
+             retakeData?.error === 'technical_error' ? 'Erreur technique' :
+             'Confirmer la tentative'}
+          </MDTypography>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 4 }}>
+          {retakeData?.error === 'max_attempts' ? (
+            <MDBox textAlign="center">
+              <MDTypography variant="body1" color="text" mb={2}>
+                Vous avez déjà utilisé vos 2 tentatives pour cet examen.
+              </MDTypography>
+              <MDTypography variant="body2" color="text" opacity={0.7}>
+                Vous ne pouvez plus repasser cet examen.
+              </MDTypography>
+            </MDBox>
+          ) : retakeData?.error === 'technical_error' ? (
+            <MDBox textAlign="center">
+              <MDTypography variant="body1" color="text" mb={2}>
+                Une erreur technique s'est produite.
+              </MDTypography>
+              <MDTypography variant="body2" color="text" opacity={0.7}>
+                Veuillez réessayer plus tard.
+              </MDTypography>
+            </MDBox>
+          ) : (
+            <MDBox>
+              <MDBox
+                sx={{
+                  background: 'linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%)',
+                  borderRadius: '12px',
+                  p: 3,
+                  mb: 3,
+                  border: '1px solid #81d4fa'
+                }}
+              >
+                <MDTypography variant="h6" fontWeight="bold" color="#0277bd" mb={2}>
+                  Informations sur les tentatives
+                </MDTypography>
+                <MDBox display="flex" alignItems="center" mb={1}>
+                  <Icon sx={{ color: '#0277bd', mr: 1 }}>info</Icon>
+                  <MDTypography variant="body2" color="#0277bd">
+                    Vous avez droit à 2 tentatives pour cet examen
+                  </MDTypography>
+                </MDBox>
+                <MDBox display="flex" alignItems="center" mb={1}>
+                  <Icon sx={{ color: '#0277bd', mr: 1 }}>play_circle</Icon>
+                  <MDTypography variant="body2" color="#0277bd">
+                    Tentative actuelle: {(retakeData?.attempt_count || 0) + 1} / 2
+                  </MDTypography>
+                </MDBox>
+              </MDBox>
+              
+              <MDBox
+                sx={{
+                  background: 'linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)',
+                  borderRadius: '12px',
+                  p: 3,
+                  border: '1px solid #ce93d8'
+                }}
+              >
+                <MDBox display="flex" alignItems="center" mb={1}>
+                  <Icon sx={{ color: '#7b1fa2', mr: 1 }}>monetization_off</Icon>
+                  <MDTypography variant="body2" color="#7b1fa2" fontWeight="bold">
+                    Cette tentative ne déduira pas de crédit de votre solde
+                  </MDTypography>
+                </MDBox>
+              </MDBox>
+              
+              <MDBox mt={3} textAlign="center">
+                <MDTypography variant="body1" color="text">
+                  Voulez-vous commencer la tentative?
+                </MDTypography>
+              </MDBox>
+            </MDBox>
+          )}
+        </DialogContent>
+        
+        <DialogActions
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+            p: 3,
+            justifyContent: 'center',
+            gap: 2
+          }}
+        >
+          <MDButton
+            onClick={handleCloseRetakeDialog}
+            variant="outlined"
+            color="secondary"
+            sx={{
+              borderRadius: '12px',
+              px: 4,
+              py: 1.5,
+              fontWeight: 'bold',
+              minWidth: '120px'
+            }}
+          >
+            {retakeData?.error ? 'Fermer' : 'Annuler'}
+          </MDButton>
+          
+          {!retakeData?.error && (
+            <MDButton
+              onClick={handleConfirmRetake}
+              variant="gradient"
+              color="info"
+              sx={{
+                borderRadius: '12px',
+                px: 4,
+                py: 1.5,
+                fontWeight: 'bold',
+                minWidth: '180px'
+              }}
+            >
+              <Icon sx={{ mr: 1 }}>play_arrow</Icon>
+              Commencer la tentative
+            </MDButton>
+          )}
         </DialogActions>
       </Dialog>
       

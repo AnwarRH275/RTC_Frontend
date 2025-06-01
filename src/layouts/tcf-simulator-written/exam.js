@@ -5,7 +5,7 @@
 */
 
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 
@@ -43,10 +43,12 @@ import MDButton from "components/MDButton";
 // Services
 import TCFAdminService from "services/tcfAdminService";
 import authService from "services/authService";
+import attemptService from "services/attemptService";
 
 function TCFExamInterface() {
   const { subjectId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const quillRef = useRef(null);
   
   // États principaux
@@ -58,7 +60,9 @@ function TCFExamInterface() {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved');
   const [userInfo, setUserInfo] = useState(null);
-  const [showCharacterTable, setShowCharacterTable] = useState(false);
+  const [showCharacterTable, setShowCharacterTable] = useState(true);
+  const [showRetakeDialog, setShowRetakeDialog] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
   
   // Caractères spéciaux disponibles
   const specialCharacters = [
@@ -84,6 +88,14 @@ function TCFExamInterface() {
 
   // Chargement du sujet et des informations utilisateur
   useEffect(() => {
+          // Check for isRetake parameter in URL
+          const query = new URLSearchParams(location.search);
+          const isRetake = query.get('isRetake') === 'true';
+  
+          if (isRetake) {
+            setIsExamStarted(true);
+            localStorage.setItem('examStarted', 'true');
+          }
     const fetchSubject = async () => {
       try {
         const subjectData = await TCFAdminService.getSubjectById(subjectId);
@@ -107,6 +119,8 @@ function TCFExamInterface() {
         if (savedUserInfo) {
           setUserInfo(JSON.parse(savedUserInfo));
         }
+
+  
       } catch (error) {
         console.error('Erreur lors du chargement du sujet:', error);
         navigate('/tcf-simulator/written');
@@ -120,6 +134,7 @@ function TCFExamInterface() {
 
   // Timer
   useEffect(() => {
+    
     let interval;
     if (isExamStarted && timeRemaining > 0) {
       interval = setInterval(() => {
@@ -249,6 +264,26 @@ function TCFExamInterface() {
      }
    };
 
+
+
+  // Confirmer la reprise d'examen
+  const confirmRetakeExam = async () => {
+    try {
+      // Incrémenter le compteur de tentatives
+      await attemptService.incrementAttempt(subjectId);
+      
+      // Fermer le dialog
+      setShowRetakeDialog(false);
+      
+      // Démarrer l'examen sans affecter le solde
+      setIsExamStarted(true);
+      localStorage.setItem('examStarted', 'true');
+    } catch (error) {
+      console.error('Erreur lors de l\'incrémentation des tentatives:', error);
+      alert('Erreur lors du démarrage de l\'examen. Veuillez réessayer.');
+    }
+  };
+
   // Soumission de l'examen
   const handleSubmitExam = () => {
     setShowSubmitDialog(true);
@@ -262,7 +297,7 @@ function TCFExamInterface() {
     localStorage.removeItem('examStarted');
     
     // Rediriger vers la page de résultats
-    navigate(`/tcf-simulator/written/results/${subjectId}`);
+    navigate(`/simulateur-tcf-canada/expression-ecrits/results/${subjectId}`);
   };
 
   // Calcul du progrès
@@ -271,12 +306,13 @@ function TCFExamInterface() {
     return (completedTasks / subject?.tasks?.length || 0) * 100;
   };
 
-  // Compteur de caractères
-  const getCharacterCount = () => {
+  // Compteur de mots
+  const getWordCount = () => {
     const currentResponse = responses[currentTaskIndex] || '';
-    // Supprimer les balises HTML pour compter seulement le texte
+    // Supprimer les balises HTML et compter les mots
     const textOnly = currentResponse.replace(/<[^>]*>/g, '');
-    return textOnly.length;
+    const words = textOnly.split(/\s+/).filter(word => word.length > 0);
+    return words.length;
   };
 
   // Insertion de caractères spéciaux
@@ -550,44 +586,25 @@ function TCFExamInterface() {
           {/* Zone de saisie */}
           <Paper elevation={0} sx={{ p: 1, border: '1px solid #e2e8f0', borderRadius: '12px', flex: 1 }}>
             <textarea
-              ref={quillRef}
               value={responses[currentTaskIndex] || ''}
               onChange={(e) => handleResponseChange(e.target.value)}
               placeholder="Commencez à écrire votre réponse ici..."
               style={{
+                height: 'calc(100% - 40px)', // Adjust height to fit within the Paper and account for toolbar
+                minHeight: '100%',
                 width: '100%',
-                height: '100%',
-                minHeight: '200px',
-                padding: '10px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
                 border: '1px solid #e2e8f0',
                 borderRadius: '12px',
-                fontSize: '16px',
-                resize: 'none', // Disable textarea resize handle
-                boxSizing: 'border-box' // Include padding and border in the element's total width and height
+                padding: '8px',
+                resize: 'vertical'
               }}
             />
           </Paper>
-          <MDBox sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-            <MDButton
-              variant="contained"
-              color="info"
-              onClick={handlePreviousTask}
-              disabled={currentTaskIndex === 0}
-              sx={{
-                px: 3,
-                py: 1.5,
-                fontSize: '1rem',
-                borderRadius: '12px',
-                backgroundColor: '#3b82f6',
-                boxShadow: '0 8px 16px rgba(59, 130, 246, 0.3)',
-                '&:hover': {
-                  backgroundColor: '#2563eb',
-                  boxShadow: '0 8px 20px rgba(59, 130, 246, 0.4)',
-                },
-              }}
-            >
-              Précédent
-            </MDButton>
+          <MDBox sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+
+
             <MDButton
               variant="contained"
               color="success"
@@ -628,7 +645,8 @@ function TCFExamInterface() {
             backdropFilter: 'blur(10px)',
             borderRadius: '15px',
             p: 2,
-            textAlign: 'center'
+            textAlign: 'center',
+            marginBottom: '20px' // Add margin-bottom to separate from the next block
           }}
         >
           <MDTypography variant="h6" fontWeight="bold" color="dark">
@@ -646,12 +664,11 @@ function TCFExamInterface() {
             backdropFilter: 'blur(10px)',
             borderRadius: '15px',
             p: 2,
-            textAlign: 'center'
+            textAlign: 'center',
+            marginBottom: '20px' // Add margin-bottom to separate from the next block
           }}
         >
-          <MDTypography variant="h6" fontWeight="bold" color="dark" mb={1}>
-            Muniteur
-          </MDTypography>
+          <Icon fontSize="large" color="dark">timer</Icon>
           <MDTypography 
             variant="h3" 
             fontWeight="bold" 
@@ -671,26 +688,26 @@ function TCFExamInterface() {
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             borderRadius: '15px',
             p: 2,
-            border: '2px solid rgba(255, 255, 255, 0.5)'
+            border: '2px solid rgba(255, 255, 255, 0.5)',
+            marginBottom: '20px' // Add margin-bottom to separate from the next block
           }}
         >
-          {/* Compteur de caractères */}
-          <MDBox
+          {/* Compteur de mots */}
+          <Card
             sx={{
               backgroundColor: '#4dd0e1',
               color: '#000',
               fontWeight: 'bold',
-              borderRadius: '10px',
-              mb: 1,
-              width: '100%',
-              p: 1,
-              textAlign: 'center'
+              borderRadius: '15px',
+              p: 2,
+              textAlign: 'center',
+              mb: 2 // Add margin-bottom to separate from special characters
             }}
           >
-            <MDTypography variant="body2" fontWeight="bold">
-              Caractères: {getCharacterCount()}
+            <MDTypography variant="h6" fontWeight="bold">
+              Mots: {getWordCount()}
             </MDTypography>
-          </MDBox>
+          </Card>
           
           {/* Caractères spéciaux */}
           <MDButton
@@ -763,13 +780,46 @@ function TCFExamInterface() {
             fontSize: '1rem',
             fontWeight: 'bold',
             boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-            width: '100%'
+            width: '100%',
+            marginTop: 'auto',
+            marginBottom: '30px'
           }}
         >
           <Icon sx={{ mr: 1 }}>send</Icon>
           Terminer l'examen
         </MDButton>
       </MDBox>
+
+      {/* Dialog de confirmation pour les tentatives */}
+      <Dialog open={showRetakeDialog} onClose={() => setShowRetakeDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <MDTypography variant="h5" fontWeight="bold" color="info">
+            Information sur les tentatives
+          </MDTypography>
+        </DialogTitle>
+        <DialogContent>
+          <MDBox textAlign="center" py={2}>
+            <Icon sx={{ fontSize: 60, color: '#3b82f6', mb: 2 }}>info</Icon>
+            <MDTypography variant="h6" mb={2}>
+              Vous avez droit à 2 tentatives pour cet examen
+            </MDTypography>
+            <MDTypography variant="body1" mb={2}>
+              Tentative actuelle: {attemptCount + 1} / 2
+            </MDTypography>
+            <MDTypography variant="body2" color="text">
+              Cette tentative ne déduira pas de crédit de votre solde.
+            </MDTypography>
+          </MDBox>
+        </DialogContent>
+        <DialogActions>
+          <MDButton onClick={() => setShowRetakeDialog(false)} color="secondary">
+            Annuler
+          </MDButton>
+          <MDButton onClick={confirmRetakeExam} color="info" variant="gradient">
+            Commencer la tentative
+          </MDButton>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog de confirmation */}
       <Dialog open={showSubmitDialog} onClose={() => setShowSubmitDialog(false)}>
@@ -801,5 +851,4 @@ function TCFExamInterface() {
     </MDBox>
   );
 }
-
 export default TCFExamInterface;
