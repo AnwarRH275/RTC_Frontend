@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { Card, Box, Typography, Button, Chip } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Card, Box, Typography, Button, Chip, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import CheckIcon from '@mui/icons-material/Check';
 import { loadStripe } from '@stripe/stripe-js';
 import axios from "axios";
+import subscriptionPackService from '../../../services/subscriptionPackService';
 
 // Clé publique Stripe
 const stripePromise = loadStripe('pk_test_51RPoNkGbR6tCbwFHGpmyQJHVvFNdqbZABAA5hJPvCnQsPR9C8dDXkiojPusno6ow5CngADJHkRdVnrtOwHeFTCNe00VVxsQVJ1');
@@ -103,64 +104,66 @@ const PopularBadge = styled(Chip)(({ theme }) => ({
 
 const SubscriptionPlans = ({ email, onSelectPlan }) => {
   const [loading, setLoading] = useState(false);
-  
-  // Configuration des plans avec les produits Stripe
-  const plans = [
-    {
-      id: 'standard',
-      name: 'Pack Écrit Standard',
-      price: '14',
-      priceInCents: 1499, // Prix en centimes pour Stripe
-      usages: 5,
-      color: 'standard',
-      isPopular: false,
-      stripeProductId: 'prod_SMeQcS5gdyO7Nh',
-      features: [
-        `5 examens réels basés sur les sujets d'actualité 2025`,
-        'Remarques personnalisées sur chaque production',
-        'Modèles corrigés pour chaque tâche',
-        `Accès complet au simulateur d'expression écrite`,
-        'Simulation en conditions réelles',
-        'Note estimée selon le CECR',
-      ],
-    },
-    {
-      id: 'performance',
-      name: 'Pack Écrit Performance',
-      price: '29',
-      priceInCents: 2999, // Prix en centimes pour Stripe
-      usages: 15,
-      color: 'performance',
-      isPopular: true,
-      stripeProductId: 'prod_SMePWWnxhhQXZJ',
-      features: [
-        `15 examens réels basés sur les sujets d'actualité 2025`,
-        'Remarques personnalisées sur chaque production',
-        'Modèles corrigés pour chaque tâche',
-        `Accès complet au simulateur d'expression écrite`,
-        'Simulation en conditions réelles',
-        'Note estimée selon le CECR',
-      ],
-    },
-    {
-      id: 'pro',
-      name: 'Pack Écrit Pro',
-      price: '49',
-      priceInCents: 4999, // Prix en centimes pour Stripe
-      usages: 30,
-      color: 'pro',
-      isPopular: false,
-      stripeProductId: 'prod_SMeQ8tIJeu8sHA',
-      features: [
-        `30 examens réels basés sur les sujets d'actualité 2025`,
-        'Remarques personnalisées sur chaque production',
-        'Modèles corrigés pour chaque tâche',
-        `Accès complet au simulateur d'expression écrite`,
-        'Simulation en conditions réelles',
-        'Note estimée selon le CECR',
-      ],
-    },
-  ];
+  const [plans, setPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Charger les packs depuis l'API
+  useEffect(() => {
+    const loadPlans = async () => {
+      try {
+        setLoadingPlans(true);
+        setError(null);
+        
+        // Récupérer les packs actifs depuis l'API
+        const packsData = await subscriptionPackService.getActivePacks();
+        
+        // Transformer les données pour correspondre au format attendu
+         const transformedPlans = packsData.map(pack => ({
+           id: pack.pack_id,
+           name: pack.name,
+           price: pack.price,
+           priceInCents: pack.priceInCents,
+           usages: pack.usages,
+           color: pack.color,
+           isPopular: pack.isPopular,
+           stripeProductId: pack.stripeProductId,
+           features: pack.features ? pack.features.map(f => f.featureText || f) : []
+         }));
+        
+        setPlans(transformedPlans);
+      } catch (error) {
+        console.error('Erreur lors du chargement des packs:', error);
+        setError('Impossible de charger les plans d\'abonnement. Veuillez réessayer.');
+        
+        // Fallback avec les plans par défaut en cas d'erreur
+        setPlans([
+          {
+            id: 'standard',
+            name: 'Pack Écrit Standard',
+            price: '14',
+            priceInCents: 1499,
+            usages: 5,
+            color: 'standard',
+            isPopular: false,
+            stripeProductId: 'prod_SMeQcS5gdyO7Nh',
+            features: [
+              '5 examens réels basés sur les sujets d\'actualité 2025',
+              'Remarques personnalisées sur chaque production',
+              'Modèles corrigés pour chaque tâche',
+              'Accès complet au simulateur d\'expression écrite',
+              'Simulation en conditions réelles',
+              'Note estimée selon le CECR'
+            ]
+          }
+        ]);
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+
+    loadPlans();
+  }, []);
 
   // Fonction pour sélectionner un plan directement (sans passer par Stripe)
   const handleSelectPlan = (plan) => {
@@ -201,6 +204,50 @@ const SubscriptionPlans = ({ email, onSelectPlan }) => {
       setLoading(false);
     }
   };
+
+  // Affichage du chargement
+  if (loadingPlans) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        height: '300px',
+        width: '100%'
+      }}>
+        <CircularProgress size={60} />
+        <Typography variant="h6" sx={{ ml: 2 }}>
+          Chargement des plans d'abonnement...
+        </Typography>
+      </Box>
+    );
+  }
+
+  // Affichage d'erreur
+  if (error) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'center', 
+        alignItems: 'center',
+        height: '300px',
+        width: '100%',
+        textAlign: 'center'
+      }}>
+        <Typography variant="h6" color="error" gutterBottom>
+          {error}
+        </Typography>
+        <Button 
+          variant="contained" 
+          onClick={() => window.location.reload()}
+          sx={{ mt: 2 }}
+        >
+          Réessayer
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ 

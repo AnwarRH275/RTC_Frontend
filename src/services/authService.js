@@ -53,8 +53,17 @@ const login = async (credentials) => {
 };
 
 // Récupération des informations de l'utilisateur connecté
-const getCurrentUser = async () => {
+const getCurrentUser = async (forceRefresh = false) => {
   try {
+    // Si forceRefresh est true ou si on n'a pas d'infos en cache, faire une requête API
+    if (forceRefresh) {
+      const response = await axios.get(`${API_URL}/me`, getAuthHeader());
+      if (response.data) {
+        localStorage.setItem('user_info', JSON.stringify(response.data));
+        return response.data;
+      }
+    }
+    
     // Essayer d'abord de récupérer depuis le localStorage
     const storedUserInfo = localStorage.getItem('user_info');
     if (storedUserInfo) {

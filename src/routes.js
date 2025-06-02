@@ -27,6 +27,7 @@ import TCFExamInterface from "layouts/tcf-simulator-written/exam";
 import TCFResultsInterface from "layouts/tcf-simulator-written/results";
 import TCFAdminSimulator from "layouts/tcf-admin";
 import UserManagement from "layouts/user-management";
+import PackManagement from "layouts/pack-management";
 
 const routes = [
   {
@@ -98,6 +99,14 @@ const routes = [
     icon: <Icon fontSize="small">people</Icon>,
     route: "/user-management",
     component: <UserManagement />,
+  },
+  {
+    type: "collapse",
+    name: "Gestion de pack",
+    key: "pack-management",
+    icon: <Icon fontSize="small">card_membership</Icon>,
+    route: "/pack-management",
+    component: <PackManagement />,
   },
   {
     type: "collapse",

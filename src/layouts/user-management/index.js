@@ -53,6 +53,7 @@ import { useState, useEffect } from "react";
 
 // Services
 import authService from "services/authService";
+import subscriptionPackService from "services/subscriptionPackService";
 
 function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -68,6 +69,7 @@ function UserManagement() {
   const [countryCode, setCountryCode] = useState("+1"); // Default country code
   const [balanceType, setBalanceType] = useState("sold"); // Type de solde à modifier: "sold" ou "total_sold"
   const [newBalanceValue, setNewBalanceValue] = useState("");
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
   // Form state
   const [formData, setFormData] = useState({
     username: "",
@@ -94,12 +96,7 @@ function UserManagement() {
     { code: "+213", label: "Algeria (+213)" },
   ];
 
-  const subscriptionPlans = [
-    { value: "standard", label: "Pack Écrit Standard", color: "info" },
-    { value: "performance", label: "Pack Écrit Performance", color: "warning" },
-    { value: "pro", label: "Pack Écrit Pro", color: "success" },
-    { value: null, label: "Aucun plan", color: "secondary" }
-  ];
+  // Les plans d'abonnement sont maintenant récupérés dynamiquement
 
   const userRoles = [
     { value: "client", label: "Client" },
@@ -107,9 +104,10 @@ function UserManagement() {
     { value: "moderator", label: "Modérateur" }
   ];
 
-  // Fetch users on component mount
+  // Fetch users and subscription plans on component mount
   useEffect(() => {
     fetchUsers();
+    fetchSubscriptionPlans();
   }, []);
 
   const fetchUsers = async () => {
@@ -124,6 +122,38 @@ function UserManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchSubscriptionPlans = async () => {
+    try {
+      const packs = await subscriptionPackService.getActivePacks();
+      const formattedPlans = packs.map(pack => ({
+        value: pack.pack_id,
+        label: pack.name,
+        color: getColorFromPackId(pack.pack_id)
+      }));
+      // Ajouter l'option "Aucun plan"
+      formattedPlans.push({ value: null, label: "Aucun plan", color: "secondary" });
+      setSubscriptionPlans(formattedPlans);
+    } catch (error) {
+      console.error('Erreur lors du chargement des plans d\'abonnement:', error);
+      // Fallback vers les plans par défaut en cas d'erreur
+      setSubscriptionPlans([
+        { value: "standard", label: "Pack Écrit Standard", color: "info" },
+        { value: "performance", label: "Pack Écrit Performance", color: "warning" },
+        { value: "pro", label: "Pack Écrit Pro", color: "success" },
+        { value: null, label: "Aucun plan", color: "secondary" }
+      ]);
+    }
+  };
+
+  const getColorFromPackId = (packId) => {
+    const colorMap = {
+      'standard': 'info',
+      'performance': 'warning',
+      'pro': 'success'
+    };
+    return colorMap[packId] || 'primary';
   };
 
   const showSnackbar = (message, severity = 'success') => {
