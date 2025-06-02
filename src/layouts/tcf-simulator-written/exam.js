@@ -50,7 +50,8 @@ function TCFExamInterface() {
   const navigate = useNavigate();
   const location = useLocation();
   const quillRef = useRef(null);
-  
+  const textareaRef = useRef(null);
+
   // États principaux
   const [subject, setSubject] = useState(null);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
@@ -75,20 +76,7 @@ function TCFExamInterface() {
     ['{', '}', '–', '—', '…', '°']
   ];
   
-  // Configuration ReactQuill
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['clean']
-    ],
-  };
 
-  const quillFormats = [
-    'header', 'bold', 'italic', 'underline',
-    'list', 'bullet'
-  ];
 
   // Chargement du sujet et des informations utilisateur
   useEffect(() => {
@@ -304,11 +292,7 @@ function TCFExamInterface() {
     navigate(`/simulateur-tcf-canada/expression-ecrits/results/${subjectId}`);
   };
 
-  // Calcul du progrès
-  const getProgress = () => {
-    const completedTasks = Object.values(responses).filter(response => response.trim().length > 0).length;
-    return (completedTasks / subject?.tasks?.length || 0) * 100;
-  };
+
 
   // Compteur de mots
   const getWordCount = () => {
@@ -321,17 +305,25 @@ function TCFExamInterface() {
 
   // Insertion de caractères spéciaux
   const insertSpecialCharacter = (character) => {
-    if (quillRef.current) {
-      const quill = quillRef.current.getEditor();
-      const range = quill.getSelection();
-      if (range) {
-        quill.insertText(range.index, character);
-        quill.setSelection(range.index + 1);
-      } else {
-        const length = quill.getLength();
-        quill.insertText(length - 1, character);
-        quill.setSelection(length);
-      }
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentValue = responses[currentTaskIndex] || '';
+      const newValue = currentValue.substring(0, start) + character + currentValue.substring(end);
+      
+      // Update the state
+      setResponses(prev => ({
+        ...prev,
+        [currentTaskIndex]: newValue
+      }));
+
+      // Set the cursor position after insertion
+      // Need a slight delay to ensure state update is reflected in the DOM
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + character.length;
+        textarea.focus();
+      }, 0);
     }
   };
 
@@ -557,10 +549,68 @@ function TCFExamInterface() {
                >
                <h3>  Tache {currentTaskIndex + 1} : </h3>
                  <p dangerouslySetInnerHTML={{ __html: currentTask.title }} />
+                 <p dangerouslySetInnerHTML={{ __html: currentTask.structure }} />
                </div>
          
            )}
         </MDBox>
+
+        {/* Zone des documents - Nouvelle section */}
+        {currentTask.documents && currentTask.documents.length > 0 && (
+          <MDBox 
+            sx={{
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              borderRadius: '20px',
+              p: 3,
+              border: '2px solid rgba(255, 255, 255, 0.5)',
+              minHeight: '150px',
+            }}
+          >
+            <MDTypography 
+              variant="h6" 
+              fontWeight="bold" 
+              color="dark"
+              textAlign="center"
+              mb={3}
+            >
+              Documents de référence
+            </MDTypography>
+            
+            <Grid container spacing={2}>
+              {currentTask.documents.map((document, index) => (
+                <Grid item xs={12} md={6} key={index}>
+                  <Paper 
+                    elevation={3} 
+                    sx={{ 
+                      p: 2, 
+                      borderRadius: '12px',
+                      height: '250px',
+                      overflow: 'auto',
+                      border: '1px solid #e0e0e0',
+                      backgroundColor: '#f9f9f9'
+                    }}
+                  >
+                    <MDTypography variant="subtitle1" fontWeight="bold" mb={1}>
+                      Document {index + 1}
+                    </MDTypography>
+                    <MDBox 
+                      sx={{ 
+                        p: 1, 
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        border: '1px solid #eee',
+                        height: 'calc(100% - 40px)',
+                        overflow: 'auto'
+                      }}
+                    >
+                      <div dangerouslySetInnerHTML={{ __html: document.content }} />
+                    </MDBox>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          </MDBox>
+        )}
 
         {/* Zone de réponse */}
         <MDBox 
@@ -585,16 +635,15 @@ function TCFExamInterface() {
             Zone de réponse
           </MDTypography>
           
-          {/* Affichage du contenu de la tâche */}
-          
           {/* Zone de saisie */}
           <Paper elevation={0} sx={{ p: 1, border: '1px solid #e2e8f0', borderRadius: '12px', flex: 1 }}>
             <textarea
+              ref={textareaRef}
               value={responses[currentTaskIndex] || ''}
               onChange={(e) => handleResponseChange(e.target.value)}
               placeholder="Commencez à écrire votre réponse ici..."
               style={{
-                height: 'calc(100% - 40px)', // Adjust height to fit within the Paper and account for toolbar
+                height: 'calc(100% - 40px)',
                 minHeight: '100%',
                 width: '100%',
                 fontSize: '16px',

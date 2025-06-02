@@ -28,6 +28,7 @@ import MDButton from "components/MDButton";
 // Services
 import TCFAdminService from "services/tcfAdminService";
 import authService from "services/authService";
+import { Paper } from "@mui/material";
 
 // Animation CSS pour le chargement
 const spinAnimation = keyframes`
@@ -138,13 +139,25 @@ function TCFResultsInterface() {
         const taskStructures = subjectData.tasks.map(task => task.structure || '').join('\n\n');
         const taskInstructions = subjectData.tasks.map(task => task.instructions || '').join('\n\n');
         
+        // Préparer les documents pour l'IA
+        const taskDocuments = subjectData.tasks.map((task, index) => {
+          if (task.documents && task.documents.length > 0) {
+            const documentsText = task.documents.map((doc, docIndex) => 
+              `Document ${docIndex + 1}: ${doc.content}`
+            ).join('\n');
+            return `Tache ${index + 1} - Documents de référence:\n${documentsText}`;
+          }
+          return `Tache ${index + 1} - Aucun document de référence`;
+        }).join('\n\n');
+        
         // Envoyer les données à l'API pour correction
         const payload = {
           chatInput: taskResponses,
           sessionId: `session-${Date.now()}`,
-          Taches: subjectData.tasks.map((task, index) => `Tache ${index + 1}: ${task.title || ''}`).join('\n\n'), // Modified to include task number
+          Taches: subjectData.tasks.map((task, index) => `Tache ${index + 1}: ${task.title || ''}`).join('\n\n'),
           Structures: subjectData.tasks.map((task, index) => `Tache ${index + 1}: ${task.structure || ''}`).join('\n\n'),
-          Instructions: subjectData.tasks.map((task, index) => `Tache ${index + 1}: ${task.instructions || ''}`).join('\n\n') // Modified to include task number
+          Instructions: subjectData.tasks.map((task, index) => `Tache ${index + 1}: ${task.instructions || ''}`).join('\n\n'),
+          Documents: taskDocuments // Ajouter les documents à l'API
         };
         
         try {
@@ -461,6 +474,49 @@ function TCFResultsInterface() {
                           <MDBox p={3}>
                             {/* Section avec deux colonnes: Votre réponse et Correction proposée */}
                             <Grid container spacing={3}>
+                              {/* Documents de référence - Nouvelle section */}
+                              {subject?.tasks[index]?.documents && subject.tasks[index].documents.length > 0 && (
+                                <Grid item xs={12}>
+                                  <MDBox 
+                                    p={3} 
+                                    mb={3}
+                                    sx={{
+                                      background: '#f0f7ff',
+                                      borderRadius: 2,
+                                      border: '1px solid #bfdbfe',
+                                      overflow: 'auto'
+                                    }}
+                                  >
+                                    <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
+                                      Documents de référence:
+                                    </MDTypography>
+                                    
+                                    <Grid container spacing={2}>
+                                      {subject.tasks[index].documents.map((document, docIndex) => (
+                                        <Grid item xs={12} md={6} key={docIndex}>
+                                          <Paper 
+                                            elevation={1} 
+                                            sx={{ 
+                                              p: 2, 
+                                              borderRadius: 2,
+                                              border: '1px solid #e5e7eb',
+                                              backgroundColor: '#ffffff'
+                                            }}
+                                          >
+                                            <MDTypography variant="subtitle2" fontWeight="bold" mb={1}>
+                                              Document {docIndex + 1}
+                                            </MDTypography>
+                                            <MDTypography variant="body2" component="div">
+                                              <div dangerouslySetInnerHTML={{ __html: document.content }} />
+                                            </MDTypography>
+                                          </Paper>
+                                        </Grid>
+                                      ))}
+                                    </Grid>
+                                  </MDBox>
+                                </Grid>
+                              )}
+                              
                               {/* Votre réponse */}
                               <Grid item xs={12} md={5}>
                                 <MDBox 

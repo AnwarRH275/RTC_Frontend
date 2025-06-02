@@ -30,13 +30,15 @@ import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
 
+import authService from "services/authService";
+import { useInfoUser } from "context/InfoUserContext";
+
 // Authentication layout components
 import BasicLayout from "layouts/authentication/components/BasicLayout";
 
 // Images
-import bgImage from "assets/images/bg-sign-in-modern.jpg";
-import authService from "services/authService";
-import { useInfoUser } from "context/InfoUserContext";
+// import bgImage from "assets/images/bg-sign-in-modern.jpg";
+const bgImage = "https://images.pexels.com/photos/207692/pexels-photo-207692.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"; //  URL de l'image de fond
 
 function Basic() {
   const navigate = useNavigate();
