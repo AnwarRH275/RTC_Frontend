@@ -5,6 +5,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import { loadStripe } from '@stripe/stripe-js';
 import axios from "axios";
 import subscriptionPackService from '../../../services/subscriptionPackService';
+import MDButton from 'components/MDButton';
 
 // Clé publique Stripe
 const stripePromise = loadStripe('pk_test_51RPoNkGbR6tCbwFHGpmyQJHVvFNdqbZABAA5hJPvCnQsPR9C8dDXkiojPusno6ow5CngADJHkRdVnrtOwHeFTCNe00VVxsQVJ1');
@@ -34,10 +35,10 @@ const PlanCard = styled(Card)(({ theme, isPopular }) => ({
 
 const PlanHeader = styled(Box)(({ theme, color }) => ({
   background: color === 'standard' 
-    ? 'linear-gradient(135deg, #0062E6, #33AEFF)' 
+    ? 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)' 
     : color === 'performance' 
       ? 'linear-gradient(135deg, #FF512F, #DD2476)' 
-      : 'linear-gradient(135deg, #11998e, #38ef7d)',
+      : 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
   padding: theme.spacing(0.5), // Further reduced padding
   color: 'white', // Ensure text color is white
   textAlign: 'center',
@@ -75,17 +76,17 @@ const ActionButton = styled(Button)(({ theme, color }) => ({
   marginTop: 'auto',
   boxShadow: '0 4px 10px rgba(0, 0, 0, 0.25)',
   background: color === 'standard' 
-    ? 'linear-gradient(135deg, #0062E6, #33AEFF)' 
+    ? 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)' 
     : color === 'performance' 
       ? 'linear-gradient(135deg, #FF512F, #DD2476)' 
-      : 'linear-gradient(135deg, #11998e, #38ef7d)',
+      : 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
   color: 'white', // Ensure text color is white
   '&:hover': {
     background: color === 'standard' 
-      ? 'linear-gradient(135deg, #0062E6, #0062E6)' 
+      ? 'linear-gradient(135deg, #0083b0, #0083b0)' 
       : color === 'performance' 
         ? 'linear-gradient(135deg, #DD2476, #DD2476)' 
-        : 'linear-gradient(135deg, #11998e, #11998e)',
+        : 'linear-gradient(135deg, #0083b0, #0083b0)',
     boxShadow: '0 8px 20px rgba(0, 0, 0, 0.3)',
     transform: 'translateY(-2px)',
   },
@@ -102,11 +103,12 @@ const PopularBadge = styled(Chip)(({ theme }) => ({
   zIndex: 1,
 }));
 
-const SubscriptionPlans = ({ email, onSelectPlan }) => {
+const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedPlanForDisplay, setSelectedPlanForDisplay] = useState(preSelectedPlan);
 
   // Charger les packs depuis l'API
   useEffect(() => {
@@ -132,6 +134,14 @@ const SubscriptionPlans = ({ email, onSelectPlan }) => {
          }));
         
         setPlans(transformedPlans);
+        
+        // Si un plan est pré-sélectionné (ex: 'pro'), le trouver et l'afficher
+        if (preSelectedPlan) {
+          const preSelected = transformedPlans.find(plan => plan.id === preSelectedPlan);
+          if (preSelected) {
+            setSelectedPlanForDisplay(preSelected);
+          }
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des packs:', error);
         setError('Impossible de charger les plans d\'abonnement. Veuillez réessayer.');
@@ -176,20 +186,39 @@ const SubscriptionPlans = ({ email, onSelectPlan }) => {
   const handleCheckout = async (plan) => {
     setLoading(true);
     try {
+      // Récupérer les informations utilisateur si disponibles
+      const token = localStorage.getItem('token');
+      const userInfo = localStorage.getItem('user_info');
+      let userId = null;
+      
+      if (token && userInfo) {
+        try {
+          const parsedUserInfo = JSON.parse(userInfo);
+          userId = parsedUserInfo.id;
+        } catch (e) {
+          console.warn('Impossible de parser les informations utilisateur:', e);
+        }
+      }
+      
       // Créer une session de paiement via le backend
       const requestData = {
         productId: plan.stripeProductId,
         planName: plan.id,
         priceInCents: plan.priceInCents,
         email: email,
-        // userId: userData.id, // L'ID utilisateur sera géré par le backend après l'inscription
+        userId: userId, // Inclure l'ID utilisateur si disponible
         successUrl: `${window.location.origin}/authentication/payment-success?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
         cancelUrl: `${window.location.origin}/authentication/sign-up`
       };
       
       console.log('Données envoyées au backend:', requestData);
       
-      const response = await axios.post('http://localhost:5001/stripe/create-checkout-session', requestData);
+      const response = await axios.post('http://localhost:5001/stripe/create-checkout-session', requestData, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
 
       // Récupérer l'URL de la session Stripe
       const { url } = response.data;
@@ -249,6 +278,111 @@ const SubscriptionPlans = ({ email, onSelectPlan }) => {
     );
   }
 
+  // Si un plan spécifique est sélectionné pour affichage (ex: upgrade to pro), afficher seulement ce plan
+  if (selectedPlanForDisplay) {
+    const planToDisplay = plans.find(plan => plan.id === selectedPlanForDisplay.id || plan.id === selectedPlanForDisplay);
+    
+    if (planToDisplay) {
+      return (
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 3, 
+          width: '100%',
+          maxWidth: '500px',
+          mx: 'auto',
+          my: 2,
+          px: 1
+        }}>
+          <Typography variant="h4" fontWeight="bold" textAlign="center" sx={{ mb: 2 }}>
+            Mise à niveau vers {planToDisplay.name}
+          </Typography>
+          
+          <Box sx={{ width: '100%' }}>
+            <PlanCard isPopular={planToDisplay.isPopular}>
+              {planToDisplay.isPopular && <PopularBadge label="POPULAIRE" />}
+              <PlanHeader color={planToDisplay.color}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: planToDisplay.isPopular ? 2 : 'auto', position: 'relative' }}>
+                  {planToDisplay.name}
+                </Typography>
+                <PlanPrice>
+                  <Typography component="span" sx={{ fontSize: '1.2rem', alignSelf: 'flex-start', mt: 1 }}>
+                    $
+                  </Typography>
+                  {planToDisplay.price}
+                  <Typography component="span" sx={{ fontSize: '1.2rem', ml: 0.5 }}>
+                    .99
+                  </Typography>
+                </PlanPrice>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  {planToDisplay.usages} Usages
+                </Typography>
+              </PlanHeader>
+              <PlanContent>
+                {planToDisplay.features.map((feature, index) => (
+                  <FeatureItem key={index}>
+                    <CheckIcon sx={{ color: '#4CAF50', mr: 1, fontSize: '1.2rem' }} />
+                    <Typography variant="body2">{feature}</Typography>
+                  </FeatureItem>
+                ))}
+                <Box sx={{ flexGrow: 1, minHeight: 15 }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <ActionButton 
+                    variant="contained" 
+                    fullWidth 
+                    color="primary" 
+                    disableElevation
+                    onClick={() => {
+                      // Si l'utilisateur est connecté (token présent), aller directement au paiement
+                      const token = localStorage.getItem('token');
+                      if (token) {
+                        handleCheckout(planToDisplay);
+                      } else if (onSelectPlan) {
+                        // Sinon, utiliser onSelectPlan pour créer le compte d'abord
+                        onSelectPlan(planToDisplay);
+                      } else {
+                        // Fallback vers handleCheckout
+                        handleCheckout(planToDisplay);
+                      }
+                    }}
+                    disabled={loading}
+                    sx={{ 
+                      color: 'white',
+                      fontSize: '1.1rem',
+                      py: 1.5,
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                      background: 'linear-gradient(135deg, #11998e, #38ef7d)'
+                    }}
+                  >
+                    {loading ? 'Chargement...' : 'Payer maintenant'}
+                  </ActionButton>
+                  
+                  <MDButton 
+                    variant="outlined" 
+                    fullWidth
+                    onClick={() => setSelectedPlanForDisplay(null)}
+                    sx={{ 
+                      mt: 1,
+                      borderColor: '#ccc',
+                      color: '#666',
+                      '&:hover': {
+                        borderColor: '#999',
+                        backgroundColor: 'rgba(0,0,0,0.04)'
+                      }
+                    }}
+                  >
+                    Voir tous les plans
+                  </MDButton>
+                </Box>
+              </PlanContent>
+            </PlanCard>
+          </Box>
+        </Box>
+      );
+    }
+  }
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -299,7 +433,19 @@ const SubscriptionPlans = ({ email, onSelectPlan }) => {
                   fullWidth 
                   color="primary" 
                   disableElevation
-                  onClick={() => handleCheckout(plan)}
+                  onClick={() => {
+                    // Si l'utilisateur est connecté (token présent), aller directement au paiement
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                      handleCheckout(plan);
+                    } else if (onSelectPlan) {
+                      // Sinon, utiliser onSelectPlan pour créer le compte d'abord
+                      onSelectPlan(plan);
+                    } else {
+                      // Fallback vers handleCheckout
+                      handleCheckout(plan);
+                    }
+                  }}
                   disabled={loading}
                   sx={{ 
                     color: 'white',

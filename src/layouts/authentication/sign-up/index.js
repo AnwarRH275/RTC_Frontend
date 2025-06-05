@@ -5,7 +5,7 @@
 */
 
 // react-router-dom components
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 // @mui material components
 import Card from "@mui/material/Card";
@@ -23,15 +23,17 @@ import MDButton from "components/MDButton";
 // Authentication layout components
 import CoverLayout from "layouts/authentication/components/CoverLayout";
 
-// Images
-import bgImage from "assets/images/tcf-canada-background.svg";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import authService from "services/authService";
 import SubscriptionPlans from "./SubscriptionPlans";
 
+// Images
+// import bgImage from "assets/images/tcf-canada-background.svg";
+const bgImage = "https://images.pexels.com/photos/207692/pexels-photo-207692.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"; //  URL de l'image de fond
+
 function Cover() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeStep, setActiveStep] = useState(0);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -47,6 +49,18 @@ function Cover() {
   const [error, setError] = useState("");
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
+
+  // Vérifier si l'utilisateur vient du bouton "upgrade to pro"
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const upgradeParam = params.get('upgrade');
+    
+    if (upgradeParam === 'pro') {
+      // Passer directement à l'étape de sélection de plan
+      setActiveStep(1);
+      // Pré-sélectionner le plan Pro (sera fait dans SubscriptionPlans)
+    }
+  }, [location.search]);
 
   const steps = ['Informations personnelles', 'Choisir un plan'];
 
@@ -105,51 +119,6 @@ function Cover() {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-  const handleSignUp = async () => {
-    // Déterminer le solde en fonction du plan choisi
-    let soldValue = 0;
-    if (selectedPlan) {
-      switch (selectedPlan.id) {
-        case 'standard':
-          soldValue = 5;
-          break;
-        case 'performance':
-          soldValue = 15;
-          break;
-        case 'pro':
-          soldValue = 30;
-          break;
-        default:
-          soldValue = 0;
-      }
-    }
-
-    const userData = {
-      username,
-      email,
-      password,
-      tel: countryCode + tel,
-      nom,
-      prenom,
-      plan: selectedPlan?.id || null,
-      sold: soldValue, // Ajout du solde en fonction du plan
-    };
-
-    // Afficher les données envoyées pour le débogage
-    console.log("Données d'inscription envoyées:", userData);
-    console.log("Plan sélectionné:", selectedPlan?.id);
-    console.log("Solde attribué:", soldValue);
-
-    try {
-      const response = await authService.signup(userData);
-      console.log("Inscription réussie :", response.data);
-      navigate("/authentication/sign-in");
-    } catch (error) {
-      console.error("Erreur lors de l'inscription :", error);
-      setError(error.response?.data?.message || "Erreur lors de l'inscription");
-      setOpenSnackbar(true);
-    }
-  };
 
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
@@ -189,7 +158,7 @@ function Cover() {
           mb={1}
           textAlign="center"
           sx={{
-            background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+            background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
             boxShadow: "0 12px 20px -10px rgba(0, 123, 255, 0.28), 0 4px 20px 0px rgba(0, 0, 0, 0.12), 0 7px 8px -5px rgba(0, 123, 255, 0.2)",
           }}
         >
@@ -200,10 +169,40 @@ function Cover() {
             {activeStep === 0 ? "Créez votre compte pour commencer votre préparation" : "Choisissez votre plan d'abonnement"}
           </MDTypography>
           <Box sx={{ width: '100%', mt: 1 }}>
-            <Stepper activeStep={activeStep} alternativeLabel>
+            <Stepper 
+              activeStep={activeStep} 
+              alternativeLabel
+              sx={{
+                background: 'linear-gradient(135deg, #0083b0, rgba(12, 140, 169, 0.77)) !important',
+                borderRadius: '8px',
+                padding: '16px',
+                '& .MuiStepConnector-root': {
+                  '& .MuiStepConnector-line': {
+                    background: 'white !important',
+                    height: '3px !important',
+                    borderRadius: '2px',
+                    opacity: 1,
+                    border: 'none'
+                  }
+                },
+                '& .MuiStepLabel-root': {
+                  color: 'white !important',
+                  fontWeight: 'bold',
+                },
+                '& .MuiStepIcon-root': {
+                  color: 'white',
+                  boxShadow: '0 2px 4px rgba(255, 255, 255, 0.5)',
+                  borderRadius: '50%'
+                },
+                '& .MuiStepIcon-text': {
+                  fill: '#0083b0',
+                  fontWeight: 'bold'
+                }
+              }}
+            >
               {steps.map((label) => (
                 <Step key={label}>
-                  <StepLabel sx={{ color: 'white' }}>{label}</StepLabel>
+                  <StepLabel>{label}</StepLabel>
                 </Step>
               ))}
             </Stepper>
@@ -451,13 +450,13 @@ function Cover() {
                   fullWidth 
                   onClick={handleNext}
                   sx={{ 
-                    background: 'linear-gradient(135deg, #0062E6, #33AEFF)',
+                    background: 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
                     borderRadius: '30px',
                     boxShadow: '0 4px 20px 0 rgba(0,123,255,.25)',
                     height: '3rem',
                     fontSize: '1rem',
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #0062E6, #0062E6)',
+                      background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
                       boxShadow: '0 6px 25px 0 rgba(0,123,255,.3)',
                       transform: 'translateY(-2px)',
                     },
@@ -490,11 +489,71 @@ function Cover() {
               </MDTypography>
               <SubscriptionPlans 
                 email={email} 
-                onSelectPlan={(plan) => {
+                preSelectedPlan={new URLSearchParams(location.search).get('upgrade')}
+                onSelectPlan={async (plan) => {
                   setSelectedPlan(plan);
                   console.log("Plan sélectionné:", plan);
-                  // Procéder à l'inscription avec le plan sélectionné
-                  handleSignUp();
+                  
+                  // Créer d'abord le compte utilisateur
+                  try {
+                    const userData = {
+                      username,
+                      email,
+                      password,
+                      tel: countryCode + tel,
+                      nom,
+                      prenom,
+                      plan: plan?.id || null,
+                      sold: 0, // Sera mis à jour après le paiement
+                    };
+
+                    console.log("Création du compte utilisateur:", userData);
+                    const response = await authService.signup(userData);
+                    console.log("Compte créé avec succès:", response.data);
+                    
+                    // Sauvegarder les informations de connexion
+                    if (response.data.access_token) {
+                      localStorage.setItem('token', response.data.access_token);
+                      localStorage.setItem('user_info', JSON.stringify(response.data.user_info));
+                    }
+                    
+                    // Maintenant procéder au paiement Stripe
+                     // Créer une session de paiement via le backend
+                     const requestData = {
+                       productId: plan.stripeProductId,
+                       planName: plan.id,
+                       priceInCents: plan.priceInCents,
+                       email: email,
+                       userId: response.data.user_info?.id,
+                       successUrl: `${window.location.origin}/authentication/payment-success?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
+                       cancelUrl: `${window.location.origin}/authentication/sign-up`
+                     };
+                     
+                     console.log('Données envoyées au backend pour Stripe:', requestData);
+                     
+                     const stripeResponse = await fetch('http://localhost:5001/stripe/create-checkout-session', {
+                       method: 'POST',
+                       headers: {
+                         'Content-Type': 'application/json',
+                         'Authorization': `Bearer ${response.data.access_token}`
+                       },
+                       body: JSON.stringify(requestData)
+                     });
+                     
+                     const stripeData = await stripeResponse.json();
+                     
+                     if (stripeData.url) {
+                       // Rediriger vers la page de paiement Stripe
+                       window.location.href = stripeData.url;
+                     } else {
+                       throw new Error('Impossible de créer la session de paiement');
+                     }
+                    
+                  } catch (error) {
+                    console.error("Erreur lors de la création du compte:", error);
+                    setError(error.response?.data?.message || "Erreur lors de la création du compte");
+                    setOpenSnackbar(true);
+                  }
                 }}
               />
               <MDBox mt={2} display="flex" justifyContent="space-between">

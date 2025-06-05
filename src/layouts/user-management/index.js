@@ -357,7 +357,7 @@ function UserManagement() {
             width: 40,
             height: 40,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+            background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -417,10 +417,10 @@ function UserManagement() {
             color="info"
             onClick={() => handleOpenDialog(user)}
             sx={{
-              background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+              background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
               color: "white",
               "&:hover": {
-                background: "linear-gradient(135deg, #0052C6, #2394DF)",
+                background: "linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))",
               }
             }}
           >
@@ -485,8 +485,8 @@ function UserManagement() {
                 justifyContent="space-between"
                 alignItems="center"
                 sx={{
-                  background: "linear-gradient(135deg, #0062E6, #33AEFF)",
-                }}
+                background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
+              }}
               >
                 <MDBox>
                   <MDTypography variant="h6" color="white">
@@ -542,7 +542,7 @@ function UserManagement() {
       >
         <DialogTitle
           sx={{
-            background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+            background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
             color: "white",
             textAlign: "center",
             py: 3
@@ -727,12 +727,12 @@ function UserManagement() {
             variant="contained"
             style={{color:'#fff' }}
             sx={{
-              background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+              background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
               borderRadius: 2,
               textTransform: "none",
               fontWeight: "bold",
               "&:hover": {
-                background: "linear-gradient(135deg, #0052C6, #2394DF)",
+                background: "linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))",
               }
             }}
           >

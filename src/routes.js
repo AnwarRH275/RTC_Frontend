@@ -21,6 +21,7 @@ import Profile from "layouts/profile";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
 import PaymentSuccess from "layouts/authentication/payment-success";
+import SubscriptionPlansPage from "layouts/subscription-plans";
 import TCFSimulator from "layouts/tcf-simulator";
 import TCFSimulatorWritten from "layouts/tcf-simulator-written";
 import TCFExamInterface from "layouts/tcf-simulator-written/exam";
@@ -37,6 +38,7 @@ const routes = [
     icon: <Icon fontSize="small">dashboard</Icon>,
     route: "/dashboard",
     component: <Dashboard />,
+    roles: ["Administrator", "Moderator", "Client"],
   },
   {
     type: "collapse",
@@ -45,6 +47,7 @@ const routes = [
     icon: <QuizIcon fontSize="small" />,
     route: "/tcf-admin",
     component: <TCFAdminSimulator />,
+    roles: ["Administrator", "Moderator"],
   },
   {
     type: "collapse",
@@ -53,6 +56,7 @@ const routes = [
     icon: <DescriptionIcon fontSize="small" />,
     route: "/simulateur-tcf-canada/expression-ecrits",
     component: <TCFSimulatorWritten />,
+    roles: ["Administrator", "Moderator", "Client"],
   },
   {
     type: "route",
@@ -60,6 +64,7 @@ const routes = [
     key: "tcf-exam-written",
     route: "/simulateur-tcf-canada/expression-ecrits/:subjectId/exam",
     component: <TCFExamInterface />,
+    roles: ["Administrator", "Moderator", "Client"],
   },
   {
     type: "route",
@@ -67,6 +72,7 @@ const routes = [
     key: "tcf-results-written",
     route: "/simulateur-tcf-canada/expression-ecrits/results/:subjectId",
     component: <TCFResultsInterface />,
+    roles: ["Administrator", "Moderator", "Client"],
   },
   {
     type: "collapse",
@@ -75,6 +81,7 @@ const routes = [
     icon: <RecordVoiceOverIcon fontSize="small" />,
     route: "/tcf-simulator/oral",
     component: <TCFSimulator />,
+    roles: ["Administrator", "Moderator", "Client"],
   },
   {
     type: "collapse",
@@ -82,6 +89,7 @@ const routes = [
     key: "packs-nabil",
     icon: <SchoolIcon fontSize="small" />,
     href: "https://examens.preptcfcanada.com/iump-subscription-plan/",
+    roles: ["Administrator", "Moderator", "Client"],
   },
   {
     type: "collapse",
@@ -90,6 +98,7 @@ const routes = [
     icon: <Icon fontSize="small">receipt_long</Icon>,
     route: "/billing",
     component: <Billing />,
+    roles: ["Administrator", "Moderator"],
   },
 
   {
@@ -99,6 +108,7 @@ const routes = [
     icon: <Icon fontSize="small">people</Icon>,
     route: "/user-management",
     component: <UserManagement />,
+    roles: ["Administrator", "Moderator"],
   },
   {
     type: "collapse",
@@ -107,6 +117,7 @@ const routes = [
     icon: <Icon fontSize="small">card_membership</Icon>,
     route: "/pack-management",
     component: <PackManagement />,
+    roles: ["Administrator", "Moderator"],
   },
   {
     type: "collapse",
@@ -115,6 +126,7 @@ const routes = [
     icon: <Icon fontSize="small">person</Icon>,
     route: "/profile",
     component: <Profile />,
+    roles: ["Administrator", "Moderator", "Client"],
   },
   {
     type: "route",
@@ -123,6 +135,7 @@ const routes = [
     icon: <Icon fontSize="small">login</Icon>,
     route: "/authentication/sign-in",
     component: <SignIn />,
+    roles: ["Administrator", "Moderator", "Client",""],
   },
   {
     type: "route",
@@ -131,6 +144,7 @@ const routes = [
     icon: <Icon fontSize="small">assignment</Icon>,
     route: "/authentication/sign-up",
     component: <SignUp />,
+    roles: ["Administrator", "Moderator", "Client",""],
   },
 
   {
@@ -140,7 +154,46 @@ const routes = [
     icon: <Icon fontSize="small">payment</Icon>,
     route: "/authentication/payment-success",
     component: <PaymentSuccess />,
+    roles: ["Administrator", "Moderator", "Client"],
+  },
+  {
+    type: "route",
+    name: "Subscription Plans",
+    key: "subscription-plans",
+    icon: <Icon fontSize="small">card_membership</Icon>,
+    route: "/subscription-plans",
+    component: <SubscriptionPlansPage />,
+    roles: ["Administrator", "Moderator", "Client"],
   },
 ];
+
+// Fonction pour filtrer les routes selon le rôle de l'utilisateur
+export const getFilteredRoutes = (userRole) => {
+  if (!userRole) return [];
+  
+  // Mapper les rôles de la base de données vers les rôles utilisés dans les routes
+  const roleMapping = {
+    'admin': 'Administrator',
+    'moderator': 'Moderator',
+    'client': 'Client'
+  };
+  
+  // Normaliser le rôle utilisateur et le mapper
+  const normalizedDbRole = userRole.toLowerCase();
+  const mappedRole = roleMapping[normalizedDbRole] || userRole;
+  
+  // Retourner toutes les routes si l'utilisateur est admin
+  if (normalizedDbRole === 'admin') {
+    return routes;
+  }
+  
+  return routes.filter(route => {
+    // Si la route n'a pas de propriété roles, elle est accessible à tous
+    if (!route.roles) return true;
+    
+    // Vérifier si le rôle mappé de l'utilisateur est dans la liste des rôles autorisés
+    return route.roles.includes(mappedRole);
+  });
+};
 
 export default routes;

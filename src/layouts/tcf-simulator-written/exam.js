@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import { useInfoUser } from "context/InfoUserContext";
 
 // @mui material components
 import Grid from "@mui/material/Grid";
@@ -51,6 +52,7 @@ function TCFExamInterface() {
   const location = useLocation();
   const quillRef = useRef(null);
   const textareaRef = useRef(null);
+  const { userInfo, loadUserInfo } = useInfoUser();
 
   // États principaux
   const [subject, setSubject] = useState(null);
@@ -60,7 +62,7 @@ function TCFExamInterface() {
   const [isExamStarted, setIsExamStarted] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved');
-  const [userInfo, setUserInfo] = useState(null);
+
   const [showCharacterTable, setShowCharacterTable] = useState(true);
   const [showRetakeDialog, setShowRetakeDialog] = useState(false);
   const [attemptCount, setAttemptCount] = useState(0);
@@ -106,11 +108,7 @@ function TCFExamInterface() {
           setResponses(initialResponses);
         }
         
-        // Charger les informations utilisateur depuis le localStorage
-        const savedUserInfo = localStorage.getItem('user_info');
-        if (savedUserInfo) {
-          setUserInfo(JSON.parse(savedUserInfo));
-        }
+        // Les informations utilisateur sont déjà disponibles via le contexte
 
   
       } catch (error) {
@@ -222,23 +220,22 @@ function TCFExamInterface() {
   // Démarrage de l'examen
   const handleStartExam = async () => {
     try {
-      // Récupérer les informations utilisateur depuis localStorage
-      const userInfoString = localStorage.getItem('user_info');
-      if (userInfoString) {
-        const userInfo = JSON.parse(userInfoString);
+      // Utiliser les informations utilisateur du contexte
+
+      if (userInfo) {
         const currentSold = userInfo.sold;
         
         // Vérifier si l'utilisateur a suffisamment de crédits
         if (currentSold > 0) {
+         
           // Décrémenter le solde de 1
           const newSold = currentSold - 1;
-          
-          // Mettre à jour le solde dans localStorage
-          userInfo.sold = newSold;
-          localStorage.setItem('user_info', JSON.stringify(userInfo));
-          
+          console.log(newSold)
           // Mettre à jour le solde dans le backend via API
           await authService.updateSold(userInfo.username, newSold);
+          
+          // Recharger les informations utilisateur pour synchroniser
+          await loadUserInfo(true);
           
           // Démarrer l'examen
           setIsExamStarted(true);
@@ -379,14 +376,14 @@ function TCFExamInterface() {
             <MDBox mb={4} mt={1}>
               <Avatar 
                 sx={{ 
-                  width: 80, 
-                  height: 80, 
+                  width: 90, 
+                  height: 90, 
                   backgroundColor: '#3b82f6', 
                   margin: '0 auto 16px',
                   boxShadow: '0 8px 16px rgba(59, 130, 246, 0.3)'
                 }}
               >
-                <Icon sx={{ fontSize: 40, color: 'white' }}>quiz</Icon>
+                <Icon style={{fontSize: '80px !important'}} sx={{  color: 'white' }}>quiz</Icon>
               </Avatar>
               <MDTypography variant="h3" fontWeight="bold" color="dark" mb={1}>
                 {subject.name}
@@ -394,16 +391,7 @@ function TCFExamInterface() {
               <MDTypography variant="body1" color="text" mb={2}>
                 Durée: {subject.duration} minutes • {subject.tasks.length} tâches
               </MDTypography>
-              <Chip 
-                label={subject.plans} 
-                sx={{ 
-                  backgroundColor: '#3b82f6', 
-                  color: 'white',
-                  fontWeight: 'bold',
-                  borderRadius: '12px',
-                  padding: '4px 8px'
-                }}
-              />
+                
             </MDBox>
             
             <Divider sx={{ my: 3 }} />
@@ -444,16 +432,16 @@ function TCFExamInterface() {
                 py: 1.5,
                 fontSize: '1.1rem',
                 borderRadius: 12,
-                backgroundColor: '#3b82f6',
-                boxShadow: '0 8px 16px rgba(59, 130, 246, 0.3)',
+                background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
+                boxShadow: '0 8px 16px rgba(0, 131, 176, 0.3)',
                 '&:hover': {
-                  backgroundColor: '#2563eb',
-                  boxShadow: '0 8px 20px rgba(59, 130, 246, 0.4)',
+                  background: 'linear-gradient(135deg, #006a90, rgba(63, 163, 185, 1))',
+                  boxShadow: '0 8px 20px rgba(0, 131, 176, 0.4)',
                 }
               }}
             >
-              <Icon sx={{ mr: 1 }}>play_arrow</Icon>
-              Commencer l'examen
+              <Icon sx={{ mr: 1, color: 'white' }}>play_arrow</Icon>
+              <span style={{ color: 'white' }}>Commencer l'examen</span>
             </MDButton>
           </Card>
         </Fade>
@@ -854,10 +842,10 @@ function TCFExamInterface() {
           <MDBox textAlign="center" py={2}>
             <Icon sx={{ fontSize: 60, color: '#3b82f6', mb: 2 }}>info</Icon>
             <MDTypography variant="h6" mb={2}>
-              Vous avez droit à 2 tentatives pour cet examen
+              Vous avez droit à 1 tentative pour cet examen
             </MDTypography>
             <MDTypography variant="body1" mb={2}>
-              Tentative actuelle: {attemptCount + 1} / 2
+              Tentative actuelle: {attemptCount + 1} / 1
             </MDTypography>
             <MDTypography variant="body2" color="text">
               Cette tentative ne déduira pas de crédit de votre solde.
@@ -868,7 +856,18 @@ function TCFExamInterface() {
           <MDButton onClick={() => setShowRetakeDialog(false)} color="secondary">
             Annuler
           </MDButton>
-          <MDButton onClick={confirmRetakeExam} color="info" variant="gradient">
+          <MDButton
+            onClick={confirmRetakeExam}
+            color="primary"
+            variant="gradient"
+            sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
+              backgroundImage: linearGradient(gradients.primaryToSecondary.main, gradients.primaryToSecondary.state),
+              '&:hover': {
+                backgroundColor: 'rgba(79, 204, 231, 1)',
+                boxShadow: '0 4px 20px 0 rgba(79, 204, 231, 0.4)',
+              },
+            })}
+          >
             Commencer la tentative
           </MDButton>
         </DialogActions>
@@ -893,10 +892,32 @@ function TCFExamInterface() {
           </MDTypography>
         </DialogContent>
         <DialogActions>
-          <MDButton onClick={() => setShowSubmitDialog(false)} color="secondary">
+          <MDButton
+            onClick={() => setShowSubmitDialog(false)}
+            color="primary"
+            variant="gradient"
+            sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
+              backgroundImage: linearGradient(gradients.primaryToSecondary.main, gradients.primaryToSecondary.state),
+              '&:hover': {
+                backgroundColor: 'rgba(79, 204, 231, 1)',
+                boxShadow: '0 4px 20px 0 rgba(79, 204, 231, 0.4)',
+              },
+            })}
+          >
             Continuer l'examen
           </MDButton>
-          <MDButton onClick={confirmSubmitExam} color="error" variant="gradient">
+          <MDButton
+            onClick={confirmSubmitExam}
+            color="primary"
+            variant="gradient"
+            sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
+              backgroundImage: linearGradient(gradients.primaryToSecondary.main, gradients.primaryToSecondary.state),
+              '&:hover': {
+                backgroundColor: 'rgba(79, 204, 231, 1)',
+                boxShadow: '0 4px 20px 0 rgba(79, 204, 231, 0.4)',
+              },
+            })}
+          >
             Soumettre définitivement
           </MDButton>
         </DialogActions>

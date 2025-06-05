@@ -45,8 +45,8 @@ const colors = {
   },
 
   primary: {
-    main: "#e91e63",
-    focus: "#e91e63",
+    main: "rgba(79, 204, 231, 1)",
+    focus: "rgba(79, 204, 231, 0.8)",
   },
 
   secondary: {
@@ -98,8 +98,8 @@ const colors = {
 
   gradients: {
     primary: {
-      main: "#EC407A",
-      state: "#D81B60",
+        main: "rgba(79, 204, 231, 1)",
+      state: "#0083b0",
     },
 
     secondary: {
@@ -135,6 +135,27 @@ const colors = {
     dark: {
       main: "#42424a",
       state: "#191919",
+    },
+
+    // Nouveaux gradients créatifs avec la couleur primaire
+    primaryLight: {
+      main: "rgba(79, 204, 231, 0.6)",
+      state: "rgba(79, 204, 231, 0.3)",
+    },
+
+    primaryToSecondary: {
+      main: "rgba(79, 204, 231, 1)",
+      state: "#0083b0",
+    },
+
+    oceanBreeze: {
+      main: "rgba(79, 204, 231, 1)",
+      state: "#0083b0",
+    },
+
+    skyGradient: {
+      main: "rgba(79, 204, 231, 1)",
+      state: "#0083b0",
     },
   },
 
@@ -202,8 +223,8 @@ const colors = {
 
   badgeColors: {
     primary: {
-      background: "#f8b3ca",
-      text: "#cc084b",
+      background: "rgba(79, 204, 231, 0.2)",
+      text: "rgba(59, 184, 211, 1)",
     },
 
     secondary: {
@@ -243,7 +264,7 @@ const colors = {
   },
 
   coloredShadows: {
-    primary: "#e91e62",
+    primary: "rgba(79, 204, 231, 0.5)",
     secondary: "#110e0e",
     info: "#00bbd4",
     success: "#4caf4f",

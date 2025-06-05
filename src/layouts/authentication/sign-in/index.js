@@ -67,7 +67,7 @@ function Basic() {
       });
       
       if (response.data.access_token) {
-        await loadUserInfo(); // Charger les informations utilisateur après une connexion réussie
+        await loadUserInfo(true); // Forcer le refresh depuis l'API après une connexion réussie
         navigate("/dashboard");
       } else {
         setError(response.data.message || "Échec de la connexion. Veuillez vérifier vos identifiants.");
@@ -89,14 +89,17 @@ function Basic() {
       <Card sx={{ borderRadius: 2, boxShadow: "0 8px 16px 0 rgba(0,0,0,0.2)" }}>
         <MDBox
           variant="gradient"
-          bgColor="info"
+          bgColor="primary"
           borderRadius="lg"
-          coloredShadow="info"
+          coloredShadow="primary"
           mx={2}
           mt={-3}
           p={2}
           mb={1}
           textAlign="center"
+          sx={{
+            background: "linear-gradient(to right, rgba(79, 204, 231, 1), #0083b0)"
+          }}
         >
           <MDTypography variant="h3" fontWeight="medium" color="white" mt={1}>
             Réussir TCF Canada
@@ -159,16 +162,18 @@ function Basic() {
             <MDBox mt={4} mb={1}>
               <MDButton 
                 variant="gradient" 
-                color="info" 
+                color="primary" 
                 fullWidth 
                 type="submit"
                 startIcon={<LoginIcon />}
                 sx={{ 
                   py: 1.5, 
                   transition: "all 0.3s",
+                  background: "linear-gradient(to right, rgba(79, 204, 231, 1), #0083b0)",
                   '&:hover': {
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 5px 10px rgba(0,0,0,0.2)'
+                    boxShadow: '0 5px 10px rgba(0,0,0,0.2)',
+                    background: "#0083b0"
                   } 
                 }}
               >
@@ -182,9 +187,14 @@ function Basic() {
                   component={Link}
                   to="/authentication/sign-up"
                   variant="button"
-                  color="info"
+                  color="primary"
                   fontWeight="medium"
                   textGradient
+                  sx={{
+                    background: "linear-gradient(to right, rgba(79, 204, 231, 1), #0083b0)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent"
+                  }}
                 >
                   S'inscrire
                 </MDTypography>
@@ -195,8 +205,9 @@ function Basic() {
                 component={Link}
                 to="#"
                 variant="button"
-                color="info"
+                color="primary"
                 fontWeight="regular"
+                sx={{ color: "#0083b0" }}
               >
                 Mot de passe oublié?
               </MDTypography>

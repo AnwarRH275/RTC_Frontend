@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 
 // react-router-dom components
-import { useLocation, NavLink } from "react-router-dom";
+import { useLocation, NavLink, useNavigate } from "react-router-dom";
 
 // prop-types is a library for typechecking of props.
 import PropTypes from "prop-types";
@@ -33,6 +33,9 @@ import SidenavCollapse from "examples/Sidenav/SidenavCollapse";
 import SidenavRoot from "examples/Sidenav/SidenavRoot";
 import sidenavLogoLabel from "examples/Sidenav/styles/sidenav";
 
+// Import de la fonction de filtrage des routes
+import { getFilteredRoutes } from "routes";
+
 // Simulateur TCF Canada React context
 import {
   useMaterialUIController,
@@ -46,6 +49,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
   const [controller, dispatch] = useMaterialUIController();
   const { miniSidenav, transparentSidenav, whiteSidenav, darkMode, sidenavColor } = controller;
   const location = useLocation();
+  const navigate = useNavigate();
   const collapseName = location.pathname.replace("/", "");
   
   // État pour stocker les informations de l'utilisateur
@@ -53,6 +57,12 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
     const storedUserInfo = localStorage.getItem('user_info');
     return storedUserInfo ? JSON.parse(storedUserInfo) : null;
   });
+
+  // Fonction pour gérer le clic sur le bouton UPGRADE TO PRO
+  const handleUpgradeClick = () => {
+    // Naviguer vers la page des plans d'abonnement
+    navigate('/subscription-plans');
+  };
 
   let textColor = "white";
 
@@ -84,8 +94,11 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
     return () => window.removeEventListener("resize", handleMiniSidenav);
   }, [dispatch, location]);
 
+  // Filtrer les routes selon le rôle de l'utilisateur
+  const filteredRoutes = userInfo && userInfo.role ? getFilteredRoutes(userInfo.role) : routes;
+
   // Render all the routes from the routes.js (All the visible items on the Sidenav)
-  const renderRoutes = routes.map(({ type, name, icon, title, noCollapse, key, href, route }) => {
+  const renderRoutes = filteredRoutes.map(({ type, name, icon, title, noCollapse, key, href, route }) => {
     let returnValue;
 
     if (type === "collapse") {
@@ -224,7 +237,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
               mb: 2,
               p: miniSidenav ? 1 : 1.5,
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(53, 122, 189, 0.1) 100%)',
+              background: 'linear-gradient(135deg, rgba(79, 204, 231, 0.1) 0%, rgba(0, 131, 176, 0.1) 100%)',
               border: '1px solid rgba(74, 144, 226, 0.2)',
               transition: 'all 0.3s ease'
             }}>
@@ -274,18 +287,18 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
                        width: miniSidenav ? '45px' : '55px',
                        height: miniSidenav ? '45px' : '55px',
                        borderRadius: '50%',
-                       background: 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)',
+                       background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
                        display: 'flex',
                        flexDirection: 'column',
                        alignItems: 'center',
                        justifyContent: 'center',
-                       boxShadow: '0 4px 12px rgba(74, 144, 226, 0.4)',
+                       boxShadow: '0 4px 12px rgba(79, 204, 231, 0.4)',
                        border: '3px solid #fff',
                        transition: 'all 0.3s ease',
                        cursor: 'pointer',
                        '&:hover': {
                          transform: 'scale(1.1)',
-                         boxShadow: '0 6px 16px rgba(74, 144, 226, 0.5)'
+                         boxShadow: '0 6px 16px rgba(79, 204, 231, 0.5)'
                        }
                      }}>
                        <MDTypography
@@ -326,12 +339,9 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
             transition: 'all 0.3s ease'
           }}>
             <MDButton
-              component="a"
-              href=""
-              target="_blank"
-              rel="noreferrer"
+              onClick={handleUpgradeClick}
               variant="gradient"
-              color={sidenavColor}
+              color="primary"
               fullWidth
               sx={{
                 fontSize: miniSidenav ? '0.65rem' : '0.75rem',
@@ -339,7 +349,13 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
                 whiteSpace: 'nowrap',
                 minWidth: 0,
                 overflow: 'hidden',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
+                cursor: 'pointer',
+                '&:hover': {
+                  background: '#0083b0',
+                  boxShadow: '0 6px 16px rgba(0, 131, 176, 0.5)'
+                }
               }}
             >
               {miniSidenav ? 'PRO' : 'upgrade to pro'}

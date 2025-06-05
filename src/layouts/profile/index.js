@@ -153,7 +153,7 @@ function Overview() {
       sx={{ 
         p: 3, 
         height: '100%',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
         color: 'white',
         borderRadius: 3,
         boxShadow: '0 8px 32px rgba(0,0,0,0.1)',

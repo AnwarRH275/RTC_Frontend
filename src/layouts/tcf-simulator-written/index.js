@@ -162,22 +162,44 @@ function TCFSimulatorWritten() {
           }
         });
         
+        // Fonction helper pour traiter les points (éviter la redondance)
+        const processPoints = (examValues, fieldName) => {
+          const allPoints = examValues
+            .map(exam => exam[fieldName])
+            .filter(point => point && point.trim())
+            .flatMap(point => {
+              // Diviser par virgule et nettoyer chaque point
+              return point.split(',').map(p => p.trim().replace(/^[\s\-\*\•]+|[\s\-\*\•]+$/g, ''));
+            })
+            .filter(point => point && point.length > 0)
+            .map(point => {
+              // Normaliser le texte pour une meilleure détection des doublons
+              return point.charAt(0).toUpperCase() + point.slice(1).toLowerCase();
+            });
+          
+          // Éliminer les doublons en utilisant un Set avec normalisation
+          const uniquePoints = [...new Set(allPoints)];
+          
+          // Filtrer les points qui sont des sous-chaînes d'autres points
+          return uniquePoints.filter((point, index) => {
+            return !uniquePoints.some((otherPoint, otherIndex) => {
+              return index !== otherIndex && 
+                     otherPoint.length > point.length && 
+                     otherPoint.toLowerCase().includes(point.toLowerCase());
+            });
+          });
+        };
+        
+        const examValues = Object.values(examsByTask);
+        
         // Reconstituer le format attendu par la modal (similaire à results.js)
         const formattedResults = {
-          NoteExam: Object.values(examsByTask)[0]?.score || "Non éligible (langue non lisible)",
+          NoteExam: examValues[0]?.score || "Non éligible (langue non lisible)",
           corrections_taches: Object.keys(examsByTask)
             .sort((a, b) => parseInt(a) - parseInt(b))
             .map(taskId => examsByTask[taskId].reponse_ia || "Aucune correction disponible"),
-          pointsForts: Object.values(examsByTask)
-            .map(exam => exam.points_fort)
-            .filter(point => point && point.trim())
-            .flatMap(point => point.split(',').map(p => p.trim()))
-            .filter(point => point),
-          pointsAmeliorer: Object.values(examsByTask)
-            .map(exam => exam.point_faible)
-            .filter(point => point && point.trim())
-            .flatMap(point => point.split(',').map(p => p.trim()))
-            .filter(point => point),
+          pointsForts: processPoints(examValues, 'points_fort'),
+          pointsAmeliorer: processPoints(examValues, 'point_faible'),
           // Ajouter les réponses de l'utilisateur
           user_responses: userResponses
         };
@@ -626,7 +648,7 @@ function TCFSimulatorWritten() {
       >
         <DialogTitle
           sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
             color: 'white',
             textAlign: 'center',
             py: 3,
@@ -822,7 +844,18 @@ function TCFSimulatorWritten() {
             Retour
           </MDButton>
           
-          <MDButton onClick={handleStartExam} color="info" variant="gradient">
+          <MDButton
+            onClick={handleStartExam}
+            color="primary"
+            variant="gradient"
+            sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
+              backgroundImage: linearGradient(gradients.primaryToSecondary.main, gradients.primaryToSecondary.state),
+              '&:hover': {
+                backgroundColor: 'rgba(79, 204, 231, 1)',
+                boxShadow: '0 4px 20px 0 rgba(79, 204, 231, 0.4)',
+              },
+            })}
+          >
             Commencer le test
           </MDButton>
         </DialogActions>
@@ -859,7 +892,18 @@ function TCFSimulatorWritten() {
           )}
         </DialogContent>
         <DialogActions>
-          <MDButton onClick={handleCloseTaskRecap} color="secondary">
+          <MDButton
+            onClick={handleCloseTaskRecap}
+            color="primary"
+            variant="gradient"
+            sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
+              backgroundImage: linearGradient(gradients.primaryToSecondary.main, gradients.primaryToSecondary.state),
+              '&:hover': {
+                backgroundColor: 'rgba(79, 204, 231, 1)',
+                boxShadow: '0 4px 20px 0 rgba(79, 204, 231, 0.4)',
+              },
+            })}
+          >
             Fermer
           </MDButton>
         </DialogActions>
@@ -882,7 +926,7 @@ function TCFSimulatorWritten() {
       >
         <DialogTitle
           sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
             color: 'white',
             textAlign: 'center',
             py: 3,
@@ -1210,7 +1254,7 @@ function TCFSimulatorWritten() {
           {retakeData?.error === 'max_attempts' ? (
             <MDBox textAlign="center">
               <MDTypography variant="body1" color="text" mb={2}>
-                Vous avez déjà utilisé vos 2 tentatives pour cet examen.
+                Vous avez déjà utilisé votre tentative pour cet examen.
               </MDTypography>
               <MDTypography variant="body2" color="text" opacity={0.7}>
                 Vous ne pouvez plus repasser cet examen.
@@ -1242,13 +1286,13 @@ function TCFSimulatorWritten() {
                 <MDBox display="flex" alignItems="center" mb={1}>
                   <Icon sx={{ color: '#0277bd', mr: 1 }}>info</Icon>
                   <MDTypography variant="body2" color="#0277bd">
-                    Vous avez droit à 2 tentatives pour cet examen
+                    Vous avez droit à 1 tentative pour cet examen
                   </MDTypography>
                 </MDBox>
                 <MDBox display="flex" alignItems="center" mb={1}>
                   <Icon sx={{ color: '#0277bd', mr: 1 }}>play_circle</Icon>
                   <MDTypography variant="body2" color="#0277bd">
-                    Tentative actuelle: {(retakeData?.attempt_count || 0) + 1} / 2
+                    Tentative actuelle: {(retakeData?.attempt_count || 0) + 1} / 1
                   </MDTypography>
                 </MDBox>
               </MDBox>

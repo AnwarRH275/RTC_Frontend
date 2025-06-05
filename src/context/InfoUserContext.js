@@ -12,10 +12,10 @@ export function InfoUserProvider({ children }) {
   const [error, setError] = useState(null);
 
   // Fonction pour charger les informations utilisateur
-  const loadUserInfo = async () => {
+  const loadUserInfo = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      const userData = await authService.getCurrentUser();
+      const userData = await authService.getCurrentUser(forceRefresh);
       setUserInfo(userData);
       setError(null);
     } catch (err) {
@@ -30,7 +30,7 @@ export function InfoUserProvider({ children }) {
   const updateUserInfo = async (userData) => {
     try {
       await authService.updateUser(userData);
-      await loadUserInfo(); // Recharger les informations après la mise à jour
+      await loadUserInfo(true); // Forcer le refresh depuis l'API après la mise à jour
       return { success: true };
     } catch (err) {
       console.error('Erreur lors de la mise à jour des informations utilisateur:', err);

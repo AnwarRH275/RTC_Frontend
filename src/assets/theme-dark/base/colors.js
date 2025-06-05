@@ -47,8 +47,8 @@ const colors = {
   },
 
   primary: {
-    main: "#e91e63",
-    focus: "#e91e63",
+    main: "rgba(79, 204, 231, 1)",
+    focus: "rgba(79, 204, 231, 0.8)",
   },
 
   secondary: {
@@ -100,8 +100,8 @@ const colors = {
 
   gradients: {
     primary: {
-      main: "#EC407A",
-      state: "#D81B60",
+      main: "rgba(79, 204, 231, 1)",
+      state: "#0083b0",
     },
 
     secondary: {
@@ -137,6 +137,27 @@ const colors = {
     dark: {
       main: "#323a54",
       state: "#1a2035",
+    },
+
+    // Nouveaux gradients créatifs avec la couleur primaire
+    primaryLight: {
+      main: "rgba(79, 204, 231, 0.6)",
+      state: "rgba(79, 204, 231, 0.3)",
+    },
+
+    primaryToSecondary: {
+      main: "rgba(79, 204, 231, 1)",
+      state: "#0083b0",
+    },
+
+    oceanBreeze: {
+      main: "rgba(79, 204, 231, 1)",
+      state: "#0083b0",
+    },
+
+    skyGradient: {
+      main: "rgba(79, 204, 231, 1)",
+      state: "#0083b0",
     },
   },
 

@@ -44,7 +44,7 @@ import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
 
 // Simulateur TCF Canada React routes
-import routes from "routes";
+import routes, { getFilteredRoutes } from "routes";
 
 // Simulateur TCF Canada React contexts
 import { useMaterialUIController, setMiniSidenav, setOpenConfigurator, InfoUserProvider } from "context";
@@ -55,7 +55,6 @@ import brandDark from "assets/images/logo-ct-dark.png";
 import tcfCanadaLogo from "assets/logo-tfc-canada.png";
 
 export default function App() {
-  const { pathname } = useLocation();
   const [controller, dispatch] = useMaterialUIController();
   const {
     miniSidenav,
@@ -69,7 +68,17 @@ export default function App() {
   } = controller;
   const [onMouseEnter, setOnMouseEnter] = useState(false);
   const [rtlCache, setRtlCache] = useState(null);
+  const { pathname } = useLocation();
   const [isExamStarted, setIsExamStarted] = useState(false);
+  
+  // Récupérer les informations utilisateur depuis localStorage
+  const [userInfo, setUserInfo] = useState(() => {
+    const storedUserInfo = localStorage.getItem('user_info');
+    return storedUserInfo ? JSON.parse(storedUserInfo) : null;
+  });
+  
+  // Filtrer les routes selon le rôle de l'utilisateur
+  const filteredRoutes = userInfo && userInfo.role ? getFilteredRoutes(userInfo.role) : routes;
 
   // Cache for the rtl
   useMemo(() => {
@@ -184,13 +193,13 @@ export default function App() {
             {layout === "dashboard" && !pathname.includes('/results') && !isExamStarted && (
               <>
                 <Sidenav
-                  color={sidenavColor}
-                  brand={tcfCanadaLogo}
-                  brandName=""
-                  routes={routes}
-                  onMouseEnter={handleOnMouseEnter}
-                  onMouseLeave={handleOnMouseLeave}
-                />
+              color={sidenavColor}
+              brand={tcfCanadaLogo}
+              brandName=""
+              routes={filteredRoutes}
+              onMouseEnter={handleOnMouseEnter}
+              onMouseLeave={handleOnMouseLeave}
+            />
               
                 <Configurator />
                 {configsButton}
@@ -198,7 +207,7 @@ export default function App() {
             )}
             {layout === "vr" && <Configurator />}
             <Routes>
-              {getRoutes(routes)}
+              {getRoutes(filteredRoutes)}
               <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
             </Routes>
           </ThemeProvider>
@@ -212,7 +221,7 @@ export default function App() {
                 color={sidenavColor}
                 brand={tcfCanadaLogo}
                 brandName=""
-                routes={routes}
+                routes={filteredRoutes}
                 onMouseEnter={handleOnMouseEnter}
                 onMouseLeave={handleOnMouseLeave}
               />
@@ -222,7 +231,7 @@ export default function App() {
           )}
           {layout === "vr" && <Configurator />}
           <Routes>
-            {getRoutes(routes)}
+            {getRoutes(filteredRoutes)}
             <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
           </Routes>
         </ThemeProvider>

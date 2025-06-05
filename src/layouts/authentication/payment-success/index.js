@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-
+import { useInfoUser } from "context/InfoUserContext";
 // @mui material components
 import Card from "@mui/material/Card";
 import Grid from "@mui/material/Grid";
@@ -20,11 +20,12 @@ import MDButton from "components/MDButton";
 // Authentication layout components
 import CoverLayout from "layouts/authentication/components/CoverLayout";
 
-// Images
-import bgImage from "assets/images/tcf-canada-background.svg";
-
 // Services
 import authService from "services/authService";
+
+// Images
+// import bgImage from "assets/images/tcf-canada-background.svg";
+const bgImage = "https://images.pexels.com/photos/207692/pexels-photo-207692.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"; //  URL de l'image de fond
 
 function PaymentSuccess() {
   const navigate = useNavigate();
@@ -32,13 +33,14 @@ function PaymentSuccess() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-
+  const { loadUserInfo } = useInfoUser();
   useEffect(() => {
     const completeRegistration = async () => {
       try {
         // Récupérer les paramètres de l'URL
         const params = new URLSearchParams(location.search);
         const sessionId = params.get("session_id");
+        const planName = params.get("plan");
         
         if (!sessionId) {
           setError("ID de session manquant. Impossible de vérifier le paiement.");
@@ -46,12 +48,18 @@ function PaymentSuccess() {
           return;
         }
         
+        // Vérifier si l'utilisateur est déjà connecté
+        const token = localStorage.getItem("token");
+        const userInfo = localStorage.getItem("user_info");
+        const isLoggedIn = token && userInfo;
+        
         // Vérifier le statut du paiement
         try {
           const verifyResponse = await fetch("http://localhost:5001/stripe/verify-payment", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              ...(token ? { "Authorization": `Bearer ${token}` } : {})
             },
             body: JSON.stringify({ session_id: sessionId })
           });
@@ -70,7 +78,26 @@ function PaymentSuccess() {
           console.log("Poursuite du processus malgré l'erreur de vérification (mode développement)");
         }
         
-        // Récupérer les données d'inscription stockées
+        // Vérifier si c'est un utilisateur existant (upgrade) ou un nouvel utilisateur
+        if (isLoggedIn) {
+          // Utilisateur existant - mise à jour du plan seulement
+          console.log("Utilisateur existant détecté - mise à jour du plan");
+          
+          try {
+            // Recharger les informations utilisateur après la mise à jour du plan
+            await loadUserInfo(true); // Forcer le refresh depuis l'API
+            setSuccess(true);
+            setLoading(false);
+            return;
+          } catch (error) {
+            console.error("Erreur lors du rechargement des informations utilisateur:", error);
+            setError("Erreur lors de la mise à jour de votre profil. Veuillez vous reconnecter.");
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Nouvel utilisateur - processus d'inscription complet
         const storedData = localStorage.getItem("signupData");
         
         if (!storedData) {
@@ -122,18 +149,25 @@ function PaymentSuccess() {
           
           const data = await response.json();
           
-          if (data.acces_token) {
+          if (data.access_token) {
             // Stocker le token dans localStorage
-            localStorage.setItem("token", data.acces_token);
-            console.log(data.acces_token)
+            localStorage.setItem("token", data.access_token);
+            console.log(data.access_token)
+            
+            // Stocker les informations utilisateur si disponibles
+            if (data.user_info) {
+              localStorage.setItem("user_info", JSON.stringify(data.user_info));
+              console.log("Informations utilisateur stockées:", data.user_info);
+            }
 
+            await loadUserInfo(true); // Forcer le refresh depuis l'API 
           }
 
 
         }
       } catch (error) {
-        console.error("Erreur lors de la finalisation de l'inscription:", error);
-        setError(error.response?.data?.message || "Une erreur est survenue lors de la finalisation de votre inscription.");
+        console.error("Erreur lors du traitement du paiement:", error);
+        setError(error.response?.data?.message || "Une erreur est survenue lors du traitement de votre paiement.");
       } finally {
         setLoading(false);
       }
@@ -172,7 +206,7 @@ function PaymentSuccess() {
           mb={1}
           textAlign="center"
           sx={{
-            background: "linear-gradient(135deg, #0062E6, #33AEFF)",
+            background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
             boxShadow: "0 12px 20px -10px rgba(0, 123, 255, 0.28), 0 4px 20px 0px rgba(0, 0, 0, 0.12), 0 7px 8px -5px rgba(0, 123, 255, 0.2)",
           }}
         >
@@ -201,13 +235,13 @@ function PaymentSuccess() {
                 color="info" 
                 onClick={() => navigate("/authentication/sign-up")}
                 sx={{ 
-                  background: 'linear-gradient(135deg, #0062E6, #33AEFF)',
+                  background: 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
                   borderRadius: '30px',
                   boxShadow: '0 4px 20px 0 rgba(0,123,255,.25)',
                   height: '3rem',
                   fontSize: '1rem',
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #0062E6, #0062E6)',
+                    background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
                     boxShadow: '0 6px 25px 0 rgba(0,123,255,.3)',
                     transform: 'translateY(-2px)',
                   },
@@ -238,14 +272,14 @@ function PaymentSuccess() {
                 onClick={handleGoToDashboard}
                 fullWidth
                 sx={{ 
-                  background: 'linear-gradient(135deg, #0062E6, #33AEFF)',
+                  background: 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
                   borderRadius: '30px',
                   boxShadow: '0 4px 20px 0 rgba(0,123,255,.25)',
                   height: '3.5rem',
                   fontSize: '1.1rem',
                   fontWeight: 'bold',
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #0062E6, #0062E6)',
+                    background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
                     boxShadow: '0 6px 25px 0 rgba(0,123,255,.3)',
                     transform: 'translateY(-2px)',
                   },
