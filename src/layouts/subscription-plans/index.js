@@ -7,6 +7,7 @@ import DashboardLayout from '../../examples/LayoutContainers/DashboardLayout';
 import DashboardNavbar from '../../examples/Navbars/DashboardNavbar';
 import Footer from '../../examples/Footer';
 import SubscriptionPlans from '../authentication/sign-up/SubscriptionPlans';
+import { API_BASE_URL } from '../../services/config';
 
 function SubscriptionPlansPage() {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ function SubscriptionPlansPage() {
         cancelUrl: `${window.location.origin}/subscription-plans`
       };
       
-      const response = await fetch('http://localhost:5001/stripe/create-checkout-session', {
+      const response = await fetch(`${API_BASE_URL}/stripe/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

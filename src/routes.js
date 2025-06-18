@@ -10,6 +10,8 @@ import SchoolIcon from "@mui/icons-material/School";
 import QuizIcon from "@mui/icons-material/Quiz";
 import DescriptionIcon from "@mui/icons-material/Description";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
+import CreateIcon from "@mui/icons-material/Create";
+import MicIcon from "@mui/icons-material/Mic";
 
 // Pages
 import Dashboard from "layouts/dashboard";
@@ -42,7 +44,7 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Simulateur TCF Admin",
+    name: "Coach TCF Admin",
     key: "tcf-admin",
     icon: <QuizIcon fontSize="small" />,
     route: "/tcf-admin",
@@ -51,9 +53,9 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Simulateur Expression Écrite",
+    name: "Coach Expression Écrite",
     key: "tcf-simulator-written",
-    icon: <DescriptionIcon fontSize="small" />,
+    icon: <CreateIcon fontSize="small" />,
     route: "/simulateur-tcf-canada/expression-ecrits",
     component: <TCFSimulatorWritten />,
     roles: ["Administrator", "Moderator", "Client"],
@@ -76,9 +78,9 @@ const routes = [
   },
   {
     type: "collapse",
-    name: "Simulateur Expression Oral",
+    name: "Coach Expression Oral",
     key: "tcf-simulator-oral",
-    icon: <RecordVoiceOverIcon fontSize="small" />,
+    icon: <MicIcon fontSize="small" />,
     route: "/tcf-simulator/oral",
     component: <TCFSimulator />,
     roles: ["Administrator", "Moderator", "Client"],
@@ -174,6 +176,7 @@ export const getFilteredRoutes = (userRole) => {
   // Mapper les rôles de la base de données vers les rôles utilisés dans les routes
   const roleMapping = {
     'admin': 'Administrator',
+    'administrator': 'Administrator',
     'moderator': 'Moderator',
     'client': 'Client'
   };
@@ -181,9 +184,9 @@ export const getFilteredRoutes = (userRole) => {
   // Normaliser le rôle utilisateur et le mapper
   const normalizedDbRole = userRole.toLowerCase();
   const mappedRole = roleMapping[normalizedDbRole] || userRole;
-  
-  // Retourner toutes les routes si l'utilisateur est admin
-  if (normalizedDbRole === 'admin') {
+
+  // Retourner toutes les routes si l'utilisateur est admin ou administrator
+  if (normalizedDbRole === 'admin' || normalizedDbRole === 'administrator') {
     return routes;
   }
   

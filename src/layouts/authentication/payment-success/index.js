@@ -11,6 +11,7 @@ import { useInfoUser } from "context/InfoUserContext";
 import Card from "@mui/material/Card";
 import Grid from "@mui/material/Grid";
 import { Box, CircularProgress } from "@mui/material";
+import { API_BASE_URL } from '../../../services/config';
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
@@ -55,7 +56,7 @@ function PaymentSuccess() {
         
         // Vérifier le statut du paiement
         try {
-          const verifyResponse = await fetch("http://localhost:5001/stripe/verify-payment", {
+          const verifyResponse = await fetch(`${API_BASE_URL}/stripe/verify-payment`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -136,7 +137,7 @@ function PaymentSuccess() {
           // Nettoyer les données stockées
           localStorage.removeItem("signupData");
 
-          const response = await fetch("http://localhost:5001/auth/login", {
+          const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json"

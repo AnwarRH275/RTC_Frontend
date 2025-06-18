@@ -233,6 +233,7 @@ function PackManagement() {
       headerGradient: { start: '#0062E6', end: '#33AEFF' },
       buttonGradient: { start: '#0062E6', end: '#33AEFF' },
       buttonHoverGradient: { start: '#0062E6', end: '#0062E6' },
+      buttonText: 'Payer maintenant',
       isActive: true,
       features: ['']
     });
@@ -294,6 +295,7 @@ function PackManagement() {
       headerGradient: safeHeaderGradient,
       buttonGradient: safeButtonGradient,
       buttonHoverGradient: safeButtonHoverGradient,
+      buttonText: pack.buttonText || 'Payer maintenant',
       isActive: pack.isActive !== undefined ? Boolean(pack.isActive) : true,
       features: processedFeatures
     });
@@ -514,7 +516,7 @@ function PackManagement() {
                   <Divider sx={{ my: 2 }} />
 
                   <Typography variant="subtitle2" gutterBottom>
-                    Fonctionnalités:
+                    Fonctionnalites:
                   </Typography>
                   <List dense>
                     {pack.features?.slice(0, 3).map((feature, index) => (
@@ -781,11 +783,23 @@ function PackManagement() {
                 />
               </Grid>
 
+              {/* Button Text */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Texte du bouton"
+                  value={formData.buttonText}
+                  onChange={(e) => handleInputChange('buttonText', e.target.value)}
+                  placeholder="Payer maintenant"
+                  helperText="Texte affiché sur le bouton d'achat"
+                />
+              </Grid>
+
               {/* Features */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
                   <FeaturesIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Fonctionnalités
+                  Fonctionnalites
                 </Typography>
               </Grid>
 
@@ -794,7 +808,7 @@ function PackManagement() {
                   <Box display="flex" alignItems="center" gap={1}>
                     <TextField
                       fullWidth
-                      label={`Fonctionnalité ${index + 1}`}
+                      label={`Fonctionnalite ${index + 1}`}
                       value={typeof feature === 'object' ? feature.featureText || '' : feature}
                       onChange={(e) => handleFeatureChange(index, e.target.value)}
                       multiline
@@ -825,7 +839,7 @@ function PackManagement() {
               {/* Preview */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                  Aperçu
+                  Apercu
                 </Typography>
                 <Paper elevation={3} sx={{ borderRadius: 2, overflow: 'hidden', maxWidth: 300 }}>
                   <GradientHeader 

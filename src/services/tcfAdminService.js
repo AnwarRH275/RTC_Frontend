@@ -1,6 +1,7 @@
-import axios from "axios";
+import axios from 'axios';
+import { API_BASE_URL } from './config';
 
-const API_URL = "http://localhost:5001/tcf";
+const API_URL = `${API_BASE_URL}/tcf`;
 
 /**
  * Service pour gérer les sujets TCF dans l'interface d'administration
@@ -26,6 +27,7 @@ const TCFAdminService = {
           instructions: task.instructions || "",
           minWordCount: task.min_word_count !== null ? task.min_word_count : 60,
           wordCount: task.max_word_count !== null ? task.max_word_count : 150,
+          duration: task.duration !== null && task.duration !== undefined ? task.duration : null,
           documents: task.documents || []
         }))
       }));
@@ -55,6 +57,7 @@ const TCFAdminService = {
           instructions: task.instructions || "",
           minWordCount: task.min_word_count !== null ? task.min_word_count : 60,
           wordCount: task.max_word_count !== null ? task.max_word_count : 150,
+          duration: task.duration !== null && task.duration !== undefined ? task.duration : null,
           documents: task.documents || []
         }))
       };
@@ -78,11 +81,13 @@ const TCFAdminService = {
         description: subjectData.blog || "", // Convertir blog en description pour le backend
         subject_type: 'Écrit', // Toujours définir le type comme 'Écrit'
         tasks: subjectData.tasks.map(task => ({
+          id: task.id, // Inclure l'ID pour permettre la mise à jour intelligente
           title: task.title,
           structure: task.structure,
           instructions: task.instructions || "",
           min_word_count: task.minWordCount !== null && task.minWordCount !== undefined ? task.minWordCount : 0,
           max_word_count: task.wordCount !== null && task.wordCount !== undefined ? task.wordCount : 0,
+          duration: task.duration !== null && task.duration !== undefined ? task.duration : null,
           documents: task.documents || []
         }))
       };
@@ -109,11 +114,13 @@ const TCFAdminService = {
         description: subjectData.blog || "", // Convertir blog en description pour le backend
         subject_type: 'Écrit', // Toujours définir le type comme 'Écrit'
         tasks: subjectData.tasks.map(task => ({
+          id: task.id, // Inclure l'ID pour permettre la mise à jour intelligente
           title: task.title,
           structure: task.structure,
           instructions: task.instructions || "",
           min_word_count: task.minWordCount !== null && task.minWordCount !== undefined ? task.minWordCount : 0,
           max_word_count: task.wordCount !== null && task.wordCount !== undefined ? task.wordCount : 0,
+          duration: task.duration !== null && task.duration !== undefined ? task.duration : null,
           documents: task.documents || []
         }))
       };

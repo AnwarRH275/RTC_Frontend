@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './config';
 
-const API_URL = "http://localhost:5001/auth";
+const API_URL = `${API_BASE_URL}/auth`;
 
 // Configuration des en-têtes avec le token JWT
 const getAuthHeader = () => {
@@ -97,7 +98,7 @@ const getCurrentUserPlan = async () => {
 // Récupération des examens passés par l'utilisateur
 const getUserExams = async () => {
   try {
-    const response = await axios.get('http://localhost:5001/exam/exams/user', getAuthHeader());
+    const response = await axios.get(`${API_BASE_URL}/exam/exams/user`, getAuthHeader());
     return response.data;
   } catch (error) {
     console.error('Erreur lors de la récupération des examens utilisateur:', error);
@@ -154,8 +155,16 @@ const updateSold = async (username, newSoldValue) => {
 
 // Déconnexion de l'utilisateur
 const logout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user_info');
+  // Nettoyer complètement le localStorage
+  localStorage.clear();
+  
+  // Nettoyer les cookies si ils existent
+  document.cookie.split(";").forEach(function(c) { 
+    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+  });
+  
+  // Nettoyer le sessionStorage aussi
+  sessionStorage.clear();
 };
 
 export default {

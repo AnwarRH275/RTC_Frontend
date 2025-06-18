@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './config';
 
-const API_URL = "http://localhost:5001/sync";
+const API_URL = `${API_BASE_URL}/sync`;
 
 // Configuration des en-têtes avec le token JWT
 const getAuthHeader = () => {

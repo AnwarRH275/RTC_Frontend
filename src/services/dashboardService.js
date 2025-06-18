@@ -1,7 +1,8 @@
 import axios from 'axios';
 import authService from './authService';
+import { API_BASE_URL } from './config';
 
-const API_URL = 'http://localhost:5001';
+const API_URL = API_BASE_URL;
 
 // Service pour récupérer les statistiques du dashboard
 export const getDashboardStats = async () => {

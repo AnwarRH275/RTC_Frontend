@@ -47,14 +47,15 @@ import createCache from "@emotion/cache";
 import routes, { getFilteredRoutes } from "routes";
 
 // Simulateur TCF Canada React contexts
-import { useMaterialUIController, setMiniSidenav, setOpenConfigurator, InfoUserProvider } from "context";
+import { useMaterialUIController, setMiniSidenav, setOpenConfigurator, InfoUserProvider, useInfoUser } from "context";
 
 // Images
 import brandWhite from "assets/images/logo-ct.png";
 import brandDark from "assets/images/logo-ct-dark.png";
 import tcfCanadaLogo from "assets/logo-tfc-canada.png";
 
-export default function App() {
+// Composant interne qui utilise le contexte utilisateur
+function AppContent() {
   const [controller, dispatch] = useMaterialUIController();
   const {
     miniSidenav,
@@ -71,11 +72,8 @@ export default function App() {
   const { pathname } = useLocation();
   const [isExamStarted, setIsExamStarted] = useState(false);
   
-  // Récupérer les informations utilisateur depuis localStorage
-  const [userInfo, setUserInfo] = useState(() => {
-    const storedUserInfo = localStorage.getItem('user_info');
-    return storedUserInfo ? JSON.parse(storedUserInfo) : null;
-  });
+  // Utiliser le contexte utilisateur au lieu de localStorage directement
+  const { userInfo } = useInfoUser();
   
   // Filtrer les routes selon le rôle de l'utilisateur
   const filteredRoutes = userInfo && userInfo.role ? getFilteredRoutes(userInfo.role) : routes;
@@ -185,7 +183,7 @@ export default function App() {
   );
 
   return (
-    <InfoUserProvider>
+    <>
       {direction === "rtl" ? (
         <CacheProvider value={rtlCache}>
           <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
@@ -236,6 +234,15 @@ export default function App() {
           </Routes>
         </ThemeProvider>
       )}
+    </>
+   );
+}
+
+// Composant principal App avec le provider
+export default function App() {
+  return (
+    <InfoUserProvider>
+      <AppContent />
     </InfoUserProvider>
   );
 }

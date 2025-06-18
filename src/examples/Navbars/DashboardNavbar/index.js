@@ -51,13 +51,15 @@ import { navbar, navbarContainer, navbarRow, navbarIconButton, navbarMobileMenu 
 import { useMaterialUIController, setTransparentNavbar, setMiniSidenav, setOpenConfigurator } from "context";
 
 // Custom imports for user info and logout
-// import { useInfoUser } from "../../../context"; // Removed
+import { useInfoUser } from "../../../context";
 import authService from "../../../services/authService";
+import { performCompleteLogout } from "../../../utils/logoutUtils";
 import MDButton from "components/MDButton";
 
 function DashboardNavbar({ absolute, light, isMini }) {
   const [navbarType, setNavbarType] = useState();
   const [controller, dispatch] = useMaterialUIController();
+  const { clearUserInfo } = useInfoUser();
   const { miniSidenav, transparentNavbar, fixedNavbar, openConfigurator, darkMode } = controller;
   const [openNotificationMenu, setOpenNotificationMenu] = useState(false);
   const [openUserMenu, setOpenUserMenu] = useState(false);
@@ -104,8 +106,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
   const handleCloseUserMenu = () => setOpenUserMenu(false);
 
   const handleLogout = () => {
-    authService.logout();
-    navigate("/authentication/sign-in");
+    performCompleteLogout(clearUserInfo, navigate);
   };
 
   // Render the notifications menu

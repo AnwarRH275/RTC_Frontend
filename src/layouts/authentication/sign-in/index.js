@@ -48,6 +48,7 @@ function Basic() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSetRememberMe = () => setRememberMe(!rememberMe);
 
@@ -59,6 +60,8 @@ function Basic() {
       setOpenSnackbar(true);
       return;
     }
+
+    setLoading(true); // Début du chargement
     
     try {
       const response = await authService.login({
@@ -77,6 +80,8 @@ function Basic() {
       setError(error.message || "Échec de la connexion. Veuillez vérifier vos identifiants.");
       setOpenSnackbar(true);
       console.error("Erreur de connexion:", error);
+    } finally {
+      setLoading(false); // Fin du chargement
     }
   };
 
@@ -166,6 +171,7 @@ function Basic() {
                 fullWidth 
                 type="submit"
                 startIcon={<LoginIcon />}
+                disabled={loading} // Désactiver le bouton pendant le chargement
                 sx={{ 
                   py: 1.5, 
                   transition: "all 0.3s",
@@ -177,7 +183,7 @@ function Basic() {
                   } 
                 }}
               >
-                Connexion
+                {loading ? "Connexion en cours..." : "Connexion"} 
               </MDButton>
             </MDBox>
             <MDBox mt={3} mb={1} textAlign="center">

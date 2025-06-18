@@ -69,13 +69,13 @@ function TCFExamInterface() {
   
   // Caractères spéciaux disponibles
   const specialCharacters = [
-    ['é', 'è', 'ê', 'ë', 'à', 'á'],
-    ['â', 'ä','î', 'ï', 'ý', 'ÿ'],
-    ['ù', 'ú', 'û', 'ü', 'ì', 'í'],
-    ['ò', 'ó', 'ô', 'ö', 'ç', 'ñ'],
-    ['œ', 'æ', 'ß', 'ø', '[', ']'],
-    ["'", '"', '«', '»', '(', ')'],
-    ['{', '}', '–', '—', '…', '°']
+    ['à', 'À', 'â', 'Â', 'ç', 'Ç'],
+    ['é', 'É', 'è', 'È', 'ê', 'Ê'],
+    ['ë', 'Ë', 'î', 'Î', 'ï', 'Ï'],
+    ['ô', 'Ô', 'ù', 'Ù', 'û', 'Û'],
+    ['œ', 'æ', "'", '"', '(', ')'],
+    [',', '-', '.', ':', ';', '?'],
+    ['!', '…', '', '', '', '']
   ];
   
 
@@ -87,6 +87,12 @@ function TCFExamInterface() {
           const isRetake = query.get('isRetake') === 'true';
   
           if (isRetake) {
+            // Empêcher l'utilisateur de revenir en arrière avec le bouton du navigateur
+            window.history.pushState(null, document.title, window.location.href);
+            window.addEventListener('popstate', function(event) {
+              window.history.pushState(null, document.title, window.location.href);
+            });
+            
             setIsExamStarted(true);
             localStorage.setItem('examStarted', 'true');
           }
@@ -237,6 +243,12 @@ function TCFExamInterface() {
           // Recharger les informations utilisateur pour synchroniser
           await loadUserInfo(true);
           
+          // Empêcher l'utilisateur de revenir en arrière avec le bouton du navigateur
+          window.history.pushState(null, document.title, window.location.href);
+          window.addEventListener('popstate', function(event) {
+            window.history.pushState(null, document.title, window.location.href);
+          });
+          
           // Démarrer l'examen
           setIsExamStarted(true);
           localStorage.setItem('examStarted', 'true');
@@ -263,6 +275,12 @@ function TCFExamInterface() {
       
       // Fermer le dialog
       setShowRetakeDialog(false);
+      
+      // Empêcher l'utilisateur de revenir en arrière avec le bouton du navigateur
+      window.history.pushState(null, document.title, window.location.href);
+      window.addEventListener('popstate', function(event) {
+        window.history.pushState(null, document.title, window.location.href);
+      });
       
       // Démarrer l'examen sans affecter le solde
       setIsExamStarted(true);
@@ -342,7 +360,7 @@ function TCFExamInterface() {
       <MDBox 
         sx={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          background: 'linear-gradient(135deg, #a8e6cf 0%, #88d8c0 25%, #7fcdcd 50%, #81c7d4 75%, #88c5db 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -350,16 +368,21 @@ function TCFExamInterface() {
           pl:25
         }}
       >
-        <Fade in timeout={1000}>
+        <Fade in timeout={1200}>
           <Card 
             sx={{ 
-              maxWidth: 600, 
-              p: 4, 
+              maxWidth: 900, 
+              p: 6, 
+              paddingX: 8,
               textAlign: 'center',
-              borderRadius: 16,
-              boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+              borderRadius: 24,
+              boxShadow: '0 32px 64px rgba(0,0,0,0.12), 0 16px 32px rgba(0,0,0,0.08)',
               overflow: 'hidden',
-              position: 'relative'
+              position: 'relative',
+              maxHeight: '85vh',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)'
             }}
           >
             <Box 
@@ -368,81 +391,135 @@ function TCFExamInterface() {
                 top: 0,
                 left: 0,
                 right: 0,
-                height: '8px',
-                background: 'linear-gradient(90deg, #3b82f6, #10b981, #f59e0b)'
+                height: '6px',
+                background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)', 
               }}
             />
             
-            <MDBox mb={4} mt={1}>
+            <MDBox mb={2} mt={1}>
               <Avatar 
                 sx={{ 
-                  width: 90, 
-                  height: 90, 
-                  backgroundColor: '#3b82f6', 
-                  margin: '0 auto 16px',
-                  boxShadow: '0 8px 16px rgba(59, 130, 246, 0.3)'
+                  width: 70, 
+                  height: 70, 
+                    background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)', 
+                  margin: '0 auto 12px',
+                  boxShadow: '0 8px 16px rgba(102, 126, 234, 0.25)'
                 }}
               >
-                <Icon style={{fontSize: '80px !important'}} sx={{  color: 'white' }}>quiz</Icon>
+                <Icon style={{fontSize: '32px !important'}} sx={{  color: 'white' }}>LibraryBooksOutlined</Icon>
               </Avatar>
-              <MDTypography variant="h3" fontWeight="bold" color="dark" mb={1}>
+              <MDTypography variant="h3" fontWeight="700" color="dark" mb={1} sx={{ fontSize: '2rem' }}>
                 {subject.name}
               </MDTypography>
-              <MDTypography variant="body1" color="text" mb={2}>
-                Durée: {subject.duration} minutes • {subject.tasks.length} tâches
+              <MDTypography variant="body1" color="text" mb={1} sx={{ fontWeight: 500, opacity: 0.8, fontSize: '0.95rem' }}>
+                Durée: {subject.duration} minutes • {subject.tasks.length} tâches d'expression
+              </MDTypography>
+              <MDTypography variant="body2" color="text" mb={1.5} sx={{ fontSize: '0.9rem', opacity: 0.7 }}>
+                Ce test simule l'examen réel du TCF Canada.
               </MDTypography>
                 
             </MDBox>
             
-            <Divider sx={{ my: 3 }} />
+            <Divider sx={{ my: 1.5, opacity: 0.3 }} />
             
-            <MDBox mb={4}>
-              <MDTypography variant="h6" color="dark" mb={2} fontWeight="bold">
-                Instructions importantes:
+            <MDBox mb={2}>
+             
+              {/* Instructions des tâches - Dynamiques */}
+             
+              
+              <MDTypography variant="h5" color="dark" mb={2} fontWeight="600" sx={{ fontSize: '1.3rem' }}>
+              Instructions importantes
               </MDTypography>
-              <Paper elevation={0} sx={{ backgroundColor: '#f8fafc', p: 2, borderRadius: 3 }}>
-                <MDBox textAlign="left">
-                  <MDTypography variant="body2" color="text" mb={1} display="flex" alignItems="center">
-                    <Icon sx={{ fontSize: 16, mr: 1, color: '#3b82f6' }}>check_circle</Icon>
-                    Lisez attentivement chaque tâche avant de commencer
-                  </MDTypography>
-                  <MDTypography variant="body2" color="text" mb={1} display="flex" alignItems="center">
-                    <Icon sx={{ fontSize: 16, mr: 1, color: '#3b82f6' }}>check_circle</Icon>
-                    Vos réponses sont automatiquement sauvegardées
-                  </MDTypography>
-                  <MDTypography variant="body2" color="text" mb={1} display="flex" alignItems="center">
-                    <Icon sx={{ fontSize: 16, mr: 1, color: '#3b82f6' }}>check_circle</Icon>
-                    Le timer démarre dès que vous cliquez sur "Commencer"
-                  </MDTypography>
-                  <MDTypography variant="body2" color="text" display="flex" alignItems="center">
-                    <Icon sx={{ fontSize: 16, mr: 1, color: '#3b82f6' }}>check_circle</Icon>
-                    Vous pouvez naviguer entre les tâches à tout moment
+              
+              {/* Instructions importantes */}
+              <MDBox mb={2}>
+                <MDBox display="flex" alignItems="center" mb={1.5} sx={{ 
+                  p: 1.5, 
+                  borderRadius: 3, 
+                  background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08))',
+                  border: '1px solid rgba(102, 126, 234, 0.1)'
+                }}>
+                  <Avatar sx={{ width: 32, height: 32,   background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)', mr: 2 }}>
+                    <Icon sx={{ fontSize: 18, color: 'white' }}>menu_book</Icon>
+                  </Avatar>
+                  <MDTypography variant="body1" color="dark" fontWeight="500" sx={{ fontSize: '1rem' }}>
+                    Lisez et planifiez chaque tâche
                   </MDTypography>
                 </MDBox>
-              </Paper>
+                <MDBox display="flex" alignItems="center" mb={1.5} sx={{ 
+                  p: 1.5, 
+                  borderRadius: 3, 
+                  background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08))',
+                  border: '1px solid rgba(102, 126, 234, 0.1)'
+                }}>
+                  <Avatar sx={{ width: 32, height: 32,   background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)', mr: 2 }}>
+                    <Icon sx={{ fontSize: 18, color: 'white' }}>save</Icon>
+                  </Avatar>
+                  <MDTypography variant="body1" color="dark" fontWeight="500" sx={{ fontSize: '1rem' }}>
+                    Sauvegarde automatique activée
+                  </MDTypography>
+                </MDBox>
+                <MDBox display="flex" alignItems="center" mb={1.5} sx={{ 
+                  p: 1.5, 
+                  borderRadius: 3, 
+                  background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08))',
+                  border: '1px solid rgba(102, 126, 234, 0.1)'
+                }}>
+                  <Avatar sx={{ width: 32, height: 32,   background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)', mr: 2 }}>
+                    <Icon sx={{ fontSize: 18, color: 'white' }}>timer</Icon>
+                  </Avatar>
+                  <MDTypography variant="body1" color="dark" fontWeight="500" sx={{ fontSize: '1rem' }}>
+                    Timer démarrera au clic
+                  </MDTypography>
+                </MDBox>
+                <MDBox display="flex" alignItems="center" mb={1} sx={{ 
+                  p: 1.5, 
+                  borderRadius: 3, 
+                  background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08))',
+                  border: '1px solid rgba(102, 126, 234, 0.1)'
+                }}>
+                  <Avatar sx={{ width: 32, height: 32,   background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)', mr: 2 }}>
+                    <Icon sx={{ fontSize: 18, color: 'white' }}>swap_horiz</Icon>
+                  </Avatar>
+                  <MDTypography variant="body1" color="dark" fontWeight="500" sx={{ fontSize: '1rem' }}>
+                    Navigation libre entre tâches
+                  </MDTypography>
+                </MDBox>
+              </MDBox>
+              
+          
             </MDBox>
             
-            <MDButton 
-              variant="contained" 
-              color="info" 
-              size="large"
-              onClick={handleStartExam}
-              sx={{ 
-                px: 4, 
-                py: 1.5,
-                fontSize: '1.1rem',
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
-                boxShadow: '0 8px 16px rgba(0, 131, 176, 0.3)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #006a90, rgba(63, 163, 185, 1))',
-                  boxShadow: '0 8px 20px rgba(0, 131, 176, 0.4)',
-                }
-              }}
-            >
-              <Icon sx={{ mr: 1, color: 'white' }}>play_arrow</Icon>
-              <span style={{ color: 'white' }}>Commencer l'examen</span>
-            </MDButton>
+            <MDBox mt={1} mb={2}>
+              <MDButton 
+                variant="contained" 
+                color="info" 
+                size="large"
+                onClick={handleStartExam}
+                fullWidth
+                sx={{ 
+                  px: 6, 
+                  py: 2.5,
+                  fontSize: '1.3rem',
+                  fontWeight: '700',
+                  borderRadius: 16,
+                  background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
+                  boxShadow: '0 16px 32px rgba(249, 250, 251, 0.79)',
+                  transition: 'all 0.3s ease',
+                  position: 'sticky',
+                  bottom: 0,
+                  zIndex: 10,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
+                    boxShadow: '0 20px 40px rgba(249, 250, 251, 0.79)',
+                    transform: 'translateY(-3px) scale(1.02)'
+                  }
+                }}
+              >
+                <Icon sx={{ mr: 1.5, color: 'white', fontSize: '1.5rem' }}>play_arrow</Icon>
+                <span style={{ color: 'white' }}>COMMENCER LE COACHING</span>
+              </MDButton>
+            </MDBox>
           </Card>
         </Fade>
       </MDBox>
@@ -457,328 +534,307 @@ function TCFExamInterface() {
         minHeight: '100vh', 
         background: 'linear-gradient(135deg, #a8e6cf 0%, #88d8c0 25%, #7fcdcd 50%, #81c7d4 75%, #88c5db 100%)',
         display: 'flex',
-        flexDirection: 'row',
-        p: 0,
-        m: 0
+        p: 2,
+        gap: 2
       }}
     >
-      {/* Barre latérale gauche - Navigation des tâches */}
+      {/* Panneau latéral gauche - Navigation des tâches */}
       <MDBox 
         sx={{
           width: '200px',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px)',
           display: 'flex',
           flexDirection: 'column',
-          p: 2,
           gap: 1
         }}
       >
-        {subject.tasks.map((task, index) => {
-          const isCompleted = responses[index]?.trim().length > 0;
-          const isCurrent = index === currentTaskIndex;
-          return (
-            <MDButton
-              key={index}
-              onClick={() => handleTaskSelect(index)}
-              sx={{
-                backgroundColor: isCurrent ? '#4dd0e1' : 'rgba(255, 255, 255, 0.2)',
-                color: '#000',
-                fontWeight: 'bold',
-                fontSize: '0.9rem',
-                borderRadius: '8px',
-                p: 1.5,
-                textAlign: 'left',
-                justifyContent: 'flex-start',
-                border: isCurrent ? '2px solid #00acc1' : '1px solid rgba(255, 255, 255, 0.3)',
-                '&:hover': {
-                  backgroundColor: '#4dd0e1',
-                  transform: 'translateX(5px)'
-                },
-                transition: 'all 0.3s ease'
-              }}
+        {subject.tasks.map((task, index) => (
+          <MDBox
+            key={index}
+            onClick={() => setCurrentTaskIndex(index)}
+            sx={{
+              backgroundColor: currentTaskIndex === index ? '#E0F3FC' : 'rgba(255, 255, 255, 0.3)',
+              borderRadius: '12px',
+              p: 2,
+              cursor: 'pointer',
+              border: currentTaskIndex === index ? '2px solid #4dd0e1' : '1px solid rgba(255, 255, 255, 0.5)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                backgroundColor: currentTaskIndex === index ? '#E0F3FC' : 'rgba(255, 255, 255, 0.5)'
+              }
+            }}
+          >
+            <MDTypography 
+              variant="h5" 
+              fontWeight="bold" 
+              color="#2C3E50"
+              sx={{ fontSize: '1.2rem', textAlign: 'center' }}
             >
-              TACHE {index + 1}
-              {isCompleted && (
-                <Icon sx={{ ml: 'auto', fontSize: '16px', color: '#00695c' }}>check_circle</Icon>
-              )}
-            </MDButton>
-          );
-        })}
+              Tâche {index + 1}
+            </MDTypography>
+           
+          </MDBox>
+        ))}
       </MDBox>
 
-      {/* Zone centrale */}
-      <MDBox 
+      {/* Zone centrale principale */}
+      <MDBox
         sx={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          p: 3,
           gap: 2
         }}
       >
-        {/* Zone d'instruction */}
-        <MDBox 
+        {/* Zone d'instruction de la tâche */}
+        <MDBox
           sx={{
-            backgroundColor: '#4dd0e1',
-            borderRadius: '20px',
-            p: 3,
-            border: '2px solid #00acc1',
-            minHeight: '120px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            backgroundColor: '#E0F3FC',
+            borderRadius: '15px',
+            p: 2,
+            color: '#2C3E50',
+            maxHeight: '30vh', // Limite la hauteur maximale
+            overflowY: 'auto', // Ajoute un défilement vertical
+            marginBottom: 2 // Ajoute une marge en bas
           }}
         >
-          {currentTask.title && (
-     
-               <div 
-         
-               >
-               <h3>  Tache {currentTaskIndex + 1} : </h3>
-                 <p dangerouslySetInnerHTML={{ __html: currentTask.title }} />
-                 <p dangerouslySetInnerHTML={{ __html: currentTask.structure }} />
-               </div>
-         
-           )}
+          <MDTypography variant="h5" fontWeight="bold" mb={1} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Icon sx={{ color: '#2C3E50', transform: 'rotate(45deg)', fontSize:'22px !important' }}>push_pin</Icon>
+            Tâche {currentTaskIndex + 1}:
+          </MDTypography>
+          <MDTypography variant="h5" fontWeight="bold" mb={1}>
+            {currentTask.title && (
+              <div dangerouslySetInnerHTML={{ __html: currentTask.title }} />
+            )}
+          </MDTypography>
+          <MDTypography variant="body1" sx={{ lineHeight: 1.4, fontSize: '0.95rem' }}>
+            <div dangerouslySetInnerHTML={{ __html: currentTask.description }} />
+          </MDTypography>
+          {currentTask.structure && (
+            <MDBox mt={1}>
+              <div dangerouslySetInnerHTML={{ __html: currentTask.structure }} />
+            </MDBox>
+          )}
+          {currentTask.documents && currentTask.documents.length > 0 && (
+          <MDBox 
+              sx={{
+                display: 'flex', 
+                flexDirection: currentTaskIndex === 2 ? 'row' : 'column',
+                gap: 2,
+                flexWrap: 'wrap'
+              }}
+            >
+              {currentTask.documents.map((doc, index) => (
+                <MDBox 
+                  key={index} 
+                  sx={{
+                    flex: currentTaskIndex === 2 ? '1 1 45%' : '1 1 100%',
+                    minWidth: currentTaskIndex === 2 ? '250px' : 'auto',
+                    mb: currentTaskIndex !== 2 ? 2 : 0,
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    borderRadius: '8px',
+                    p: 1.5
+                  }}
+                >
+                  <MDTypography variant="subtitle2" color="#2C3E50" fontWeight="bold" mb={1}>
+                    Document {index + 1}
+                  </MDTypography>
+                  <MDTypography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5, fontSize: '0.9rem' }}>
+                    <div dangerouslySetInnerHTML={{ __html: doc.content }} />
+                  </MDTypography>
+                  {currentTaskIndex !== 2 && index < currentTask.documents.length - 1 && <Divider sx={{ my: 2 }} />}
+                </MDBox>
+              ))}
+            </MDBox>
+
+)}
+
         </MDBox>
 
-        {/* Zone des documents - Nouvelle section */}
-        {currentTask.documents && currentTask.documents.length > 0 && (
-          <MDBox 
-            sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              borderRadius: '20px',
-              p: 3,
-              border: '2px solid rgba(255, 255, 255, 0.5)',
-              minHeight: '150px',
-            }}
-          >
-            <MDTypography 
-              variant="h6" 
-              fontWeight="bold" 
-              color="dark"
-              textAlign="center"
-              mb={3}
-            >
-              Documents de référence
-            </MDTypography>
-            
-            <Grid container spacing={2}>
-              {currentTask.documents.map((document, index) => (
-                <Grid item xs={12} md={6} key={index}>
-                  <Paper 
-                    elevation={3} 
-                    sx={{ 
-                      p: 2, 
-                      borderRadius: '12px',
-                      height: '250px',
-                      overflow: 'auto',
-                      border: '1px solid #e0e0e0',
-                      backgroundColor: '#f9f9f9'
-                    }}
-                  >
-                    <MDTypography variant="subtitle1" fontWeight="bold" mb={1}>
-                      Document {index + 1}
-                    </MDTypography>
-                    <MDBox 
-                      sx={{ 
-                        p: 1, 
-                        backgroundColor: 'white',
-                        borderRadius: '8px',
-                        border: '1px solid #eee',
-                        height: 'calc(100% - 40px)',
-                        overflow: 'auto'
-                      }}
-                    >
-                      <div dangerouslySetInnerHTML={{ __html: document.content }} />
-                    </MDBox>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-          </MDBox>
-        )}
+     
 
         {/* Zone de réponse */}
-        <MDBox 
+        <MDBox
           sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            borderRadius: '20px',
+            backgroundColor: 'rgba(249, 250, 251, 0.79)',
+            borderRadius: '15px',
             p: 3,
-            border: '2px solid rgba(255, 255, 255, 0.5)',
             flex: 1,
-            minHeight: '300px',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            minHeight: '42vh',
+            position: 'sticky', // Fixe la position
+            bottom: 0, // Colle au bas de l'écran
+            zIndex: 2 // S'assure qu'il reste au-dessus des autres éléments
           }}
         >
-          <MDTypography 
-            variant="h6" 
-            fontWeight="bold" 
-            color="dark"
-            textAlign="center"
-            mb={3}
-          >
+          <MDTypography variant="h6" color="#2C3E50" mb={2} sx={{ textAlign: 'center' }}>
             Zone de réponse
           </MDTypography>
+          <textarea
+            ref={textareaRef}
+            value={responses[currentTaskIndex] || ''}
+            onChange={(e) => handleResponseChange(e.target.value)}
+            placeholder="Commencez à écrire votre réponse ici..."
+            style={{
+              flex: 1,
+              width: '100%',
+              fontSize: '14px',
+              lineHeight: '1.5',
+              padding: '16px',
+              border: 'none',
+              borderRadius: '8px',
+              backgroundColor: '#f8f9fa',
+              resize: 'none',
+              outline: 'none',
+              fontFamily: 'inherit',
+              minHeight: '50vh' // Ajout d'une hauteur minimale pour le textarea
+            }}
+          />
           
-          {/* Zone de saisie */}
-          <Paper elevation={0} sx={{ p: 1, border: '1px solid #e2e8f0', borderRadius: '12px', flex: 1 }}>
-            <textarea
-              ref={textareaRef}
-              value={responses[currentTaskIndex] || ''}
-              onChange={(e) => handleResponseChange(e.target.value)}
-              placeholder="Commencez à écrire votre réponse ici..."
-              style={{
-                height: 'calc(100% - 40px)',
-                minHeight: '100%',
-                width: '100%',
-                fontSize: '16px',
-                boxSizing: 'border-box',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '8px',
-                resize: 'vertical'
-              }}
-            />
-          </Paper>
-          <MDBox sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-
-
+          {/* Boutons d'action */}
+          <MDBox sx={{ display: 'flex', justifyContent: currentTaskIndex === subject.tasks.length - 1 ? 'center' : 'space-between', mt: 2 }}>
+            {/* Afficher le bouton Enregistrer seulement si ce n'est pas la dernière tâche */}
+            {currentTaskIndex !== subject.tasks.length - 1 && (
+              <MDButton
+                variant="contained"
+                onClick={handleSaveResponse}
+                style={{color: 'white',}}
+                sx={{
+                  backgroundColor: '#2ECC71',
+                  color: 'white',
+                  px: 3,
+                  py: 1.5,
+                  borderRadius: '8px',
+                  '&:hover': {
+                    backgroundColor: '#27AE60'
+                  }
+                }}
+              >
+                ENREGISTRER
+              </MDButton>
+            )}
+            
             <MDButton
               variant="contained"
-              color="success"
-              onClick={handleSaveResponse}
+              onClick={handleSubmitExam}
+              style={{color: 'white',}}
               sx={{
+                backgroundColor: '#FF4E4E',
+                color: 'white',
                 px: 3,
                 py: 1.5,
-                fontSize: '1rem',
-                borderRadius: '12px',
-                backgroundColor: '#10b981',
-                boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
+                borderRadius: '8px',
                 '&:hover': {
-                  backgroundColor: '#059669',
-                  boxShadow: '0 8px 20px rgba(16, 185, 129, 0.4)',
-                },
+                  backgroundColor: '#E74C3C'
+                }
               }}
             >
-              {currentTaskIndex === subject.tasks.length - 1 ? 'Enregistrer et Terminer' : 'Enregistrer'}
+              {currentTaskIndex === subject.tasks.length - 1 ? 'ENREGISTRER ET TERMINER' : 'TERMINER L\'EXAMEN'}
             </MDButton>
           </MDBox>
         </MDBox>
       </MDBox>
 
-      {/* Barre latérale droite - Informations */}
+      {/* Panneau latéral droit - Informations */}
       <MDBox 
         sx={{
           width: '250px',
           display: 'flex',
           flexDirection: 'column',
-          p: 2,
           gap: 2
         }}
       >
         {/* Info candidat */}
         <MDBox 
           sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
+            backgroundColor: 'rgba(249, 250, 251, 0.79)',
             borderRadius: '15px',
             p: 2,
-            textAlign: 'center',
-            marginBottom: '20px' // Add margin-bottom to separate from the next block
+            textAlign: 'center'
           }}
         >
-          <MDTypography variant="h6" fontWeight="bold" color="dark">
+          <MDTypography variant="h6" fontWeight="bold" color="#2C3E50" mb={1}>
             Info candidat
           </MDTypography>
-          <MDTypography variant="body2" color="dark">
-            {userInfo ? `${userInfo.prenom} ${userInfo.nom}` : 'Chargement...'}
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              mx: 'auto',
+              mb: 1,
+              backgroundColor: '#6A85B6'
+            }}
+          >
+            <Icon>person</Icon>
+          </Avatar>
+          <MDTypography variant="body2" color="#2C3E50">
+            {userInfo ? `${userInfo.prenom} ${userInfo.nom}` : 'XX XX'}
           </MDTypography>
         </MDBox>
 
         {/* Minuteur */}
         <MDBox 
           sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
+            backgroundColor: 'rgba(249, 250, 251, 0.79)',
             borderRadius: '15px',
-            p: 2,
-            textAlign: 'center',
-            marginBottom: '20px' // Add margin-bottom to separate from the next block
+            p: 3,
+            textAlign: 'center'
           }}
         >
-          <Icon fontSize="large" color="dark">timer</Icon>
           <MDTypography 
             variant="h3" 
             fontWeight="bold" 
-            color={timeRemaining < 300 ? "error" : "dark"}
+            color={timeRemaining < 300 ? "#FF4E4E" : "#2C3E50"}
             sx={{ 
               fontFamily: 'monospace',
-              textAlign: 'center'
+              fontSize: '2rem'
             }}
           >
             {formatTime(timeRemaining)}
           </MDTypography>
         </MDBox>
 
-        {/* Outils */}
+        {/* Compteur de mots */}
         <MDBox 
           sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backgroundColor: 'rgba(249, 250, 251, 0.79)',
             borderRadius: '15px',
             p: 2,
-            border: '2px solid rgba(255, 255, 255, 0.5)',
-            marginBottom: '20px' // Add margin-bottom to separate from the next block
+            textAlign: 'center'
           }}
         >
-          {/* Compteur de mots */}
-          <Card
-            sx={{
-              backgroundColor: '#4dd0e1',
-              color: '#000',
-              fontWeight: 'bold',
-              borderRadius: '15px',
-              p: 2,
-              textAlign: 'center',
-              mb: 2 // Add margin-bottom to separate from special characters
-            }}
-          >
-            <MDTypography variant="h6" fontWeight="bold">
-              Mots: {getWordCount()}
-            </MDTypography>
-          </Card>
-          
-          {/* Caractères spéciaux */}
+          <MDTypography variant="h6" color="#2C3E50" mb={1}>
+            Mots: {getWordCount()}
+          </MDTypography>
+        </MDBox>
+
+        {/* Caractères spéciaux */}
+        <MDBox 
+          sx={{
+            backgroundColor: 'rgba(249, 250, 251, 0.79)',
+            borderRadius: '15px',
+            p: 2
+          }}
+        >
           <MDButton
             onClick={toggleCharacterTable}
             sx={{
-              backgroundColor: showCharacterTable ? '#26c6da' : '#4dd0e1',
-              color: '#000',
+              backgroundColor: 'transparent',
+              color: '#2C3E50',
               fontWeight: 'bold',
-              borderRadius: '10px',
               width: '100%',
               mb: showCharacterTable ? 1 : 0,
               '&:hover': {
-                backgroundColor: '#26c6da'
+                backgroundColor: 'rgba(255, 255, 255, 0.2)'
               }
             }}
           >
-            Caractères spéciaux
+            CARACTÈRES SPÉCIAUX
           </MDButton>
           
-          {/* Tableau de caractères spéciaux */}
           {showCharacterTable && (
-            <MDBox 
-              sx={{
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                borderRadius: '10px',
-                p: 1,
-                border: '1px solid #e0e0e0'
-              }}
-            >
-              <MDTypography variant="caption" fontWeight="bold" mb={1} display="block">
+            <MDBox>
+              <MDTypography variant="caption" fontWeight="bold" mb={1} display="block" color="#2C3E50">
                 Tableau de Caractères
               </MDTypography>
               {specialCharacters.map((row, rowIndex) => (
@@ -790,14 +846,15 @@ function TCFExamInterface() {
                       sx={{
                         minWidth: '30px',
                         height: '30px',
-                        backgroundColor: '#f5f5f5',
-                        color: '#000',
+                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                        color: '#2C3E50',
                         fontSize: '14px',
-                        fontWeight: 'bold',
+                        fontWeight: 'normal',
                         borderRadius: '6px',
                         p: 0,
+                        textTransform: 'none',
                         '&:hover': {
-                          backgroundColor: '#e0e0e0'
+                          backgroundColor: 'rgba(255, 255, 255, 1)'
                         }
                       }}
                     >
@@ -809,26 +866,6 @@ function TCFExamInterface() {
             </MDBox>
           )}
         </MDBox>
-
-        {/* Bouton Terminer */}
-        <MDButton 
-          variant="contained" 
-          color="error" 
-          onClick={handleSubmitExam}
-          sx={{ 
-            borderRadius: '12px',
-            p: 1.5,
-            fontSize: '1rem',
-            fontWeight: 'bold',
-            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-            width: '100%',
-            marginTop: 'auto',
-            marginBottom: '30px'
-          }}
-        >
-          <Icon sx={{ mr: 1 }}>send</Icon>
-          Terminer l'examen
-        </MDButton>
       </MDBox>
 
       {/* Dialog de confirmation pour les tentatives */}

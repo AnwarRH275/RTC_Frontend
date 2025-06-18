@@ -30,6 +30,7 @@ import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDAlert from "components/MDAlert";
 import MDButton from "components/MDButton";
+import ReactMarkdown from 'react-markdown';
 
 // Simulateur TCF Canada React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -47,29 +48,7 @@ import attemptService from "services/attemptService";
 import writtenExpressionImage from "assets/images/tcf/written-expression-1.svg";
 import authService from "services/authService";
 
-// Fonction pour obtenir la couleur en fonction du plan d'abonnement
-const getColorByPlan = (plan) => {
-  if (!plan) return "#3a86ff"; // Couleur par défaut
-  
-  const planLower = plan.toLowerCase();
-  
-  if (planLower.includes("standard")) {
-    return "#3a86ff"; // Bleu pour Pack Écrit Standard
-  } else if (planLower.includes("performance") || planLower.includes("performence")) {
-    return "#f72585"; // Rose pour Pack Écrit Performance
-  } else if (planLower.includes("pro")) {
-    return "#38b000"; // Vert pour Pack Écrit Pro
-  }
-  
-  return "#3a86ff"; // Couleur par défaut si aucune correspondance
-};
 
-// Fonction pour attribuer un statut aléatoire
-const getRandomStatus = () => {
-  const statuses = ["", "completed", "locked"];
-  const randomIndex = Math.floor(Math.random() * statuses.length);
-  return statuses[randomIndex];
-};
 
 // Styles pour le contenu du blog
 const blogContentStyles = {
@@ -192,12 +171,26 @@ function TCFSimulatorWritten() {
         
         const examValues = Object.values(examsByTask);
         
-        // Reconstituer le format attendu par la modal (similaire à results.js)
+        // Reconstituer le format attendu par la modal avec points par tâche
+        const taskResults = Object.keys(examsByTask)
+          .sort((a, b) => parseInt(a) - parseInt(b))
+          .map(taskId => {
+            const exam = examsByTask[taskId];
+            return {
+              correction: exam.reponse_ia || "Aucune correction disponible",
+              pointsForts: exam.points_fort ? 
+                exam.points_fort.split(',').map(p => p.trim()).filter(p => p) : 
+                ["Aucun point fort détecté"],
+              pointsAmeliorer: exam.point_faible ? 
+                exam.point_faible.split(',').map(p => p.trim()).filter(p => p) : 
+                ["Le texte est incompréhensible et ne répond pas à la consigne"]
+            };
+          });
+        
         const formattedResults = {
           NoteExam: examValues[0]?.score || "Non éligible (langue non lisible)",
-          corrections_taches: Object.keys(examsByTask)
-            .sort((a, b) => parseInt(a) - parseInt(b))
-            .map(taskId => examsByTask[taskId].reponse_ia || "Aucune correction disponible"),
+          corrections_taches: taskResults.map(task => task.correction),
+          taskResults: taskResults,
           pointsForts: processPoints(examValues, 'points_fort'),
           pointsAmeliorer: processPoints(examValues, 'point_faible'),
           // Ajouter les réponses de l'utilisateur
@@ -383,9 +376,11 @@ function TCFSimulatorWritten() {
         pt={3} 
         pb={3} 
         sx={{
-          background: 'linear-gradient(135deg, #e0f2f7 0%, #b2ebf2 100%)', // Lighter, more inviting gradient
+          background: 'linear-gradient(135deg, rgba(191, 219, 254, 0.8) 0%, rgba(240, 248, 255, 0.9) 30%, rgba(219, 234, 254, 0.85) 70%, rgba(191, 219, 254, 0.8) 100%)',
           minHeight: '100vh',
-          padding: { xs: 2, md: 4 }, // Add padding to the main container
+          padding: { xs: 2, md: 4 },
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
         }}
       >
         <MDBox 
@@ -393,11 +388,13 @@ function TCFSimulatorWritten() {
           p={2} 
           maxWidth="1400px"
           sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.9)', // Semi-transparent white background for content area
-            borderRadius: '16px', // Rounded corners for the content area
-            boxShadow: '0 10px 30px rgba(0,0,0,0.1)', // Subtle shadow
-            backdropFilter: 'blur(5px)', // Optional: add a blur effect
-            p: { xs: 3, md: 5 }, // Adjust padding inside the content area
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '20px',
+            boxShadow: '0 8px 32px rgba(31, 38, 135, 0.37)',
+            border: '1px solid rgba(255, 255, 255, 0.18)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            p: { xs: 3, md: 5 },
           }}
         >
           <MDBox 
@@ -420,7 +417,7 @@ function TCFSimulatorWritten() {
                 textShadow: '0px 2px 5px rgba(0,0,0,0.1)',
               }}
             >
-              Simulateur d'Expression Écrite
+              Coach d'Expression Écrite
             </MDTypography>
             <MDTypography 
               variant="body1" 
@@ -428,8 +425,8 @@ function TCFSimulatorWritten() {
               opacity={0.8}
               mb={3}
             >
-              Choisissez un sujet d'expression écrite pour commencer votre simulation. Vous pourrez
-              rédiger votre texte et recevoir une évaluation détaillée basée sur les critères officiels du TCF.
+              Entraînez-vous comme dans les conditions réelles du TCF canada.
+              Choisissez un sujet, rédigez vos réponses et recevez une évaluation détaillée.
             </MDTypography>
           </MDBox>
           
@@ -541,8 +538,8 @@ function TCFSimulatorWritten() {
                       action={{
                         type: "function",
                         onClick: () => handleOpenRecap(subject),
-                        label: "Commencer le test",
-                        color: "info",
+                        label: "Démarrer le coaching",
+                        color: "primary",
                       }}
                       sx={{
                         borderRadius: '12px', // Rounded corners for cards
@@ -856,7 +853,7 @@ function TCFSimulatorWritten() {
               },
             })}
           >
-            Commencer le test
+            Démarrer le coaching
           </MDButton>
         </DialogActions>
       </Dialog>
@@ -975,7 +972,7 @@ function TCFSimulatorWritten() {
             <MDBox p={4}>
               <Grid container spacing={4}>
                 {/* Corrections détaillées */}
-                <Grid item xs={12} md={8}>
+                <Grid item xs={12}>
                   <MDBox
                     sx={{
                       background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
@@ -992,7 +989,7 @@ function TCFSimulatorWritten() {
                       </MDTypography>
                     </MDBox>
                     
-                    {examResults.corrections_taches?.map((correction, index) => (
+                    {examResults.taskResults?.map((taskResult, index) => (
                       <MDBox
                         key={index}
                         sx={{
@@ -1000,7 +997,7 @@ function TCFSimulatorWritten() {
                           borderRadius: '12px',
                           p: 3,
                           border: '1px solid #e2e8f0',
-                          mb: 2
+                          mb: 3
                         }}
                       >
                         <MDBox display="flex" alignItems="center" mb={2}>
@@ -1061,9 +1058,121 @@ function TCFSimulatorWritten() {
                               <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
                                 Correction proposée:
                               </MDTypography>
-                              <MDTypography variant="body2" color="text" lineHeight={1.8}>
-                                {correction}
-                              </MDTypography>
+                              <MDBox 
+                                sx={{
+                                  '& p': { margin: '8px 0', fontSize: '0.875rem', lineHeight: 1.8 },
+                                  '& h1, & h2, & h3, & h4, & h5, & h6': { margin: '16px 0 8px 0', fontWeight: 'bold' },
+                                  '& ul, & ol': { margin: '8px 0', paddingLeft: '20px' },
+                                  '& li': { margin: '4px 0' },
+                                  '& strong': { fontWeight: 'bold' },
+                                  '& em': { fontStyle: 'italic' },
+                                  '& code': { 
+                                    backgroundColor: '#f5f5f5', 
+                                    padding: '2px 4px', 
+                                    borderRadius: '3px',
+                                    fontSize: '0.85em'
+                                  },
+                                  '& pre': {
+                                    backgroundColor: '#f5f5f5',
+                                    padding: '12px',
+                                    borderRadius: '6px',
+                                    overflow: 'auto',
+                                    margin: '12px 0'
+                                  },
+                                  '& blockquote': {
+                                    borderLeft: '4px solid #ddd',
+                                    paddingLeft: '16px',
+                                    margin: '12px 0',
+                                    fontStyle: 'italic'
+                                  }
+                                }}
+                              >
+                                <ReactMarkdown>{taskResult.correction}</ReactMarkdown>
+                              </MDBox>
+                              <MDBox mt={2} display="flex" justifyContent="flex-end">
+                                <MDTypography variant="caption" color="text">
+                                  {taskResult.correction ? taskResult.correction.split(/\s+/).filter(word => word.length > 0).length : 0} mots
+                                </MDTypography>
+                              </MDBox>
+                            </MDBox>
+                          </Grid>
+                        </Grid>
+                        
+                        {/* Points forts et points à améliorer pour cette tâche */}
+                        <Grid container spacing={3} mt={2}>
+                          {/* Points forts */}
+                          <Grid item xs={12} md={6}>
+                            <MDBox
+                              sx={{
+                                background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                                borderRadius: '12px',
+                                p: 2,
+                                border: '1px solid #a7f3d0',
+                              }}
+                            >
+                              <MDBox display="flex" alignItems="center" mb={2}>
+                                <Icon sx={{ color: '#059669', mr: 1, fontSize: '1.2rem' }}>recommend</Icon>
+                                <MDTypography variant="subtitle1" fontWeight="bold" color="#059669">
+                                  Points forts
+                                </MDTypography>
+                              </MDBox>
+                              
+                              <MDBox
+                                sx={{
+                                  background: 'rgba(255,255,255,0.7)',
+                                  borderRadius: '8px',
+                                  p: 2,
+                                }}
+                              >
+                                {taskResult.pointsForts?.map((point, pointIndex) => (
+                                  <MDBox key={pointIndex} display="flex" alignItems="flex-start" mb={1}>
+                                    <Icon sx={{ color: '#059669', mr: 1, fontSize: '0.9rem', mt: 0.2 }}>check_circle</Icon>
+                                    <MDTypography variant="body2" color="#059669" fontWeight="medium" sx={{ flex: 1 }}>
+                                      {point}
+                                    </MDTypography>
+                                  </MDBox>
+                                ))}
+                              </MDBox>
+                            </MDBox>
+                          </Grid>
+                          
+                          {/* Points à améliorer */}
+                          <Grid item xs={12} md={6}>
+                            <MDBox
+                              sx={{
+                                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                                borderRadius: '12px',
+                                p: 2,
+                                border: '1px solid #fde68a',
+                              }}
+                            >
+                              <MDBox display="flex" alignItems="center" mb={2}>
+                                <Icon sx={{ color: '#d97706', mr: 1, fontSize: '1.2rem' }}>insights</Icon>
+                                <MDTypography variant="subtitle1" fontWeight="bold" color="#d97706">
+                                  Points à améliorer
+                                </MDTypography>
+                              </MDBox>
+                              
+                              <MDBox sx={{ space: 1 }}>
+                                {taskResult.pointsAmeliorer?.map((point, pointIndex) => (
+                                  <MDBox
+                                    key={pointIndex}
+                                    sx={{
+                                      background: 'rgba(255,255,255,0.7)',
+                                      borderRadius: '8px',
+                                      p: 2,
+                                      mb: 1,
+                                      display: 'flex',
+                                      alignItems: 'flex-start'
+                                    }}
+                                  >
+                                    <Icon sx={{ color: '#d97706', mr: 1, fontSize: '0.9rem', mt: 0.2 }}>circle</Icon>
+                                    <MDTypography variant="body2" color="#d97706" sx={{ flex: 1 }}>
+                                      {point}
+                                    </MDTypography>
+                                  </MDBox>
+                                ))}
+                              </MDBox>
                             </MDBox>
                           </Grid>
                         </Grid>
@@ -1083,99 +1192,6 @@ function TCFSimulatorWritten() {
                         </MDTypography>
                       </MDBox>
                     )}
-                  </MDBox>
-                </Grid>
-                
-                {/* Points forts et à améliorer */}
-                <Grid item xs={12} md={4}>
-                  {/* Points forts */}
-                  <MDBox
-                    sx={{
-                      background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-                      borderRadius: '16px',
-                      p: 3,
-                      mb: 3,
-                      border: '1px solid #a7f3d0',
-                    }}
-                  >
-                    <MDBox display="flex" alignItems="center" mb={2}>
-                      <Icon sx={{ color: '#059669', mr: 1 }}>recommend</Icon>
-                      <MDTypography variant="h6" fontWeight="bold" color="#059669">
-                        Points forts
-                      </MDTypography>
-                    </MDBox>
-                    
-                    <MDBox
-                      sx={{
-                        background: 'rgba(255,255,255,0.7)',
-                        borderRadius: '8px',
-                        p: 2,
-                      }}
-                    >
-                      {examResults.pointsForts?.map((point, index) => (
-                        <MDBox key={index} display="flex" alignItems="flex-start" mb={1}>
-                          <Icon sx={{ color: '#059669', mr: 1, fontSize: '1rem', mt: 0.2 }}>check_circle</Icon>
-                          <MDTypography variant="body2" color="#059669" fontWeight="medium" sx={{ flex: 1 }}>
-                            {point}
-                          </MDTypography>
-                        </MDBox>
-                      )) || (
-                        <MDTypography variant="body2" color="#059669" fontWeight="medium">
-                          Aucun point fort détecté (pas de contenu lisible)
-                        </MDTypography>
-                      )}
-                    </MDBox>
-                  </MDBox>
-                  
-                  {/* Points à améliorer */}
-                  <MDBox
-                    sx={{
-                      background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                      borderRadius: '16px',
-                      p: 3,
-                      border: '1px solid #fde68a',
-                    }}
-                  >
-                    <MDBox display="flex" alignItems="center" mb={2}>
-                      <Icon sx={{ color: '#d97706', mr: 1 }}>insights</Icon>
-                      <MDTypography variant="h6" fontWeight="bold" color="#d97706">
-                        Points à améliorer
-                      </MDTypography>
-                    </MDBox>
-                    
-                    <MDBox sx={{ space: 1 }}>
-                      {examResults.pointsAmeliorer?.map((point, index) => (
-                        <MDBox
-                          key={index}
-                          sx={{
-                            background: 'rgba(255,255,255,0.7)',
-                            borderRadius: '8px',
-                            p: 2,
-                            mb: 1,
-                            display: 'flex',
-                            alignItems: 'flex-start'
-                          }}
-                        >
-                          <Icon sx={{ color: '#d97706', mr: 1, fontSize: '1rem', mt: 0.2 }}>circle</Icon>
-                          <MDTypography variant="body2" color="#d97706" sx={{ flex: 1 }}>
-                            {point}
-                          </MDTypography>
-                        </MDBox>
-                      )) || (
-                        <MDBox
-                          sx={{
-                            background: 'rgba(255,255,255,0.7)',
-                            borderRadius: '8px',
-                            p: 2,
-                            mb: 1,
-                          }}
-                        >
-                          <MDTypography variant="body2" color="#d97706">
-                            Le texte est incompréhensible et ne répond pas à la consigne
-                          </MDTypography>
-                        </MDBox>
-                      )}
-                    </MDBox>
                   </MDBox>
                 </Grid>
               </Grid>

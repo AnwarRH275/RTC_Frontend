@@ -30,6 +30,7 @@
     "react-dom": "18.2.0",
     "react-github-btn": "1.4.0",
     "react-lottie": "^1.2.10",
+    "react-markdown": "^10.1.0",
     "react-quill": "^2.0.0",
     "react-router-dom": "6.11.0",
     "react-scripts": "5.0.1",

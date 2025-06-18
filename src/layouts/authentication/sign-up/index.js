@@ -26,6 +26,7 @@ import CoverLayout from "layouts/authentication/components/CoverLayout";
 import { useState, useEffect } from "react";
 import authService from "services/authService";
 import SubscriptionPlans from "./SubscriptionPlans";
+import { API_BASE_URL } from '../../../services/config';
 
 // Images
 // import bgImage from "assets/images/tcf-canada-background.svg";
@@ -531,7 +532,7 @@ function Cover() {
                      
                      console.log('Données envoyées au backend pour Stripe:', requestData);
                      
-                     const stripeResponse = await fetch('http://localhost:5001/stripe/create-checkout-session', {
+                     const stripeResponse = await fetch(`${API_BASE_URL}/stripe/create-checkout-session`, {
                        method: 'POST',
                        headers: {
                          'Content-Type': 'application/json',

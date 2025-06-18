@@ -6,6 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import axios from "axios";
 import subscriptionPackService from '../../../services/subscriptionPackService';
 import MDButton from 'components/MDButton';
+import { API_BASE_URL } from '../../../services/config';
 
 // Clé publique Stripe
 const stripePromise = loadStripe('pk_test_51RPoNkGbR6tCbwFHGpmyQJHVvFNdqbZABAA5hJPvCnQsPR9C8dDXkiojPusno6ow5CngADJHkRdVnrtOwHeFTCNe00VVxsQVJ1');
@@ -16,31 +17,29 @@ const PlanCard = styled(Card)(({ theme, isPopular }) => ({
   boxShadow: isPopular 
     ? '0 10px 20px rgba(0, 123, 255, 0.3)' 
     : '0 6px 12px rgba(0, 0, 0, 0.1)',
-  transition: 'transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease', // Add border to transition
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease',
   overflow: 'hidden',
-  height: 'auto', // Change height to auto
+  height: 'auto',
   display: 'flex',
   flexDirection: 'column',
-  position: 'relative', // Add position relative
+  position: 'relative',
   border: isPopular ? `2px solid ${theme.palette.primary.main}` : 'none',
   '&:hover': {
     transform: 'translateY(-2px)',
     boxShadow: isPopular 
       ? '0 15px 30px rgba(0, 123, 255, 0.4)' 
       : '0 12px 24px rgba(0, 0, 0, 0.15)',
-    zIndex: 1, // Add z-index to bring the hovered card to the front
-    border: isPopular ? `2px solid ${theme.palette.primary.dark}` : `2px solid ${theme.palette.grey[300]}`, // Add explicit border on hover
+    zIndex: 1,
+    border: isPopular ? `2px solid ${theme.palette.primary.dark}` : `2px solid ${theme.palette.grey[300]}`,
   },
 }));
 
-const PlanHeader = styled(Box)(({ theme, color }) => ({
-  background: color === 'standard' 
-    ? 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)' 
-    : color === 'performance' 
-      ? 'linear-gradient(135deg, #FF512F, #DD2476)' 
-      : 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
-  padding: theme.spacing(0.5), // Further reduced padding
-  color: 'white', // Ensure text color is white
+const PlanHeader = styled(Box)(({ theme, headerGradient }) => ({
+  background: headerGradient 
+    ? `linear-gradient(135deg, ${headerGradient.start}, ${headerGradient.end})`
+    : 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
+  padding: theme.spacing(0.5),
+  color: 'white',
   textAlign: 'center',
 }));
 
@@ -67,7 +66,7 @@ const FeatureItem = styled(Box)(({ theme }) => ({
   fontSize: '0.85rem',
 }));
 
-const ActionButton = styled(Button)(({ theme, color }) => ({
+const ActionButton = styled(Button)(({ theme, buttonGradient, buttonHoverGradient }) => ({
   borderRadius: 20,
   padding: '10px 16px',
   fontWeight: 700,
@@ -75,18 +74,14 @@ const ActionButton = styled(Button)(({ theme, color }) => ({
   fontSize: '1rem',
   marginTop: 'auto',
   boxShadow: '0 4px 10px rgba(0, 0, 0, 0.25)',
-  background: color === 'standard' 
-    ? 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)' 
-    : color === 'performance' 
-      ? 'linear-gradient(135deg, #FF512F, #DD2476)' 
-      : 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
-  color: 'white', // Ensure text color is white
+  background: buttonGradient 
+    ? `linear-gradient(135deg, ${buttonGradient.start}, ${buttonGradient.end})`
+    : 'linear-gradient(135deg, #11998e, #38ef7d)',
+  color: 'white',
   '&:hover': {
-    background: color === 'standard' 
-      ? 'linear-gradient(135deg, #0083b0, #0083b0)' 
-      : color === 'performance' 
-        ? 'linear-gradient(135deg, #DD2476, #DD2476)' 
-        : 'linear-gradient(135deg, #0083b0, #0083b0)',
+    background: buttonHoverGradient 
+      ? `linear-gradient(135deg, ${buttonHoverGradient.start}, ${buttonHoverGradient.end})`
+      : 'linear-gradient(135deg, #0083b0, #0083b0)',
     boxShadow: '0 8px 20px rgba(0, 0, 0, 0.3)',
     transform: 'translateY(-2px)',
   },
@@ -104,7 +99,7 @@ const PopularBadge = styled(Chip)(({ theme }) => ({
 }));
 
 const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
-  const [loading, setLoading] = useState(false);
+  const [loadingPlanId, setLoadingPlanId] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [error, setError] = useState(null);
@@ -130,6 +125,10 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
            color: pack.color,
            isPopular: pack.isPopular,
            stripeProductId: pack.stripeProductId,
+           headerGradient: pack.headerGradient || { start: '#0062E6', end: '#33AEFF' },
+           buttonGradient: pack.buttonGradient || { start: '#11998e', end: '#38ef7d' },
+           buttonHoverGradient: pack.buttonHoverGradient || { start: '#0083b0', end: '#0083b0' },
+           buttonText: pack.buttonText || 'Payer maintenant',
            features: pack.features ? pack.features.map(f => f.featureText || f) : []
          }));
         
@@ -184,7 +183,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
 
   // Fonction pour créer une session de paiement Stripe via le backend
   const handleCheckout = async (plan) => {
-    setLoading(true);
+    setLoadingPlanId(plan.id);
     try {
       // Récupérer les informations utilisateur si disponibles
       const token = localStorage.getItem('token');
@@ -213,7 +212,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
       
       console.log('Données envoyées au backend:', requestData);
       
-      const response = await axios.post('http://localhost:5001/stripe/create-checkout-session', requestData, {
+      const response = await axios.post(`${API_BASE_URL}/stripe/create-checkout-session`, requestData, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -230,7 +229,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
       console.error('Erreur lors du paiement:', error);
       alert('Une erreur est survenue lors de la création de la session de paiement. Veuillez réessayer.');
     } finally {
-      setLoading(false);
+      setLoadingPlanId(null);
     }
   };
 
@@ -302,7 +301,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
           <Box sx={{ width: '100%' }}>
             <PlanCard isPopular={planToDisplay.isPopular}>
               {planToDisplay.isPopular && <PopularBadge label="POPULAIRE" />}
-              <PlanHeader color={planToDisplay.color}>
+              <PlanHeader headerGradient={planToDisplay.headerGradient}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: planToDisplay.isPopular ? 2 : 'auto', position: 'relative' }}>
                   {planToDisplay.name}
                 </Typography>
@@ -333,6 +332,8 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                     fullWidth 
                     color="primary" 
                     disableElevation
+                    buttonGradient={planToDisplay.buttonGradient}
+                    buttonHoverGradient={planToDisplay.buttonHoverGradient}
                     onClick={() => {
                       // Si l'utilisateur est connecté (token présent), aller directement au paiement
                       const token = localStorage.getItem('token');
@@ -346,16 +347,14 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                         handleCheckout(planToDisplay);
                       }
                     }}
-                    disabled={loading}
+                    disabled={loadingPlanId === planToDisplay.id}
                     sx={{ 
-                      color: 'white',
                       fontSize: '1.1rem',
                       py: 1.5,
-                      boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
-                      background: 'linear-gradient(135deg, #11998e, #38ef7d)'
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
                     }}
                   >
-                    {loading ? 'Chargement...' : 'Payer maintenant'}
+                    {loadingPlanId === planToDisplay.id ? 'Chargement...' : planToDisplay.buttonText}
                   </ActionButton>
                   
                   <MDButton 
@@ -401,7 +400,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
         <Box key={plan.id} sx={{ flex: 1, minWidth: { xs: '100%', md: '220px' } }}>
           <PlanCard isPopular={plan.isPopular}>
             {plan.isPopular && <PopularBadge label="POPULAIRE" />}
-            <PlanHeader color={plan.color}>
+            <PlanHeader headerGradient={plan.headerGradient}>
               <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: plan.isPopular ? 2 : 'auto', position: 'relative' }}>
                 {plan.name}
               </Typography>
@@ -433,6 +432,8 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                   fullWidth 
                   color="primary" 
                   disableElevation
+                  buttonGradient={plan.buttonGradient}
+                  buttonHoverGradient={plan.buttonHoverGradient}
                   onClick={() => {
                     // Si l'utilisateur est connecté (token présent), aller directement au paiement
                     const token = localStorage.getItem('token');
@@ -446,16 +447,14 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                       handleCheckout(plan);
                     }
                   }}
-                  disabled={loading}
+                  disabled={loadingPlanId === plan.id}
                   sx={{ 
-                    color: 'white',
                     fontSize: '1.1rem',
                     py: 1.5,
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
-                    background: 'linear-gradient(135deg, #11998e, #38ef7d)'
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
                   }}
                 >
-                  {loading ? 'Chargement...' : 'Payer maintenant'}
+                  {loadingPlanId === plan.id ? 'Chargement...' : plan.buttonText}
                 </ActionButton>
               </Box>
             </PlanContent>

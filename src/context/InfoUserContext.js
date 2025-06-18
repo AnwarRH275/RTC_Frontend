@@ -41,6 +41,8 @@ export function InfoUserProvider({ children }) {
   // Fonction pour effacer les informations utilisateur (déconnexion)
   const clearUserInfo = () => {
     setUserInfo(null);
+    setLoading(false);
+    setError(null);
   };
 
   // Charger les informations utilisateur au montage du composant

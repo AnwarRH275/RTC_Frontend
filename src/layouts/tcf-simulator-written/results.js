@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../../services/config";
+import ReactMarkdown from "react-markdown";
 
 // @mui material components
 import Grid from "@mui/material/Grid";
@@ -74,6 +76,8 @@ function TCFResultsInterface() {
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [noteMoyenne, setNoteMoyenne] = useState(null);
+  const [loadingNoteMoyenne, setLoadingNoteMoyenne] = useState(false);
   
   // États pour la traduction
   const [translationOpen, setTranslationOpen] = useState(false);
@@ -81,18 +85,21 @@ function TCFResultsInterface() {
   const [translating, setTranslating] = useState(false);
   const [translatedResults, setTranslatedResults] = useState(null);
   const [translationError, setTranslationError] = useState(null);
+  const [currentTaskToTranslate,setCurrentTaskToTranslate] = useState(null);
   
   // Liste des langues disponibles pour la traduction
   const availableLanguages = [
-    { code: "EN", name: "Anglais" },
-    { code: "ES", name: "Espagnol" },
     { code: "DE", name: "Allemand" },
+    { code: "EN", name: "Anglais" },
+    { code: "AR", name: "Arabe" },
+    { code: "ZH", name: "Chinois" },
+    { code: "ES", name: "Espagnol" },
+    { code: "FR", name: "Français" },
+    { code: "HI", name: "Hindi" },
     { code: "IT", name: "Italien" },
+    { code: "JA", name: "Japonais" },
     { code: "PT", name: "Portugais" },
     { code: "RU", name: "Russe" },
-    { code: "ZH", name: "Chinois" },
-    { code: "JA", name: "Japonais" },
-    { code: "AR", name: "Arabe" },
   ];
 
   // Fonction pour récupérer l'ID utilisateur depuis le token JWT
@@ -116,24 +123,26 @@ function TCFResultsInterface() {
       setSaving(true);
       const userId = getUserIdFromToken();
       
-      // Préparer les données pour chaque tâche en utilisant subjectData
-      const savePromises = subjectData.tasks.map(async (task, index) => {
+      // Préparer les données pour chaque tâche en utilisant le nouveau format
+      const savePromises = correctionResults.map(async (taskResult, index) => {
+        const taskKey = Object.keys(taskResult.output)[0]; // tache1, tache2, etc.
+        const taskData = taskResult.output[taskKey];
+        const task = subjectData.tasks[index];
         const taskResponse = responses[index] || '';
-        const taskCorrection = correctionResults.corrections_taches?.[index] || '';
         
         const payload = {
           id_user: userId,
           id_subject: parseInt(subjectId),
           id_task: task.id || index + 1,
           reponse_utilisateur: taskResponse,
-          score: correctionResults.NoteExam || '',
-          reponse_ia: taskCorrection,
-          points_fort: correctionResults.pointsForts?.join(', ') || '',
-          point_faible: correctionResults.pointsAmeliorer?.join(', ') || '',
+          score: taskData.NoteExam || '',
+          reponse_ia: taskData.corrections_taches?.[0] || '',
+          points_fort: taskData.pointsForts?.join(', ') || '',
+          point_faible: taskData.pointsAmeliorer?.join(', ') || '',
           traduction_reponse_ia: null
         };
         
-        return axios.post('http://127.0.0.1:5001/exam/exams/user', payload, {
+        return axios.post(`${API_BASE_URL}/exam/exams/user`, payload, {
           headers: {
             'accept': 'application/json',
             'Content-Type': 'application/json',
@@ -158,16 +167,30 @@ function TCFResultsInterface() {
       return;
     }
     
+    if (currentTaskToTranslate === null) {
+      setTranslationError("Aucune tâche sélectionnée pour la traduction");
+      return;
+    }
+    
     setTranslating(true);
     setTranslationError(null);
     
-    // Préparer les données pour la traduction
-    const pointsForts = results?.pointsForts || [];
-    const pointsAmeliorer = results?.pointsAmeliorer || [];
+    // Préparer les données pour la traduction de la tâche sélectionnée uniquement
+    let taskPointsForts = [];
+    let taskPointsAmeliorer = [];
+    
+    if (results && Array.isArray(results) && results[currentTaskToTranslate]) {
+      const taskResult = results[currentTaskToTranslate];
+      const taskKey = Object.keys(taskResult.output)[0];
+      const taskData = taskResult.output[taskKey];
+      
+      if (taskData.pointsForts) taskPointsForts = taskData.pointsForts;
+      if (taskData.pointsAmeliorer) taskPointsAmeliorer = taskData.pointsAmeliorer;
+    }
     
     const payload = {
-      pointsForts: [...pointsForts],
-      pointsAmeliorer:[...pointsAmeliorer],
+      pointsForts: taskPointsForts,
+      pointsAmeliorer: taskPointsAmeliorer,
       targetLanguage: targetLang
     };
     
@@ -176,23 +199,40 @@ function TCFResultsInterface() {
       try {
         // Appel réel à l'API de traduction
         const response = await axios.post(
-          'http://localhost:5678/webhook/agent-tradution',
+          `${API_BASE_URL}/proxy-translation/translation`,
           payload,
           { headers: { 'Content-Type': 'application/json' } }
         );
         
-        // Traiter la réponse de l'API
+        // Traiter la réponse de l'API avec la nouvelle structure
         if (response.data && response.data.output) {
           const translations = response.data.output;
           
-          // Séparer les traductions entre points forts et points à améliorer
-          const pointsFortsTraduit = translations.pointsFortsTraduit;
-          const pointsAmeliorerTraduit = translations.pointsAmeliorerTraduit;
+          // Utiliser la nouvelle structure de réponse
+          const pointsFortsTraduit = translations.pointsFortsTraduit || [];
+          const pointsAmeliorerTraduit = translations.pointsAmeliorerTraduit || [];
           
-          setTranslatedResults({
-            pointsFortsTraduit,
-            pointsAmeliorerTraduit
-          });
+          // Mettre à jour seulement la tâche sélectionnée dans les résultats
+          if (results && Array.isArray(results) && results[currentTaskToTranslate]) {
+            const updatedResults = [...results];
+            const taskResult = updatedResults[currentTaskToTranslate];
+            const taskKey = Object.keys(taskResult.output)[0];
+            
+            // Ajouter les traductions à la tâche
+            updatedResults[currentTaskToTranslate] = {
+              ...taskResult,
+              output: {
+                ...taskResult.output,
+                [taskKey]: {
+                  ...taskResult.output[taskKey],
+                  pointsFortsTraduit: pointsFortsTraduit,
+                  pointsAmeliorerTraduit: pointsAmeliorerTraduit
+                }
+              }
+            };
+            
+            setResults(updatedResults);
+          }
           
           setTranslationOpen(false);
           setTranslating(false);
@@ -202,14 +242,14 @@ function TCFResultsInterface() {
       } catch (apiError) {
         console.error(`Tentative de traduction ${retryCount + 1} échouée:`, apiError);
         
-        if (retryCount < 4) { // Retry jusqu'à 5 fois (0-4)
-          console.log(`Nouvelle tentative de traduction dans 2 secondes... (${retryCount + 2}/5)`);
+        if (retryCount < 1) { // Un seul retry
+          console.log(`Nouvelle tentative de traduction dans 2 secondes... (${retryCount + 2}/2)`);
           setTimeout(() => {
             makeTranslationAPICall(retryCount + 1);
           }, 2000); // Attendre 2 secondes avant de réessayer
         } else {
           console.error('Toutes les tentatives de traduction ont échoué');
-          setTranslationError("Une erreur s'est produite lors de la traduction après 5 tentatives. Veuillez réessayer.");
+          setTranslationError("Une erreur s'est produite lors de la traduction. Veuillez réessayer.");
           setTranslating(false);
         }
       }
@@ -218,6 +258,9 @@ function TCFResultsInterface() {
     // Démarrer l'appel API de traduction avec retry
     await makeTranslationAPICall();
   };
+
+
+
 
   // Rendu du modal de traduction
   const renderTranslationModal = () => {
@@ -306,11 +349,16 @@ function TCFResultsInterface() {
         setResponses(parsedResponses);
         
         // Préparer les données pour l'API
-        const taskResponses =  Object.entries(parsedResponses)
+        const taskResponses = Object.entries(parsedResponses)
         .map(([key, value], index) => `Reponse Tache ${index + 1} :\n${value}`)
         .join('\n\n');
         const taskStructures = subjectData.tasks.map(task => task.structure || '').join('\n\n');
         const taskInstructions = subjectData.tasks.map(task => task.instructions || '').join('\n\n');
+        
+        // Créer le tableau chatInput correctement pour inclure toutes les réponses
+        const chatInputArray = Object.entries(parsedResponses)
+        .sort(([a], [b]) => parseInt(a) - parseInt(b)) // Trier par index
+        .map(([key, value]) => value || ''); // Extraire seulement les valeurs
         
         // Préparer les documents pour l'IA
         const taskDocuments = subjectData.tasks.map((task, index) => {
@@ -325,12 +373,17 @@ function TCFResultsInterface() {
         
         // Envoyer les données à l'API pour correction
         const payload = {
-          chatInput: taskResponses,
-          sessionId: `session-${Date.now()}`,
-          Taches: subjectData.tasks.map((task, index) => `Tache ${index + 1}: ${task.title || ''}`).join('\n\n'),
-          Structures: subjectData.tasks.map((task, index) => `Tache ${index + 1}: ${task.structure || ''}`).join('\n\n'),
-          Instructions: subjectData.tasks.map((task, index) => `Tache ${index + 1}: ${task.instructions || ''}`).join('\n\n'),
-          Documents: taskDocuments // Ajouter les documents à l'API
+          Documents: subjectData.tasks.map((task, index) => {
+            if (task.documents && task.documents.length > 0) {
+              return task.documents.map(doc => doc.content || '').join(' ');
+            }
+            return '';
+          }),
+          Instructions: subjectData.tasks.map((task, index) => task.instructions || ''),
+          Structures: subjectData.tasks.map((task, index) => task.structure || ''),
+          Taches: subjectData.tasks.map((task, index) => task.title || ''),
+          chatInput: chatInputArray,
+          sessionId: `session-${Date.now()}`
         };
         
         // Fonction pour effectuer l'appel API avec retry
@@ -338,17 +391,20 @@ function TCFResultsInterface() {
           try {
             // Appel réel à l'API de correction
             const response = await axios.post(
-              'http://localhost:5678/webhook/agent-expression-ecrite',
+              `${API_BASE_URL}/proxy/correction`,
               payload,
               { headers: { 'Content-Type': 'application/json' } }
             );
             
             // Traiter la réponse de l'API
-            if (response.data && response.data.output) {
-              setResults(response.data.output);
+            if (response.data && Array.isArray(response.data)) {
+              setResults(response.data);
+              
+              // Calculer la note moyenne
+              await calculateNoteMoyenne(response.data);
               
               // Enregistrer les résultats via l'API d'enregistrement, en passant subjectData
-              await saveResultsToAPI(response.data.output, subjectData);
+              await saveResultsToAPI(response.data, subjectData);
               setLoading(false);
             } else {
               throw new Error('Format de réponse invalide');
@@ -382,8 +438,80 @@ function TCFResultsInterface() {
     fetchSubjectAndSubmit();
   }, [subjectId]);
 
+  // Fonction pour calculer la note moyenne
+  const calculateNoteMoyenne = async (resultsData) => {
+    try {
+      setLoadingNoteMoyenne(true);
+      
+      // Extraire les noteExam de chaque tâche
+      const noteExams = {};
+      
+      if (resultsData && Array.isArray(resultsData)) {
+        resultsData.forEach((taskResult, index) => {
+          const taskKey = Object.keys(taskResult.output)[0];
+          const taskData = taskResult.output[taskKey];
+          const noteExam = taskData.NoteExam || '';
+          
+          if (noteExam) {
+            noteExams[`Tache${index + 1}`] = noteExam;
+          }
+        });
+      }
+      
+      // Vérifier qu'on a au moins une note
+      if (Object.keys(noteExams).length === 0) {
+        console.log('Aucune note d\'examen trouvée');
+        setLoadingNoteMoyenne(false);
+        return;
+      }
+      
+      console.log('Notes extraites pour le calcul de moyenne:', noteExams);
+      
+      // Appeler l'API note_moyenne_proxy
+      const response = await axios.post(
+        `${API_BASE_URL}/proxy-note-moyenne/note-moyenne`,
+        noteExams,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      if (response.data && response.data.output && response.data.output.noteMoyenne) {
+        setNoteMoyenne(response.data.output.noteMoyenne);
+        console.log('Note moyenne calculée:', response.data.output.noteMoyenne);
+      } else {
+        console.error('Format de réponse invalide pour la note moyenne:', response.data);
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors du calcul de la note moyenne:', error);
+    } finally {
+      setLoadingNoteMoyenne(false);
+    }
+  };
+
+  // Fonction pour récupérer le prénom de l'utilisateur
+  const getUserFirstName = () => {
+    try {
+      const userInfo = localStorage.getItem('user_info');
+      if (userInfo) {
+        const userData = JSON.parse(userInfo);
+        return userData.prenom || 'Utilisateur';
+      }
+      return 'Utilisateur';
+    } catch (error) {
+      console.error('Erreur lors de la récupération des informations utilisateur:', error);
+      return 'Utilisateur';
+    }
+  };
+
   // Affichage du chargement
   if (loading) {
+    const userFirstName = getUserFirstName();
+    
     return (
       <MDBox 
         sx={{
@@ -428,10 +556,12 @@ function TCFResultsInterface() {
               </Box>
               
               <MDTypography variant="h3" fontWeight="bold" color="dark" mb={1}>
-                Correction en cours
+                Correction en cours...
               </MDTypography>
               <MDTypography variant="body1" color="text" mb={4}>
-                Analyse vos réponses et prépare votre évaluation détaillée...
+                Nous analysons vos réponses et préparons
+                <br />
+                votre évaluation personnalisée.
               </MDTypography>
               
               <MDBox 
@@ -456,7 +586,11 @@ function TCFResultsInterface() {
               </MDBox>
               
               <MDTypography variant="body2" color="text" fontStyle="italic">
-                Cela peut prendre quelques instants...
+                Cela peut prendre environ 60 secondes...
+              </MDTypography>
+              
+              <MDTypography variant="body1" color="dark" fontWeight="medium" mt={2}>
+                Merci de patienter, {userFirstName} !
               </MDTypography>
             </MDBox>
           </Card>
@@ -534,273 +668,572 @@ function TCFResultsInterface() {
     <>
       <MDBox 
         sx={{
-          width: '100%',
-          height: '100%',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          p: 0,
-          overflow: 'auto'
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, rgba(191, 219, 254, 0.8) 0%, rgba(240, 248, 255, 0.9) 30%, rgba(219, 234, 254, 0.85) 70%, rgba(191, 219, 254, 0.8) 100%)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 3
         }}
       >
-        <MDBox sx={{ width: '100%', p: 0, m: 0 }}>
-          <Zoom in timeout={800}>
-            <Card 
-              sx={{ 
-                borderRadius: 0,
-                overflow: 'hidden',
-                boxShadow: 'none',
-                background: 'rgba(255,255,255,0.98)',
-                backdropFilter: 'blur(10px)',
-                height: '100vh',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-            >
-              {/* En-tête */}
-              <MDBox 
-                p={4} 
-                sx={{
-                  background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
-                  display: 'flex',
-                  flexDirection: { xs: 'column', md: 'row' },
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <MDBox display="flex" alignItems="center" mb={{ xs: 2, md: 0 }}>
-                  <Avatar 
-                    sx={{ 
-                      width: 70, 
-                      height: 70, 
-                      backgroundColor: 'white',
-                      color: '#667eea',
-                      mr: 3,
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
-                    }}
-                  >
-                    <Icon sx={{ fontSize: 35 }}>task_alt</Icon>
-                  </Avatar>
-                  <MDBox>
-                    <MDTypography variant="h3" fontWeight="bold" color="white" mb={1}>
-                    Résultats de votre évaluation
-                    </MDTypography>
-                    <MDTypography variant="h6" color="white" opacity={0.9}>
-                      {subject?.name || 'Examen TCF'}
-                    </MDTypography>
-                  </MDBox>
-                </MDBox>
-                
-                <Chip 
-                  label={ '  🏆​  ' + results?.NoteExam || "Niveau B2"}
-                 
-                  style={{ color: '#fff' }}
-                  sx={{ 
-                    backgroundColor: 'white',
-                    color: '#667eea',
-                    fontWeight: 'bold',
-                    fontSize: '1.5rem',
-                    p: 3,
-                    height: 'auto',
-                    borderRadius: 3,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                    '& .MuiChip-label': { px: 2, py: 1.5 }
-                  }}
-                />
+        <Dialog
+          open={true}
+          maxWidth="1350px"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: '20px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              overflow: 'hidden',
+            }
+          }}
+        >
+          <DialogTitle
+            sx={{
+              background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
+              color: 'white',
+              textAlign: 'center',
+              py: 2,
+              position: 'relative',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
+              }
+            }}
+          >
+            <MDBox display="flex" alignItems="center" justifyContent="space-between" px={2}>
+              {/* Section gauche avec icône et titre */}
+              <MDBox display="flex" alignItems="center" flexDirection="column">
+                <Icon sx={{ fontSize: '2rem', mb: 0.5, opacity: 0.9 }}>check_circle</Icon>
+                <MDTypography variant="h5" fontWeight="bold" color="white">
+                  Résultats de votre évaluation
+                </MDTypography>
+                <MDTypography variant="body2" color="white" opacity={0.9} mt={0.5}>
+                  Mai 2026
+                </MDTypography>
               </MDBox>
               
-              {/* Contenu principal */}
-              <MDBox p={2} sx={{ flex: 1, overflow: 'auto' }}>
-                <Grid container spacing={2}>
-                    {/* Corrections par tâche */}
-                    <Grid item xs={12} lg={9}>
-                      <MDBox mb={2}>
-                      <MDTypography variant="h4" fontWeight="bold" mb={4} color="dark">
-                        <Icon sx={{ mr: 2, verticalAlign: 'middle', color: '#667eea' }}>assignment_turned_in</Icon>
+              {/* Section droite avec note et icône attractive */}
+              <MDBox display="flex" alignItems="center" flexDirection="column">
+                <MDBox display="flex" alignItems="center" mb={1}>
+                  <Icon sx={{ fontSize: '1.5rem', mr: 1, color: '#FFD700', animation: 'pulse 2s infinite' }}>star</Icon>
+                  {loadingNoteMoyenne ? (
+                    <MDBox display="flex" alignItems="center">
+                      <CircularProgress size={20} sx={{ color: 'white', mr: 1 }} />
+                      <MDTypography variant="body2" color="white">
+                        Calcul en cours...
+                      </MDTypography>
+                    </MDBox>
+                  ) : (
+                    <Chip
+                      label={noteMoyenne || "Niveau B1"}
+                      sx={{
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        borderRadius: '20px',
+                        fontSize: '0.9rem',
+                        px: 2,
+                        py: 0.5,
+                        border: '2px solid rgba(255,255,255,0.3)'
+                      }}
+                    />
+                  )}
+                </MDBox>
+                <MDBox display="flex" alignItems="center" sx={{ cursor: 'pointer', '&:hover': { transform: 'scale(1.05)' } }}>
+                  <Icon sx={{ fontSize: '1.2rem', mr: 0.5, color: '#FFD700' }}>trending_up</Icon>
+                  <MDTypography variant="caption" color="white" fontWeight="medium">
+                    Passer un autre examen
+                  </MDTypography>
+                </MDBox>
+              </MDBox>
+            </MDBox>
+          </DialogTitle>
+          
+          <DialogContent sx={{ p: 0 }}>
+            <MDBox p={4}>
+              <Grid container spacing={4}>
+                {/* Corrections détaillées */}
+                <Grid item xs={12}>
+                  <MDBox
+                    sx={{
+                      background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+                      borderRadius: '16px',
+                      p: 3,
+                      mb: 3,
+                      border: '1px solid #e2e8f0',
+                    }}
+                  >
+                    <MDBox display="flex" alignItems="center" mb={3}>
+                      <Icon sx={{ color: '#667eea', mr: 1, fontSize: '1.5rem' }}>assignment_turned_in</Icon>
+                      <MDTypography variant="h6" fontWeight="bold" color="text">
                         Corrections détaillées
                       </MDTypography>
-                      
-                      {results?.corrections_taches?.map((correction, index) => (
-                        <Fade in timeout={500 + (index * 300)} key={index}>
-                          <Card 
-                            sx={{ 
-                              mb: 4, 
-                              overflow: 'hidden',
-                              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                              borderRadius: 3,
-                              border: '1px solid rgba(102, 126, 234, 0.1)',
-                              transition: 'all 0.3s ease',
-                              minHeight: '400px',
-                              '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
-                              }
-                            }}
-                          >
-                            <MDBox 
-                              p={3} 
-                              sx={{ 
-                                background: 'linear-gradient(135deg, #f8faff 0%, #e3f2fd 100%)',
-                                borderBottom: '1px solid rgba(102, 126, 234, 0.1)'
-                              }}
-                            >
-                              <MDBox display="flex" alignItems="center">
-                                <Avatar
-                                  sx={{
-                                    width: 40,
-                                    height: 40,
-                                    backgroundColor: '#667eea',
-                                    mr: 2
+                    </MDBox>
+                    {/* Corrections par tâche */}
+                    <MDBox mb={2}>
+                      {results && Array.isArray(results) && results.length > 0 ? (
+                        results.map((taskResult, index) => {
+                          // Récupérer la clé de la tâche (tache1, tache2, etc.)
+                          const taskKey = Object.keys(taskResult.output)[0];
+                          const taskData = taskResult.output[taskKey];
+                          
+                          // Récupérer les données de la tâche
+                          const correction = taskData.corrections_taches && taskData.corrections_taches[0] || '';
+                          const pointsForts = taskData.pointsForts || [];
+                          const pointsAmeliorer = taskData.pointsAmeliorer || [];
+                          const noteExam = taskData.NoteExam || '';
+                          
+                          // Vérifier si cette tâche a des traductions
+                          const hasTranslations = translatedResults && translatedResults[`task${index}`];
+                          const pointsFortsTraduit = hasTranslations ? translatedResults[`task${index}`].pointsFortsTraduit : [];
+                          const pointsAmeliorerTraduit = hasTranslations ? translatedResults[`task${index}`].pointsAmeliorerTraduit : [];
+                          
+                          return (
+                            <Fade in timeout={500 + (index * 300)} key={index}>
+                              <Card 
+                                sx={{ 
+                                  mb: 4, 
+                                  overflow: 'hidden',
+                                  boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                  borderRadius: 3,
+                                  border: '1px solid rgba(102, 126, 234, 0.1)',
+                                  transition: 'all 0.3s ease',
+                                  minHeight: '400px',
+                                  '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                                  }
+                                }}
+                              >
+                                <MDBox 
+                                  p={3} 
+                                  sx={{ 
+                                    background: 'linear-gradient(135deg, #f8faff 0%, #e3f2fd 100%)',
+                                    borderBottom: '1px solid rgba(102, 126, 234, 0.1)'
                                   }}
                                 >
-                                  <MDTypography variant="h6" color="white" fontWeight="bold">
-                                    {index + 1}
-                                  </MDTypography>
-                                </Avatar>
-                                <MDTypography variant="h5" fontWeight="bold" color="dark">
-                                  Tâche {index + 1}
-                                </MDTypography>
-                              </MDBox>
-                            </MDBox>
-                            
-                            <MDBox p={3}>
-                              {/* Section avec deux colonnes: Votre réponse et Correction proposée */}
-                              <Grid container spacing={3}>
-                                {/* Documents de référence - Nouvelle section */}
-                                {subject?.tasks[index]?.documents && subject.tasks[index].documents.length > 0 && (
-                                  <Grid item xs={12}>
-                                    <MDBox 
-                                      p={3} 
-                                      mb={3}
-                                      sx={{
-                                        background: '#f0f7ff',
-                                        borderRadius: 2,
-                                        border: '1px solid #bfdbfe',
-                                        overflow: 'auto'
-                                      }}
-                                    >
-                                      <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
-                                        Documents de référence:
+                                  <MDBox display="flex" alignItems="center" justifyContent="space-between">
+                                    <MDBox display="flex" alignItems="center">
+                                      <Avatar
+                                        sx={{
+                                          width: 40,
+                                          height: 40,
+                                          backgroundColor: '#667eea',
+                                          mr: 2
+                                        }}
+                                      >
+                                        <MDTypography variant="h6" color="white" fontWeight="bold">
+                                          {index + 1}
+                                        </MDTypography>
+                                      </Avatar>
+                                      <MDTypography variant="h5" fontWeight="bold" color="dark">
+                                        Tâche {index + 1}
                                       </MDTypography>
-                                      
-                                      <Grid container spacing={2}>
-                                        {subject.tasks[index].documents.map((document, docIndex) => (
-                                          <Grid item xs={12} md={6} key={docIndex}>
-                                            <Paper 
-                                              elevation={1} 
-                                              sx={{ 
-                                                p: 2, 
-                                                borderRadius: 2,
-                                                border: '1px solid #e5e7eb',
-                                                backgroundColor: '#ffffff'
+                                    </MDBox>
+                                    
+                                    {/* Notes d'examen pour cette tâche - Version améliorée avec images */}
+                                    <MDBox display="flex" alignItems="center" gap={2}>
+                                      {noteExam && (
+                                        <Tooltip title="Votre niveau actuel" placement="top" arrow>
+                                          <MDBox
+                                            display="flex"
+                                            alignItems="center"
+                                            sx={{
+                                              background: 'linear-gradient(135deg, #4f46e5 0%, #667eea 100%)',
+                                              borderRadius: '12px',
+                                              padding: '6px 12px',
+                                              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
+                                              border: '2px solid rgba(255,255,255,0.2)',
+                                              position: 'relative',
+                                              overflow: 'hidden',
+                                              '&::before': {
+                                                content: '""',
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                background: 'radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent 70%)',
+                                                zIndex: 0
+                                              }
+                                            }}
+                                          >
+                                            <Avatar
+                                              sx={{
+                                                width: 32,
+                                                height: 32,
+                                                backgroundColor: 'rgba(255,255,255,0.2)',
+                                                mr: 1
                                               }}
                                             >
-                                              <MDTypography variant="subtitle2" fontWeight="bold" mb={1}>
-                                                Document {docIndex + 1}
+                                              <Icon sx={{ fontSize: '1.2rem', color: 'white' }}>school</Icon>
+                                            </Avatar>
+                                            <MDBox>
+                                              <MDTypography variant="caption" fontWeight="bold" color="white" sx={{ opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                Niveau actuel
                                               </MDTypography>
-                                              <MDTypography variant="body2" component="div">
-                                                <div dangerouslySetInnerHTML={{ __html: document.content }} />
+                                              <MDTypography variant="h6" fontWeight="bold" color="white" lineHeight={1}>
+                                                {noteExam}
                                               </MDTypography>
-                                            </Paper>
+                                            </MDBox>
+                                          </MDBox>
+                                        </Tooltip>
+                                      )}
+                                      
+                                      {/* Note de correction proposée - Version améliorée avec image */}
+                                      {taskData.NoteExamCorrection && (
+                                        <Tooltip title="Niveau potentiel avec les corrections" placement="top" arrow>
+                                          <MDBox
+                                            display="flex"
+                                            alignItems="center"
+                                            sx={{
+                                              background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                                              borderRadius: '12px',
+                                              padding: '6px 12px',
+                                              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                                              border: '2px solid rgba(255,255,255,0.2)',
+                                              position: 'relative',
+                                              overflow: 'hidden',
+                                              animation: `${pulseAnimation} 2s ease-in-out 1`,
+                                              '&::before': {
+                                                content: '""',
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                background: 'radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent 70%)',
+                                                zIndex: 0
+                                              }
+                                            }}
+                                          >
+                                            <Avatar
+                                              sx={{
+                                                width: 32,
+                                                height: 32,
+                                                backgroundColor: 'rgba(255,255,255,0.2)',
+                                                mr: 1
+                                              }}
+                                            >
+                                              <Icon sx={{ fontSize: '1.2rem', color: 'white' }}>trending_up</Icon>
+                                            </Avatar>
+                                            <MDBox>
+                                              <MDTypography variant="caption" fontWeight="bold" color="white" sx={{ opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                Potentiel
+                                              </MDTypography>
+                                              <MDTypography variant="h6" fontWeight="bold" color="white" lineHeight={1}>
+                                                {taskData.NoteExamCorrection}
+                                              </MDTypography>
+                                            </MDBox>
+                                          </MDBox>
+                                        </Tooltip>
+                                      )}
+                                    </MDBox>
+                                  </MDBox>
+                                </MDBox>
+                                
+                                <MDBox p={3}>
+                                  {/* Section avec deux colonnes: Votre réponse et Correction proposée */}
+                                  <Grid container spacing={3}>
+                                    {/* Documents de référence - Nouvelle section */}
+                                    {subject?.tasks[index]?.documents && subject.tasks[index].documents.length > 0 && (
+                                      <Grid item xs={12}>
+                                        <MDBox 
+                                          p={3} 
+                                          mb={3}
+                                          sx={{
+                                            background: '#f0f7ff',
+                                            borderRadius: 2,
+                                            border: '1px solid #bfdbfe',
+                                            overflow: 'auto'
+                                          }}
+                                        >
+                                          <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
+                                            Documents de référence:
+                                          </MDTypography>
+                                          
+                                          <Grid container spacing={2}>
+                                            {subject.tasks[index].documents.map((document, docIndex) => (
+                                              <Grid item xs={12} md={6} key={docIndex}>
+                                                <Paper 
+                                                  elevation={1} 
+                                                  sx={{ 
+                                                    p: 2, 
+                                                    borderRadius: 2,
+                                                    border: '1px solid #e5e7eb',
+                                                    backgroundColor: '#ffffff'
+                                                  }}
+                                                >
+                                                  <MDTypography variant="subtitle2" fontWeight="bold" mb={1}>
+                                                    Document {docIndex + 1}
+                                                  </MDTypography>
+                                                  <MDTypography variant="body2" component="div">
+                                                    <div dangerouslySetInnerHTML={{ __html: document.content }} />
+                                                  </MDTypography>
+                                                </Paper>
+                                              </Grid>
+                                            ))}
                                           </Grid>
-                                        ))}
+                                        </MDBox>
                                       </Grid>
-                                    </MDBox>
+                                    )}
+                                    
+                                    {/* Votre réponse */}
+                                    <Grid item xs={12} md={5}>
+                                      <MDBox 
+                                        p={3} 
+                                        sx={{
+                                          background: '#f8f9fa',
+                                          borderRadius: 2,
+                                          border: '1px solid #e9ecef',
+                                          height: '100%',
+                                          minHeight: '250px',
+                                          overflow: 'auto'
+                                        }}
+                                      >
+                                        <MDTypography variant="h6" fontWeight="bold" color="dark" mb={2}>
+                                          Votre réponse:
+                                        </MDTypography>
+                                        <MDTypography variant="body2" color="text" lineHeight={1.8}>
+                                          {responses[index] || 'Aucune réponse fournie'}
+                                        </MDTypography>
+                                        <MDBox mt={2} display="flex" justifyContent="flex-end">
+                                          <MDTypography variant="caption" color="text">
+                                            {responses[index] ? responses[index].split(/\s+/).filter(word => word.length > 0).length : 0} mots
+                                          </MDTypography>
+                                        </MDBox>
+                                      </MDBox>
+                                    </Grid>
+                                    
+                                    {/* Correction proposée */}
+                                    <Grid item xs={12} md={7}>
+                                      <MDBox 
+                                        p={3} 
+                                        sx={{
+                                          background: '#f0f9ff',
+                                          borderRadius: 2,
+                                          border: '1px solid #cfe2ff',
+                                          height: '100%',
+                                          minHeight: '250px',
+                                          overflow: 'auto'
+                                        }}
+                                      >
+                                        <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
+                                          Correction proposée:
+                                        </MDTypography>
+                                        <MDBox 
+                                          sx={{
+                                            '& p': { margin: '8px 0', fontSize: '0.875rem', lineHeight: 1.8 },
+                                            '& h1, & h2, & h3, & h4, & h5, & h6': { margin: '16px 0 8px 0', fontWeight: 'bold' },
+                                            '& ul, & ol': { margin: '8px 0', paddingLeft: '20px' },
+                                            '& li': { margin: '4px 0' },
+                                            '& strong': { fontWeight: 'bold' },
+                                            '& em': { fontStyle: 'italic' },
+                                            '& code': { 
+                                              backgroundColor: '#f5f5f5', 
+                                              padding: '2px 4px', 
+                                              borderRadius: '3px',
+                                              fontSize: '0.85em'
+                                            },
+                                            '& pre': {
+                                              backgroundColor: '#f5f5f5',
+                                              padding: '12px',
+                                              borderRadius: '6px',
+                                              overflow: 'auto',
+                                              margin: '12px 0'
+                                            },
+                                            '& blockquote': {
+                                              borderLeft: '4px solid #ddd',
+                                              paddingLeft: '16px',
+                                              margin: '12px 0',
+                                              fontStyle: 'italic'
+                                            }
+                                          }}
+                                        >
+                                          <ReactMarkdown>{correction}</ReactMarkdown>
+                                        </MDBox>
+                                        <MDBox mt={2} display="flex" justifyContent="flex-end">
+                                          <MDTypography variant="caption" color="text">
+                                            {correction ? correction.split(/\s+/).filter(word => word.length > 0).length : 0} mots
+                                          </MDTypography>
+                                        </MDBox>
+                                      </MDBox>
+                                    </Grid>
+                                    
+                                    {/* Points forts et à améliorer pour cette tâche */}
+                                    <Grid item xs={12}>
+                                      <MDBox mt={3}>
+                                        <Grid container spacing={3}>
+                                          {/* Points forts */}
+                                          <Grid item xs={12} md={6}>
+                                            <MDBox mb={2}>
+                                              <MDTypography variant="h6" fontWeight="bold" color="dark">
+                                                <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#10b981' }}>recommend</Icon>
+                                                Points forts
+                                              </MDTypography>
+                                            </MDBox>
+                                            
+                                            <Card 
+                                              sx={{ 
+                                                p: 3, 
+                                                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                                borderRadius: 3,
+                                                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                                                border: '1px solid rgba(16, 185, 129, 0.2)'
+                                              }}
+                                            >
+                                              <List>
+                                                {/* Afficher les points forts traduits s'ils existent, sinon afficher les originaux */}
+                                                {(taskData.pointsFortsTraduit && taskData.pointsFortsTraduit.length > 0 ? taskData.pointsFortsTraduit : pointsForts).map((point, pointIndex) => (
+                                                  <Fade in timeout={800 + (pointIndex * 200)} key={pointIndex}>
+                                                    <ListItem sx={{ px: 0 }}>
+                                                      <ListItemIcon>
+                                                        <Avatar 
+                                                          sx={{ 
+                                                            width: 36, 
+                                                            height: 36, 
+                                                            backgroundColor: '#10b981'
+                                                          }}
+                                                        >
+                                                          <Icon sx={{ fontSize: 20, color: 'white' }}>check</Icon>
+                                                        </Avatar>
+                                                      </ListItemIcon>
+                                                      <ListItemText 
+                                                        primary={point}
+                                                        primaryTypographyProps={{
+                                                          fontWeight: 500,
+                                                          color: '#065f46'
+                                                        }}
+                                                      />
+                                                    </ListItem>
+                                                  </Fade>
+                                                )) || (
+                                                  <MDTypography variant="body2" color="text" textAlign="center">
+                                                    Aucun point fort identifié.
+                                                  </MDTypography>
+                                                )}
+                                              </List>
+                                            </Card>
+                                          </Grid>
+                                          
+                                          {/* Points à améliorer */}
+                                          <Grid item xs={12} md={6}>
+                                            <MDBox mb={2} display="flex" justifyContent="space-between" alignItems="center">
+                                              <MDTypography variant="h6" fontWeight="bold" color="dark">
+                                                <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#f59e0b' }}>trending_up</Icon>
+                                                Points à améliorer
+                                              </MDTypography>
+                                              
+                                              {/* Bouton de traduction à droite du titre */}
+                                              {(pointsForts.length > 0 || pointsAmeliorer.length > 0) && (
+                                                <Tooltip title="Traduire les commentaires de cette tâche" arrow placement="top">
+                                                  <MDButton
+                                                    variant="outlined"
+                                                    color="info"
+                                                    size="small"
+                                                    onClick={() => {
+                                                      setCurrentTaskToTranslate(index);
+                                                      setTranslationOpen(true);
+                                                    }}
+                                                    sx={{
+                                                      borderRadius: 2,
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      gap: 1,
+                                                      transition: 'all 0.2s ease',
+                                                      '&:hover': {
+                                                        transform: 'translateY(-2px)',
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                                      }
+                                                    }}
+                                                  >
+                                                    <Icon>translate</Icon>
+                                                    TRADUIRE
+                                                  </MDButton>
+                                                </Tooltip>
+                                              )}
+                                            </MDBox>
+                                            
+                                            <Card 
+                                              sx={{ 
+                                                p: 3, 
+                                                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                                borderRadius: 3,
+                                                background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                                                border: '1px solid rgba(245, 158, 11, 0.2)'
+                                              }}
+                                            >
+                                              <List>
+                                                {/* Afficher les points à améliorer traduits s'ils existent, sinon afficher les originaux */}
+                                                {(taskData.pointsAmeliorerTraduit && taskData.pointsAmeliorerTraduit.length > 0 ? taskData.pointsAmeliorerTraduit : pointsAmeliorer).map((point, pointIndex) => (
+                                                  <Fade in timeout={1000 + (pointIndex * 200)} key={pointIndex}>
+                                                    <ListItem sx={{ px: 0 }}>
+                                                      <ListItemIcon>
+                                                        <Avatar 
+                                                          sx={{ 
+                                                            width: 36, 
+                                                            height: 36, 
+                                                            backgroundColor: '#f59e0b'
+                                                          }}
+                                                        >
+                                                          <Icon sx={{ fontSize: 20, color: 'white' }}>trending_up</Icon>
+                                                        </Avatar>
+                                                      </ListItemIcon>
+                                                      <ListItemText 
+                                                        primary={point}
+                                                        primaryTypographyProps={{
+                                                          fontWeight: 500,
+                                                          color: '#92400e'
+                                                        }}
+                                                      />
+                                                    </ListItem>
+                                                  </Fade>
+                                                )) || (
+                                                  <MDTypography variant="body2" color="text" textAlign="center">
+                                                    Aucun point d'amélioration identifié.
+                                                  </MDTypography>
+                                                )}
+                                              </List>
+                                            </Card>
+                                          </Grid>
+                                        </Grid>
+
+                                      </MDBox>
+                                    </Grid>
                                   </Grid>
-                                )}
-                                
-                                {/* Votre réponse */}
-                                <Grid item xs={12} md={5}>
-                                  <MDBox 
-                                    p={3} 
-                                    sx={{
-                                      background: '#f8f9fa',
-                                      borderRadius: 2,
-                                      border: '1px solid #e9ecef',
-                                      height: '100%',
-                                      minHeight: '250px',
-                                      overflow: 'auto'
-                                    }}
-                                  >
-                                    <MDTypography variant="h6" fontWeight="bold" color="dark" mb={2}>
-                                      Votre réponse:
-                                    </MDTypography>
-                                    <MDTypography variant="body2" color="text" lineHeight={1.8}>
-                                      {responses[index] || 'Aucune réponse fournie'}
-                                    </MDTypography>
-                                    <MDBox mt={2} display="flex" justifyContent="flex-end">
-                                      <MDTypography variant="caption" color="text">
-                                        {responses[index] ? responses[index].split(/\s+/).filter(word => word.length > 0).length : 0} mots
-                                      </MDTypography>
-                                    </MDBox>
-                                  </MDBox>
-                                </Grid>
-                                
-                                {/* Correction proposée */}
-                                <Grid item xs={12} md={7}>
-                                  <MDBox 
-                                    p={3} 
-                                    sx={{
-                                      background: '#f0f9ff',
-                                      borderRadius: 2,
-                                      border: '1px solid #cfe2ff',
-                                      height: '100%',
-                                      minHeight: '250px',
-                                      overflow: 'auto'
-                                    }}
-                                  >
-                                    <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
-                                      Correction proposée:
-                                    </MDTypography>
-                                    <MDTypography variant="body2" color="text" lineHeight={1.8}>
-                                      {correction}
-                                    </MDTypography>
-                                  </MDBox>
-                                </Grid>
-                              </Grid>
-                            </MDBox>
-                          </Card>
-                        </Fade>
-                      )) || (
+                                </MDBox>
+                              </Card>
+                            </Fade>
+                          );
+                        })
+                      ) : (
                         <MDTypography variant="body1" color="text" textAlign="center" py={4}>
                           Aucune correction disponible pour le moment.
                         </MDTypography>
                       )}
                     </MDBox>
-                  </Grid>
+                  </MDBox>
+                </Grid>
                   
-                  {/* Points forts et à améliorer */}
-                  <Grid item xs={12} lg={3}>
+                {/* Informations */}
+                <Grid item xs={12}>
+                  <MDBox>
+                    
                     <MDBox mb={4}>
                       <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={4}>
                         <MDTypography variant="h4" fontWeight="bold" color="dark">
-                          <Icon sx={{ mr: 2, verticalAlign: 'middle', color: '#10b981' }}>recommend</Icon>
-                          Points forts
+                          <Icon sx={{ mr: 2, verticalAlign: 'middle', color: '#3b82f6' }}>info</Icon>
+                          Informations
                         </MDTypography>
-                        
-                        {/* Bouton de traduction pour les points forts et à améliorer */}
-                        {(results?.pointsForts?.length > 0 || results?.pointsAmeliorer?.length > 0) && (
-                          <Tooltip title="Traduire les points forts et à améliorer" arrow placement="top">
-                            <MDButton
-                              variant="outlined"
-                              color="info"
-                              size="small"
-                              onClick={() => setTranslationOpen(true)}
-                              sx={{
-                                borderRadius: 2,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                transition: 'all 0.2s ease',
-                                '&:hover': {
-                                  transform: 'translateY(-2px)',
-                                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                                }
-                              }}
-                            >
-                              <Icon>translate</Icon>
-                              Traduire
-                            </MDButton>
-                          </Tooltip>
-                        )}
                       </MDBox>
                       
                       <Card 
@@ -808,145 +1241,56 @@ function TCFResultsInterface() {
                           p: 3, 
                           boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
                           borderRadius: 3,
-                          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                          border: '1px solid rgba(16, 185, 129, 0.2)'
+                          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                          border: '1px solid rgba(59, 130, 246, 0.2)'
                         }}
                       >
-                        <List>
-                          {/* Afficher les points forts traduits s'ils existent, sinon afficher les originaux */}
-                          {(translatedResults?.pointsFortsTraduit || results?.pointsForts)?.map((point, index) => (
-                            <Fade in timeout={800 + (index * 200)} key={index}>
-                              <ListItem sx={{ px: 0 }}>
-                                <ListItemIcon>
-                                  <Avatar 
-                                    sx={{ 
-                                      width: 36, 
-                                      height: 36, 
-                                      backgroundColor: '#10b981'
-                                    }}
-                                  >
-                                    <Icon sx={{ fontSize: 20, color: 'white' }}>check</Icon>
-                                  </Avatar>
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary={point}
-                                  primaryTypographyProps={{
-                                    fontWeight: 500,
-                                    color: '#065f46'
-                                  }}
-                                />
-                              </ListItem>
-                            </Fade>
-                          )) || (
-                            <MDTypography variant="body2" color="text" textAlign="center">
-                              Aucun point fort identifié.
-                            </MDTypography>
-                          )}
-                        </List>
+                        <MDTypography variant="body2" color="text" mb={2}>
+                          Cette évaluation est basée sur les critères du TCF Canada. Chaque tâche a été évaluée individuellement avec des points forts et des points à améliorer spécifiques.
+                        </MDTypography>
+                        <MDTypography variant="body2" color="text">
+                          Vous pouvez traduire les commentaires pour chaque tâche en utilisant le bouton "Traduire" disponible dans chaque section.
+                        </MDTypography>
                       </Card>
                     </MDBox>
-                    
-                    <MDBox mb={4}>
-                      <MDTypography variant="h4" fontWeight="bold" mb={4} color="dark">
-                        <Icon sx={{ mr: 2, verticalAlign: 'middle', color: '#f59e0b' }}>trending_up</Icon>
-                        Points à améliorer
-                      </MDTypography>
-                      
-                      <Card 
-                        sx={{ 
-                          p: 3, 
-                          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                          borderRadius: 3,
-                          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                          border: '1px solid rgba(245, 158, 11, 0.2)'
-                        }}
-                      >
-                        <List>
-                          {/* Afficher les points à améliorer traduits s'ils existent, sinon afficher les originaux */}
-                          {(translatedResults?.pointsAmeliorerTraduit || results?.pointsAmeliorer)?.map((point, index) => (
-                            <Fade in timeout={1000 + (index * 200)} key={index}>
-                              <ListItem sx={{ px: 0 }}>
-                                <ListItemIcon>
-                                  <Avatar 
-                                    sx={{ 
-                                      width: 36, 
-                                      height: 36, 
-                                      backgroundColor: '#f59e0b'
-                                    }}
-                                  >
-                                    <Icon sx={{ fontSize: 20, color: 'white' }}>trending_up</Icon>
-                                  </Avatar>
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary={point}
-                                  primaryTypographyProps={{
-                                    fontWeight: 500,
-                                    color: '#92400e'
-                                  }}
-                                />
-                              </ListItem>
-                            </Fade>
-                          )) || (
-                            <MDTypography variant="body2" color="text" textAlign="center">
-                              Aucun point d'amélioration identifié.
-                            </MDTypography>
-                          )}
-                        </List>
-                      </Card>
-                    </MDBox>
-                    
-                    <MDBox textAlign="center" mt={6}>
-                      {saving && (
-                        <MDBox mb={3}>
-                          <MDTypography variant="body2" color="info" mb={2}>
-                            <Icon sx={{ mr: 1, verticalAlign: 'middle' }}>save</Icon>
-                            Enregistrement des résultats en cours...
-                          </MDTypography>
-                          <LinearProgress 
-                            variant="indeterminate" 
-                            sx={{ 
-                              height: 4, 
-                              borderRadius: 2,
-                              backgroundColor: '#e3f2fd',
-                              '& .MuiLinearProgress-bar': {
-                                background: 'linear-gradient(90deg, #667eea, #764ba2)',
-                                borderRadius: 2
-                              }
-                            }}
-                          />
-                        </MDBox>
-                      )}
-                      <MDButton 
-                        variant="contained" 
-                        color="info" 
-                        size="large"
-                        onClick={() => { navigate('/simulateur-tcf-canada/expression-ecrits'); window.location.reload(); }}
-                        disabled={saving}
-                        sx={{ 
-                          px: 6, 
-                          py: 2,
-                          borderRadius: 3,
-                          background: saving ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          boxShadow: saving ? 'none' : '0 8px 32px rgba(102, 126, 234, 0.4)',
-                          fontSize: '1.1rem',
-                          fontWeight: 'bold',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            transform: saving ? 'none' : 'translateY(-2px)',
-                            boxShadow: saving ? 'none' : '0 12px 40px rgba(102, 126, 234, 0.5)'
-                          }
-                        }}
-                      >
-                        <Icon sx={{ mr: 2 }}>arrow_back</Icon>
-                        Retour aux exams
-                      </MDButton>
-                    </MDBox>
-                  </Grid>
+                  </MDBox>
                 </Grid>
-              </MDBox>
-            </Card>
-          </Zoom>
-        </MDBox>
+              </Grid>
+            </MDBox>
+          </DialogContent>
+          
+          <DialogActions
+            sx={{
+              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+              p: 3,
+              justifyContent: 'center',
+              borderTop: '1px solid #e2e8f0'
+            }}
+          >
+            <MDButton
+              variant="gradient"
+              color="info"
+              size="large"
+              onClick={() => navigate('/simulateur-tcf-canada/expression-ecrits')}
+              sx={{
+                background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
+                px: 4,
+                py: 1.5,
+                borderRadius: '12px',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                boxShadow: '0 8px 25px rgba(0, 131, 176, 0.3)',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 12px 35px rgba(0, 131, 176, 0.4)'
+                }
+              }}
+            >
+              <Icon sx={{ mr: 1 }}>arrow_back</Icon>
+              Retour aux exercices
+            </MDButton>
+          </DialogActions>
+        </Dialog>
       </MDBox>
       
       {/* Modal de traduction */}

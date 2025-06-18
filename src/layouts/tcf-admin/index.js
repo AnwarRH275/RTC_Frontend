@@ -14,7 +14,17 @@ import Card from "@mui/material/Card";
 import Icon from "@mui/material/Icon";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-
+import Chip from "@mui/material/Chip";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Radio from "@mui/material/Radio";
+import Divider from "@mui/material/Divider";
+import Paper from "@mui/material/Paper";
+import Tooltip from "@mui/material/Tooltip";
 
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -210,10 +220,48 @@ function TCFAdminSimulator() {
         instructions: "", 
         minWordCount: 60, 
         wordCount: 150, 
-        duration: 3 
+        duration: 3,
+        taskType: "entretien", // Type de tâche pour l'oral: entretien, questions, expression
+        questions: [], // Questions pour les tâches de type "questions"
+        preparationTime: 0, // Temps de préparation en minutes
+        evaluationCriteria: [], // Critères d'évaluation spécifiques
+        exampleQuestions: [], // Questions d'exemple pour l'entretien
+        roleplayScenario: "", // Scénario de jeu de rôle pour les questions
+        debateTopics: [] // Sujets de débat pour l'expression spontanée
       },
     ],
   });
+
+  // État pour gérer l'expansion des accordéons
+  const [expandedAccordion, setExpandedAccordion] = useState(false);
+
+  // Types de tâches orales
+  const oralTaskTypes = [
+    {
+      id: "entretien",
+      label: "Première Tâche - Entretien",
+      icon: "chat",
+      color: "primary",
+      description: "Entretien avec l'examinateur, sans préparation",
+      duration: "2-3 minutes"
+    },
+    {
+      id: "questions",
+      label: "Deuxième Tâche - Questions",
+      icon: "help_outline",
+      color: "info",
+      description: "Poser des questions sur un sujet de la vie quotidienne",
+      duration: "4-5 minutes (+ 2 min préparation)"
+    },
+    {
+      id: "expression",
+      label: "Troisième Tâche - Expression",
+      icon: "record_voice_over",
+      color: "success",
+      description: "Expression spontanée sur un sujet proposé",
+      duration: "4-5 minutes"
+    }
+  ];
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -379,17 +427,80 @@ useEffect(() => {
     }
   };
 
+  // Fonction pour gérer le changement de type de tâche orale
+  const handleOralTaskTypeChange = (index, taskType) => {
+    const updatedTasks = [...formData.tasks];
+    updatedTasks[index] = {
+      ...updatedTasks[index],
+      taskType: taskType,
+      // Réinitialiser les champs spécifiques selon le type
+      questions: taskType === "questions" ? updatedTasks[index].questions || [] : [],
+      exampleQuestions: taskType === "entretien" ? updatedTasks[index].exampleQuestions || [] : [],
+      debateTopics: taskType === "expression" ? updatedTasks[index].debateTopics || [] : [],
+      preparationTime: taskType === "questions" ? 2 : 0,
+      duration: taskType === "entretien" ? 3 : taskType === "questions" ? 5 : 5
+    };
+    setFormData({
+      ...formData,
+      tasks: updatedTasks
+    });
+  };
+
+  // Fonction pour ajouter une question d'exemple
+  const addExampleQuestion = (taskIndex) => {
+    const updatedTasks = [...formData.tasks];
+    const newQuestion = {
+      id: Date.now(),
+      text: "",
+      category: "personnel" // personnel, professionnel, culturel, etc.
+    };
+    updatedTasks[taskIndex].exampleQuestions = [...(updatedTasks[taskIndex].exampleQuestions || []), newQuestion];
+    setFormData({ ...formData, tasks: updatedTasks });
+  };
+
+  // Fonction pour supprimer une question d'exemple
+  const removeExampleQuestion = (taskIndex, questionIndex) => {
+    const updatedTasks = [...formData.tasks];
+    updatedTasks[taskIndex].exampleQuestions = updatedTasks[taskIndex].exampleQuestions.filter((_, i) => i !== questionIndex);
+    setFormData({ ...formData, tasks: updatedTasks });
+  };
+
+  // Fonction pour ajouter un sujet de débat
+  const addDebateTopic = (taskIndex) => {
+    const updatedTasks = [...formData.tasks];
+    const newTopic = {
+      id: Date.now(),
+      topic: "",
+      context: "",
+      difficulty: "moyen" // facile, moyen, difficile
+    };
+    updatedTasks[taskIndex].debateTopics = [...(updatedTasks[taskIndex].debateTopics || []), newTopic];
+    setFormData({ ...formData, tasks: updatedTasks });
+  };
+
+  // Fonction pour supprimer un sujet de débat
+  const removeDebateTopic = (taskIndex, topicIndex) => {
+    const updatedTasks = [...formData.tasks];
+    updatedTasks[taskIndex].debateTopics = updatedTasks[taskIndex].debateTopics.filter((_, i) => i !== topicIndex);
+    setFormData({ ...formData, tasks: updatedTasks });
+  };
+
+  // Fonction pour gérer l'expansion des accordéons
+  const handleAccordionChange = (panel) => (event, isExpanded) => {
+    setExpandedAccordion(isExpanded ? panel : false);
+  };
+
 const handleSaveSubject = async () => {
   // Validation basique
-  if (!formData.name || formData.name.trim() === "") {
-    setAlertInfo({
-      show: true,
-      message: "Veuillez saisir un nom pour le sujet",
-      color: "error",
-    });
-    setTimeout(() => setAlertInfo({ show: false, message: "", color: "info" }), 3000);
-    return;
-  }
+  // if (!formData.name || formData.name.trim() === "") {
+  //   setAlertInfo({
+  //     show: true,
+  //     message: "Veuillez saisir un nom pour le sujet",
+  //     color: "error",
+  //   });
+  //   setTimeout(() => setAlertInfo({ show: false, message: "", color: "info" }), 3000);
+  //   return;
+  // }
 
   // Vérifier que toutes les tâches ont un titre et une structure
   const invalidTask = formData.tasks.find(task => !task.title || !task.structure);
@@ -509,6 +620,15 @@ const handleDeleteSubject = async (id) => {
   ];
 
   // Préparer les données pour le DataTable
+  const truncateText = (text, wordLimit) => {
+    if (!text) return "";
+    const words = text.split(' ');
+    if (words.length > wordLimit) {
+      return words.slice(0, wordLimit).join(' ') + '...';
+    }
+    return text;
+  };
+
   const prepareRows = (subjects) => {
     return subjects.map((subject) => ({
       combination: (
@@ -520,7 +640,7 @@ const handleDeleteSubject = async (id) => {
         <MDTypography variant="button" fontWeight="medium" dangerouslySetInnerHTML={{ __html: subject.name }} />
       ),
       blog: (
-        <MDTypography variant="button" fontWeight="medium" dangerouslySetInnerHTML={{ __html: subject.blog || "" }} />
+        <MDTypography variant="button" fontWeight="medium" dangerouslySetInnerHTML={{ __html: truncateText(subject.blog, 10) }} />
       ),
       status: (
         <MDTypography variant="button" fontWeight="medium">
@@ -812,11 +932,11 @@ const handleDeleteSubject = async (id) => {
             </Grid>
             <Grid item xs={12}>
               <MDTypography variant="subtitle2" mb={1}>
-                Description sujet
+                Description du sujet
               </MDTypography>
               <ReactQuill
                 theme="snow"
-                style={{ height: "300px", marginBottom: "50px" }}
+                style={{ height: "200px", marginBottom: "60px" }}
                 modules={{
                   toolbar: [
                     [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
@@ -828,6 +948,7 @@ const handleDeleteSubject = async (id) => {
                     ['clean']
                   ]
                 }}
+                placeholder="Il s'agit de rédiger un message, un courriel ou une annonce adressé à un ou plusieurs destinataires dans le but d'inviter, décrire, raconter, informer ou exprimer une demande."
                 value={formData.blog}
                 onChange={(content) => {
                   if (content !== formData.blog) {
@@ -850,12 +971,27 @@ const handleDeleteSubject = async (id) => {
                   color="info" 
                   size="small"
                   onClick={() => {
+                    // Générer un ID temporaire unique pour les nouvelles tâches
+                    const existingIds = formData.tasks.map(t => t.id).filter(id => id);
+                    const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+                    const newTempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    
                     const newTask = { 
-                      id: formData.tasks.length + 1, 
+                      id: newTempId, // ID temporaire pour les nouvelles tâches
                       title: "", 
                       structure: "", 
+                      instructions: "",
+                      minWordCount: tabValue === 0 ? 60 : 0,
                       wordCount: tabValue === 0 ? 150 : 0, 
-                      duration: tabValue === 1 ? 3 : 0 
+                      duration: tabValue === 1 ? 3 : 0,
+                      documents: [],
+                      taskType: tabValue === 1 ? "entretien" : "",
+                      questions: [],
+                      preparationTime: 0,
+                      evaluationCriteria: [],
+                      exampleQuestions: [],
+                      roleplayScenario: "",
+                      debateTopics: []
                     };
                     setFormData({
                       ...formData,
@@ -870,36 +1006,114 @@ const handleDeleteSubject = async (id) => {
             {formData.tasks.map((task, index) => (
               <Grid container item spacing={2} key={task.id}>
                 <Grid item xs={12}>
-                  <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                    <MDTypography variant="subtitle2">
-                      Tâche {index + 1}
-                    </MDTypography>
-                    {formData.tasks.length > 1 && (
-                      <MDButton 
-                        variant="text" 
-                        color="error" 
-                        size="small"
-                        onClick={() => {
-                          const updatedTasks = formData.tasks.filter((_, i) => i !== index);
-                          setFormData({
-                            ...formData,
-                            tasks: updatedTasks
-                          });
-                        }}
-                      >
-                        <Icon>delete</Icon>&nbsp;Supprimer
-                      </MDButton>
+                  <Paper 
+                    elevation={2} 
+                    sx={{ 
+                      p: 3, 
+                      mb: 3, 
+                      borderRadius: 3,
+                      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+                    }}
+                  >
+                    <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                      <MDBox display="flex" alignItems="center">
+                        <Icon 
+                          sx={{ 
+                            fontSize: 28, 
+                            mr: 1, 
+                            color: tabValue === 1 ? 'primary.main' : 'text.primary' 
+                          }}
+                        >
+                          {tabValue === 1 ? 'record_voice_over' : 'description'}
+                        </Icon>
+                        <MDTypography variant="h6" fontWeight="bold">
+                          Tâche {index + 1}
+                        </MDTypography>
+                        {tabValue === 1 && task.taskType && (
+                          <Chip 
+                            label={oralTaskTypes.find(t => t.id === task.taskType)?.label || task.taskType}
+                            color={oralTaskTypes.find(t => t.id === task.taskType)?.color || 'default'}
+                            size="small"
+                            sx={{ ml: 2 }}
+                          />
+                        )}
+                      </MDBox>
+                      {formData.tasks.length > 1 && (
+                        <Tooltip title="Supprimer cette tâche">
+                          <MDButton 
+                            variant="text" 
+                            color="error" 
+                            size="small"
+                            onClick={() => {
+                              const updatedTasks = formData.tasks.filter((_, i) => i !== index);
+                              setFormData({
+                                ...formData,
+                                tasks: updatedTasks
+                              });
+                            }}
+                          >
+                            <Icon>delete</Icon>&nbsp;Supprimer
+                          </MDButton>
+                        </Tooltip>
+                      )}
+                    </MDBox>
+
+                    {/* Sélection du type de tâche pour l'oral */}
+                    {tabValue === 1 && (
+                      <MDBox mb={3}>
+                        <MDTypography variant="subtitle2" mb={2} fontWeight="bold">
+                          Type de tâche d'expression orale
+                        </MDTypography>
+                        <RadioGroup
+                          value={task.taskType || "entretien"}
+                          onChange={(e) => handleOralTaskTypeChange(index, e.target.value)}
+                          row
+                        >
+                          {oralTaskTypes.map((type) => (
+                            <FormControlLabel
+                              key={type.id}
+                              value={type.id}
+                              control={<Radio color={type.color} />}
+                              label={
+                                <MDBox display="flex" alignItems="center">
+                                  <Icon sx={{ mr: 1, color: `${type.color}.main` }}>
+                                    {type.icon}
+                                  </Icon>
+                                  <MDBox>
+                                    <MDTypography variant="button" fontWeight="medium">
+                                      {type.label}
+                                    </MDTypography>
+                                    <MDTypography variant="caption" display="block" color="text.secondary">
+                                      {type.description} • {type.duration}
+                                    </MDTypography>
+                                  </MDBox>
+                                </MDBox>
+                              }
+                              sx={{ 
+                                mr: 3, 
+                                mb: 1,
+                                border: task.taskType === type.id ? `2px solid` : '1px solid',
+                                borderColor: task.taskType === type.id ? `${type.color}.main` : 'divider',
+                                borderRadius: 2,
+                                p: 2,
+                                backgroundColor: task.taskType === type.id ? `${type.color}.50` : 'background.paper',
+                                transition: 'all 0.3s ease'
+                              }}
+                            />
+                          ))}
+                        </RadioGroup>
+                      </MDBox>
                     )}
-                  </MDBox>
-                </Grid>
+
+                    <Divider sx={{ my: 2 }} />
                 <Grid item xs={12}>
-                  <MDTypography variant="subtitle2" mb={1}>
-                    Titre de la tâche
+                  <MDTypography variant="subtitle2" mb={1} fontWeight="bold" color="primary">
+                    📝 Titre de la tâche
                   </MDTypography>
                   <ReactQuill
                     key={`task-title-${task.id}`}
                     theme="snow"
-                    style={{ height: "150px", marginBottom: "50px" }}
+                    style={{ height: "120px", marginBottom: "50px" }}
                     modules={{
                       toolbar: [
                         [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
@@ -911,16 +1125,53 @@ const handleDeleteSubject = async (id) => {
                         ['clean']
                       ]
                     }}
+                    placeholder="Saisissez le titre de la tâche..."
                     value={task.title}
                     onChange={(content) => handleTaskChange(index, "title", content)}
                   />
                 </Grid>
+                
                 <Grid item xs={12}>
-                  <MDTypography variant="subtitle2" mb={1}>
-                    Structure à respecter
-                  </MDTypography>
+                  <MDBox mb={2}>
+                    <MDTypography variant="subtitle2" mb={1} fontWeight="bold" color="info">
+                      📋 Structure à respecter
+                    </MDTypography>
+                    <MDTypography variant="caption" color="text.secondary" display="block" mb={1}>
+                      Définissez la structure que le candidat doit suivre pour organiser sa réponse
+                    </MDTypography>
+                  </MDBox>
                   <ReactQuill
                     key={`task-structure-${task.id}`}
+                    theme="snow"
+                    style={{ height: "180px", marginBottom: "50px" }}
+                    modules={{
+                      toolbar: [
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'font': [] }, { 'size': ['small', false, 'large', 'huge'] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'align': [] }],
+                        ['clean']
+                      ]
+                    }}
+                    placeholder="Exemple: Introduction, développement avec 2 exemples, conclusion"
+                    value={task.structure}
+                    onChange={(content) => handleTaskChange(index, "structure", content)}
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <MDBox mb={2}>
+                    <MDTypography variant="subtitle2" mb={1} fontWeight="bold" color="warning">
+                      📌 Instructions spécifiques
+                    </MDTypography>
+                    <MDTypography variant="caption" color="text.secondary" display="block" mb={1}>
+                      Précisez les consignes détaillées et les attentes spécifiques pour cette tâche
+                    </MDTypography>
+                  </MDBox>
+                  <ReactQuill
+                    key={`task-instructions-${task.id}`}
                     theme="snow"
                     style={{ height: "200px", marginBottom: "50px" }}
                     modules={{
@@ -934,32 +1185,299 @@ const handleDeleteSubject = async (id) => {
                         ['clean']
                       ]
                     }}
-                    value={task.structure}
-                    onChange={(content) => handleTaskChange(index, "structure", content)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <MDTypography variant="subtitle2" mb={1}>
-                    Instructions spécifiques
-                  </MDTypography>
-                  <ReactQuill
-                    key={`task-instructions-${task.id}`}
-                    theme="snow"
-                    style={{ height: "150px", marginBottom: "50px" }}
-                    modules={{
-                      toolbar: [
-                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'color': [] }, { 'background': [] }],
-                        [{ 'font': [] }, { 'size': ['small', false, 'large', 'huge'] }],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'align': [] }],
-                        ['clean']
-                      ]
-                    }}
+                    placeholder="Vous avez participé à une formation professionnelle qui ne s'est pas déroulée comme prévu (retards, matériel défectueux, manque de suivi). Écrivez un courriel au responsable de l'organisme pour exprimer votre mécontentement et demander des explications ou un geste commercial."
                     value={task.instructions || ""}
                     onChange={(content) => handleTaskChange(index, "instructions", content)}
                   />
+                </Grid>
+
+                    {/* Sections spécialisées pour les tâches orales */}
+                    {tabValue === 1 && (
+                      <MDBox>
+                        {/* Section pour l'entretien */}
+                        {task.taskType === "entretien" && (
+                          <Accordion 
+                            expanded={expandedAccordion === `entretien-${index}`} 
+                            onChange={handleAccordionChange(`entretien-${index}`)}
+                            sx={{ mb: 2, borderRadius: 2 }}
+                          >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <MDBox display="flex" alignItems="center">
+                                <Icon sx={{ mr: 1, color: 'primary.main' }}>chat</Icon>
+                                <MDTypography variant="subtitle1" fontWeight="bold">
+                                  Questions d'exemple pour l'entretien
+                                </MDTypography>
+                              </MDBox>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <MDBox>
+                                <MDTypography variant="body2" color="text.secondary" mb={2}>
+                                  Ajoutez des questions d'exemple que l'examinateur peut poser durant l'entretien.
+                                </MDTypography>
+                                {(task.exampleQuestions || []).map((question, qIndex) => (
+                                  <MDBox key={qIndex} mb={2} p={2} sx={{ backgroundColor: 'background.paper', borderRadius: 2 }}>
+                                    <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                                      <MDTypography variant="caption" fontWeight="bold">
+                                        Question {qIndex + 1}
+                                      </MDTypography>
+                                      <MDButton 
+                                        variant="text" 
+                                        color="error" 
+                                        size="small"
+                                        onClick={() => removeExampleQuestion(index, qIndex)}
+                                      >
+                                        <Icon>delete</Icon>
+                                      </MDButton>
+                                    </MDBox>
+                                    <MDInput
+                                      fullWidth
+                                      multiline
+                                      rows={2}
+                                      placeholder="Ex: Quel est votre film préféré ? Pourquoi ?"
+                                      value={question.text}
+                                      onChange={(e) => {
+                                        const updatedTasks = [...formData.tasks];
+                                        updatedTasks[index].exampleQuestions[qIndex].text = e.target.value;
+                                        setFormData({ ...formData, tasks: updatedTasks });
+                                      }}
+                                    />
+                                    <FormControl fullWidth sx={{ mt: 1 }}>
+                                      <InputLabel size="small">Catégorie</InputLabel>
+                                      <Select
+                                        size="small"
+                                        value={question.category || "personnel"}
+                                        onChange={(e) => {
+                                          const updatedTasks = [...formData.tasks];
+                                          updatedTasks[index].exampleQuestions[qIndex].category = e.target.value;
+                                          setFormData({ ...formData, tasks: updatedTasks });
+                                        }}
+                                        label="Catégorie"
+                                      >
+                                        <MenuItem value="personnel">Personnel</MenuItem>
+                                        <MenuItem value="professionnel">Professionnel</MenuItem>
+                                        <MenuItem value="culturel">Culturel</MenuItem>
+                                        <MenuItem value="loisirs">Loisirs</MenuItem>
+                                        <MenuItem value="projets">Projets d'avenir</MenuItem>
+                                      </Select>
+                                    </FormControl>
+                                  </MDBox>
+                                ))}
+                                <MDButton 
+                                  variant="outlined" 
+                                  color="primary" 
+                                  size="small"
+                                  onClick={() => addExampleQuestion(index)}
+                                  startIcon={<Icon>add</Icon>}
+                                >
+                                  Ajouter une question d'exemple
+                                </MDButton>
+                              </MDBox>
+                            </AccordionDetails>
+                          </Accordion>
+                        )}
+
+                        {/* Section pour les questions */}
+                        {task.taskType === "questions" && (
+                          <Accordion 
+                            expanded={expandedAccordion === `questions-${index}`} 
+                            onChange={handleAccordionChange(`questions-${index}`)}
+                            sx={{ mb: 2, borderRadius: 2 }}
+                          >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <MDBox display="flex" alignItems="center">
+                                <Icon sx={{ mr: 1, color: 'info.main' }}>help_outline</Icon>
+                                <MDTypography variant="subtitle1" fontWeight="bold">
+                                  Scénario de jeu de rôle
+                                </MDTypography>
+                              </MDBox>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <MDBox>
+                                <MDTypography variant="body2" color="text.secondary" mb={2}>
+                                  Définissez le scénario dans lequel le candidat doit poser des questions.
+                                </MDTypography>
+                                <ReactQuill
+                                  theme="snow"
+                                  style={{ height: "200px", marginBottom: "50px" }}
+                                  placeholder="Ex: Je dirige une association d'aide aux personnes en difficulté. Demandez-moi comment fonctionne cette association..."
+                                  value={task.roleplayScenario || ""}
+                                  onChange={(content) => handleTaskChange(index, "roleplayScenario", content)}
+                                />
+                                <MDBox mt={3}>
+                                  <MDTypography variant="subtitle2" mb={1}>
+                                    Temps de préparation
+                                  </MDTypography>
+                                  <MDInput
+                                    type="number"
+                                    value={task.preparationTime || 2}
+                                    onChange={(e) => handleTaskChange(index, "preparationTime", parseInt(e.target.value))}
+                                    inputProps={{ min: 0, max: 5 }}
+                                    endAdornment="minutes"
+                                  />
+                                </MDBox>
+                              </MDBox>
+                            </AccordionDetails>
+                          </Accordion>
+                        )}
+
+                        {/* Section pour l'expression spontanée */}
+                        {task.taskType === "expression" && (
+                          <Accordion 
+                            expanded={expandedAccordion === `expression-${index}`} 
+                            onChange={handleAccordionChange(`expression-${index}`)}
+                            sx={{ mb: 2, borderRadius: 2 }}
+                          >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <MDBox display="flex" alignItems="center">
+                                <Icon sx={{ mr: 1, color: 'success.main' }}>record_voice_over</Icon>
+                                <MDTypography variant="subtitle1" fontWeight="bold">
+                                  Sujets de débat et d'expression
+                                </MDTypography>
+                              </MDBox>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <MDBox>
+                                <MDTypography variant="body2" color="text.secondary" mb={2}>
+                                  Ajoutez des sujets sur lesquels le candidat doit s'exprimer spontanément.
+                                </MDTypography>
+                                {(task.debateTopics || []).map((topic, tIndex) => (
+                                  <MDBox key={tIndex} mb={3} p={2} sx={{ backgroundColor: 'background.paper', borderRadius: 2 }}>
+                                    <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                                      <MDTypography variant="caption" fontWeight="bold">
+                                        Sujet {tIndex + 1}
+                                      </MDTypography>
+                                      <MDButton 
+                                        variant="text" 
+                                        color="error" 
+                                        size="small"
+                                        onClick={() => removeDebateTopic(index, tIndex)}
+                                      >
+                                        <Icon>delete</Icon>
+                                      </MDButton>
+                                    </MDBox>
+                                    <MDInput
+                                      fullWidth
+                                      multiline
+                                      rows={2}
+                                      placeholder="Ex: Faut-il à votre avis interdire la vente d'alcool aux mineurs ?"
+                                      label="Question/Sujet de débat"
+                                      value={topic.topic}
+                                      onChange={(e) => {
+                                        const updatedTasks = [...formData.tasks];
+                                        updatedTasks[index].debateTopics[tIndex].topic = e.target.value;
+                                        setFormData({ ...formData, tasks: updatedTasks });
+                                      }}
+                                      sx={{ mb: 2 }}
+                                    />
+                                    <MDInput
+                                      fullWidth
+                                      multiline
+                                      rows={3}
+                                      placeholder="Contexte ou éléments de réflexion pour guider le candidat..."
+                                      label="Contexte (optionnel)"
+                                      value={topic.context}
+                                      onChange={(e) => {
+                                        const updatedTasks = [...formData.tasks];
+                                        updatedTasks[index].debateTopics[tIndex].context = e.target.value;
+                                        setFormData({ ...formData, tasks: updatedTasks });
+                                      }}
+                                      sx={{ mb: 2 }}
+                                    />
+                                    <FormControl fullWidth>
+                                      <InputLabel size="small">Niveau de difficulté</InputLabel>
+                                      <Select
+                                        size="small"
+                                        value={topic.difficulty || "moyen"}
+                                        onChange={(e) => {
+                                          const updatedTasks = [...formData.tasks];
+                                          updatedTasks[index].debateTopics[tIndex].difficulty = e.target.value;
+                                          setFormData({ ...formData, tasks: updatedTasks });
+                                        }}
+                                        label="Niveau de difficulté"
+                                      >
+                                        <MenuItem value="facile">Facile</MenuItem>
+                                        <MenuItem value="moyen">Moyen</MenuItem>
+                                        <MenuItem value="difficile">Difficile</MenuItem>
+                                      </Select>
+                                    </FormControl>
+                                  </MDBox>
+                                ))}
+                                <MDButton 
+                                  variant="outlined" 
+                                  color="success" 
+                                  size="small"
+                                  onClick={() => addDebateTopic(index)}
+                                  startIcon={<Icon>add</Icon>}
+                                >
+                                  Ajouter un sujet de débat
+                                </MDButton>
+                              </MDBox>
+                            </AccordionDetails>
+                          </Accordion>
+                        )}
+
+                        {/* Section commune pour les critères d'évaluation */}
+                        <Accordion 
+                          expanded={expandedAccordion === `criteria-${index}`} 
+                          onChange={handleAccordionChange(`criteria-${index}`)}
+                          sx={{ mb: 2, borderRadius: 2, backgroundColor: 'grey.50' }}
+                        >
+                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <MDBox display="flex" alignItems="center">
+                              <Icon sx={{ mr: 1, color: 'warning.main' }}>assessment</Icon>
+                              <MDTypography variant="subtitle1" fontWeight="bold">
+                                Critères d'évaluation
+                              </MDTypography>
+                            </MDBox>
+                          </AccordionSummary>
+                          <AccordionDetails>
+                            <MDBox>
+                              <MDTypography variant="body2" color="text.secondary" mb={2}>
+                                Définissez les critères d'évaluation spécifiques pour cette tâche.
+                              </MDTypography>
+                              <ReactQuill
+                                theme="snow"
+                                style={{ height: "150px", marginBottom: "50px" }}
+                                placeholder="Ex: Fluidité, prononciation, vocabulaire, grammaire, cohérence du discours..."
+                                value={task.evaluationCriteria || ""}
+                                onChange={(content) => handleTaskChange(index, "evaluationCriteria", content)}
+                              />
+                              <MDBox mt={3}>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12} md={6}>
+                                    <MDTypography variant="subtitle2" mb={1}>
+                                      Durée de la tâche
+                                    </MDTypography>
+                                    <MDInput
+                                      type="number"
+                                      value={task.duration || oralTaskTypes.find(t => t.id === task.taskType)?.duration || 4}
+                                      onChange={(e) => handleTaskChange(index, "duration", parseInt(e.target.value))}
+                                      inputProps={{ min: 1, max: 10 }}
+                                      endAdornment="minutes"
+                                      fullWidth
+                                    />
+                                  </Grid>
+                                  <Grid item xs={12} md={6}>
+                                    <MDTypography variant="subtitle2" mb={1}>
+                                      Points attribués
+                                    </MDTypography>
+                                    <MDInput
+                                      type="number"
+                                      value={task.points || 20}
+                                      onChange={(e) => handleTaskChange(index, "points", parseInt(e.target.value))}
+                                      inputProps={{ min: 1, max: 100 }}
+                                      endAdornment="points"
+                                      fullWidth
+                                    />
+                                  </Grid>
+                                </Grid>
+                              </MDBox>
+                            </MDBox>
+                          </AccordionDetails>
+                        </Accordion>
+                      </MDBox>
+                    )}
+                  </Paper>
                 </Grid>
                 <Grid item xs={12}>
                   <MDTypography variant="caption" color="text">

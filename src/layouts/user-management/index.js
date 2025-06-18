@@ -50,6 +50,7 @@ import DataTable from "examples/Tables/DataTable";
 
 // React hooks
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from '../../services/config';
 
 // Services
 import authService from "services/authService";
@@ -113,7 +114,7 @@ function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5001/auth/users');
+      const response = await fetch(`${API_BASE_URL}/auth/users`);
       const data = await response.json();
       setUsers(data);
     } catch (error) {
@@ -229,7 +230,7 @@ function UserManagement() {
       const endpoint = balanceType === "sold" ? "/auth/update-sold" : "/auth/update-total-sold";
       const paramName = balanceType === "sold" ? "new_sold_value" : "new_total_sold_value";
       
-      const response = await fetch(`http://localhost:5001${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -270,7 +271,7 @@ function UserManagement() {
     try {
       if (editMode) {
         // Update user
-        const response = await fetch(`http://localhost:5001/auth/signup`, {
+        const response = await fetch(`${API_BASE_URL}/auth/signup`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -310,7 +311,7 @@ function UserManagement() {
   const handleDeleteUser = async (username) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
       try {
-        const response = await fetch(`http://localhost:5001/auth/delete/${username}`, {
+        const response = await fetch(`${API_BASE_URL}/auth/delete/${username}`, {
           method: 'DELETE',
         });
         
@@ -328,7 +329,9 @@ function UserManagement() {
   };
 
   const getPlanChip = (plan) => {
-    const planInfo = subscriptionPlans.find(p => p.value === plan) || subscriptionPlans[3];
+    const planInfo = subscriptionPlans.find(p => p.value === plan) || 
+                     subscriptionPlans.find(p => p.value === null) || 
+                     { label: "Aucun plan", color: "secondary" };
     return (
       <Chip
         label={planInfo.label}

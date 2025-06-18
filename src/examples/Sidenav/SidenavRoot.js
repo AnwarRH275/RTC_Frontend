@@ -26,15 +26,8 @@ export default styled(Drawer)(({ theme, ownerState }) => {
   const { xxl } = boxShadows;
   const { pxToRem, linearGradient } = functions;
 
-  let backgroundValue = darkMode
-    ? background.sidenav
-    : linearGradient(gradients.dark.main, gradients.dark.state);
-
-  if (transparentSidenav) {
-    backgroundValue = transparent.main;
-  } else if (whiteSidenav) {
-    backgroundValue = white.main;
-  }
+  // Background moderne avec dégradé sophistiqué et glassmorphism
+  let backgroundValue = "linear-gradient(135deg, rgba(191, 219, 254, 0.8) 0%, rgba(240, 248, 255, 0.9) 30%, rgba(219, 234, 254, 0.85) 70%, rgba(191, 219, 254, 0.8) 100%)";
 
   // styles for the sidenav when miniSidenav={false}
   const drawerOpenStyles = () => ({
@@ -83,8 +76,11 @@ export default styled(Drawer)(({ theme, ownerState }) => {
 
   return {
     "& .MuiDrawer-paper": {
-      boxShadow: xxl,
-      border: "none",
+      boxShadow: "0 8px 32px rgba(31, 38, 135, 0.37)",
+      border: "1px solid rgba(255, 255, 255, 0.18)",
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      borderRadius: "0 20px 20px 0",
 
       ...(miniSidenav ? drawerCloseStyles() : drawerOpenStyles()),
     },
