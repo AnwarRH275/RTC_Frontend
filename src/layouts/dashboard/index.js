@@ -368,55 +368,55 @@ function Dashboard() {
   return (
     <DashboardLayout>
       <DashboardNavbar />
-      <MDBox py={3}>
-        <Grid container spacing={3}>
+      <MDBox py={4}>
+        <Grid container spacing={4}>
           <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
+            <MDBox mb={2}>
               <ComplexStatisticsCard
-                color={widgetData.widget1.color}
-                icon={widgetData.widget1.icon}
-                title={widgetData.widget1.title}
+                color="info"
+                icon="assessment"
+                title="Examens passés"
                 count={dashboardData.loading ? "..." : widgetData.widget1.count}
                 percentage={widgetData.widget1.percentage}
               />
             </MDBox>
           </Grid>
           <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
+            <MDBox mb={2}>
               <ComplexStatisticsCard
-                color={widgetData.widget2.color}
-                icon={widgetData.widget2.icon}
-                title={widgetData.widget2.title}
+                color="primary"
+                icon="leaderboard"
+                title="Score moyen"
                 count={dashboardData.loading ? "..." : widgetData.widget2.count}
                 percentage={widgetData.widget2.percentage}
               />
             </MDBox>
           </Grid>
           <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
+            <MDBox mb={2}>
               <ComplexStatisticsCard
-                color={widgetData.widget3.color}
-                icon={widgetData.widget3.icon}
-                title={widgetData.widget3.title}
+                color="success"
+                icon="timer"
+                title="Temps d'étude"
                 count={dashboardData.loading ? "..." : widgetData.widget3.count}
                 percentage={widgetData.widget3.percentage}
               />
             </MDBox>
           </Grid>
           <Grid item xs={12} md={6} lg={3}>
-            <MDBox mb={1.5}>
+            <MDBox mb={2}>
               <ComplexStatisticsCard
-                color={widgetData.widget4.color}
-                icon={widgetData.widget4.icon}
-                title={widgetData.widget4.title}
+                color="warning"
+                icon="emoji_events"
+                title="Jours consécutifs"
                 count={dashboardData.loading ? "..." : widgetData.widget4.count}
                 percentage={widgetData.widget4.percentage}
               />
             </MDBox>
           </Grid>
         </Grid>
-        <MDBox mt={4.5}>
-          <Grid container spacing={3}>
+        <MDBox mt={5}>
+          <Grid container spacing={4}>
           <Grid item xs={12} md={6} lg={4}>
             <MDBox mb={3}>
               <ReportsBarChart
@@ -466,7 +466,7 @@ function Dashboard() {
           </Grid>
         </Grid>
         </MDBox>
-        <MDBox>
+        <MDBox mt={4}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6} lg={8}>
             <Projects />

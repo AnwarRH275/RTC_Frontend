@@ -48,19 +48,30 @@ function ReportsBarChart({ color, title, description, date, chart }) {
   const { data, options } = configs(chart.labels || [], chart.datasets || {});
 
   return (
-    <Card sx={{ height: "100%" }}>
-      <MDBox padding="1rem">
+    <Card sx={{ 
+      height: "100%", 
+      borderRadius: "12px", 
+      boxShadow: "0 8px 16px 0 rgba(0, 0, 0, 0.05)",
+      overflow: "hidden",
+      transition: "transform 0.3s, box-shadow 0.3s",
+      "&:hover": {
+        transform: "translateY(-5px)",
+        boxShadow: "0 12px 20px 0 rgba(0, 0, 0, 0.1)"
+      }
+    }}>
+      <MDBox padding="1.25rem">
         {useMemo(
           () => (
             <MDBox
               variant="gradient"
               bgColor={color}
-              borderRadius="lg"
+              borderRadius="xl"
               coloredShadow={color}
               py={2}
               pr={0.5}
               mt={-5}
-              height="12.5rem"
+              height="13rem"
+              sx={{ boxShadow: "0 8px 16px 0 rgba(0, 0, 0, 0.1)" }}
             >
               <Bar data={data} options={options} redraw />
             </MDBox>
@@ -68,18 +79,18 @@ function ReportsBarChart({ color, title, description, date, chart }) {
           [color, chart]
         )}
         <MDBox pt={3} pb={1} px={1}>
-          <MDTypography variant="h6" textTransform="capitalize">
+          <MDTypography variant="h6" textTransform="capitalize" fontWeight="bold">
             {title}
           </MDTypography>
-          <MDTypography component="div" variant="button" color="text" fontWeight="light">
+          <MDTypography component="div" variant="button" color="text" fontWeight="regular" sx={{ mt: 0.5, opacity: 0.8 }}>
             {description}
           </MDTypography>
-          <Divider />
+          <Divider sx={{ opacity: 0.5, my: 1.5 }} />
           <MDBox display="flex" alignItems="center">
             <MDTypography variant="button" color="text" lineHeight={1} sx={{ mt: 0.15, mr: 0.5 }}>
               <Icon>schedule</Icon>
             </MDTypography>
-            <MDTypography variant="button" color="text" fontWeight="light">
+            <MDTypography variant="button" color="text" fontWeight="regular">
               {date}
             </MDTypography>
           </MDBox>

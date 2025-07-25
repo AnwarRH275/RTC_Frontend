@@ -54,6 +54,24 @@ import brandWhite from "assets/images/logo-ct.png";
 import brandDark from "assets/images/logo-ct-dark.png";
 import tcfCanadaLogo from "assets/logo-tfc-canada.png";
 
+// Composant de redirection conditionnelle
+function ConditionalRedirect() {
+  const { userInfo, loading, isAuthenticated } = useInfoUser();
+  
+  // Attendre que le chargement soit terminé
+  if (loading) {
+    return null; // ou un spinner de chargement
+  }
+  
+  // Si l'utilisateur est authentifié, rediriger vers le dashboard
+  if (isAuthenticated && userInfo) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  // Sinon, rediriger vers la page d'inscription
+  return <Navigate to="/authentication/sign-up" replace />;
+}
+
 // Composant interne qui utilise le contexte utilisateur
 function AppContent() {
   const [controller, dispatch] = useMaterialUIController();
@@ -206,6 +224,7 @@ function AppContent() {
             {layout === "vr" && <Configurator />}
             <Routes>
               {getRoutes(filteredRoutes)}
+              <Route path="/" element={<ConditionalRedirect />} />
               <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
             </Routes>
           </ThemeProvider>
@@ -229,9 +248,10 @@ function AppContent() {
           )}
           {layout === "vr" && <Configurator />}
           <Routes>
-            {getRoutes(filteredRoutes)}
-            <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
-          </Routes>
+              {getRoutes(filteredRoutes)}
+              <Route path="/" element={<ConditionalRedirect />} />
+              <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
+            </Routes>
         </ThemeProvider>
       )}
     </>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic Audio et Reconnaissance Vocale</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Diagnostic Audio et Reconnaissance Vocale</h1>
+        <p>Ce diagnostic va tester les fonctionnalités audio de votre navigateur pour identifier les problèmes potentiels.</p>
+        
+        <!-- Test 1: Compatibilité du navigateur -->
+        <div class="test-section">
+            <h3>1. Compatibilité du navigateur</h3>
+            <div id="browser-status"></div>
+        </div>
+        
+        <!-- Test 2: Permissions du microphone -->
+        <div class="test-section">
+            <h3>2. Permissions du microphone</h3>
+            <button onclick="testMicrophonePermissions()">Tester les permissions</button>
+            <div id="mic-status"></div>
+        </div>
+        
+        <!-- Test 3: Reconnaissance vocale -->
+        <div class="test-section">
+            <h3>3. Reconnaissance vocale</h3>
+            <button onclick="testSpeechRecognition()">Tester la reconnaissance vocale</button>
+            <button onclick="stopSpeechRecognition()" disabled id="stop-recognition">Arrêter</button>
+            <div id="speech-status"></div>
+            <div id="transcript-display"></div>
+        </div>
+        
+        <!-- Test 4: Enregistrement audio -->
+        <div class="test-section">
+            <h3>4. Enregistrement audio</h3>
+            <button onclick="startRecording()">Démarrer l'enregistrement</button>
+            <button onclick="stopRecording()" disabled id="stop-recording">Arrêter</button>
+            <div id="recording-status"></div>
+        </div>
+        
+        <!-- Logs détaillés -->
+        <div class="test-section">
+            <h3>5. Logs détaillés</h3>
+            <button onclick="clearLogs()">Effacer les logs</button>
+            <div id="logs" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let recognition = null;
+        let mediaRecorder = null;
+        let stream = null;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('logs');
+            logDiv.innerHTML += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+        
+        function setStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        // Test 1: Compatibilité du navigateur
+        function checkBrowserCompatibility() {
+            log('Vérification de la compatibilité du navigateur...');
+            
+            const results = [];
+            
+            // Test getUserMedia
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                results.push('✅ getUserMedia supporté');
+                log('getUserMedia: SUPPORTÉ');
+            } else {
+                results.push('❌ getUserMedia non supporté');
+                log('getUserMedia: NON SUPPORTÉ', 'error');
+            }
+            
+            // Test MediaRecorder
+            if (window.MediaRecorder) {
+                results.push('✅ MediaRecorder supporté');
+                log('MediaRecorder: SUPPORTÉ');
+            } else {
+                results.push('❌ MediaRecorder non supporté');
+                log('MediaRecorder: NON SUPPORTÉ', 'error');
+            }
+            
+            // Test SpeechRecognition
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                results.push('✅ SpeechRecognition supporté');
+                log('SpeechRecognition: SUPPORTÉ');
+            } else {
+                results.push('❌ SpeechRecognition non supporté');
+                log('SpeechRecognition: NON SUPPORTÉ', 'error');
+            }
+            
+            // Informations sur le navigateur
+            results.push(`🌐 Navigateur: ${navigator.userAgent}`);
+            log(`Navigateur: ${navigator.userAgent}`);
+            
+            const hasErrors = results.some(r => r.includes('❌'));
+            setStatus('browser-status', results.join('<br>'), hasErrors ? 'error' : 'success');
+        }
+        
+        // Test 2: Permissions du microphone
+        async function testMicrophonePermissions() {
+            log('Test des permissions du microphone...');
+            
+            try {
+                // Demander l'accès au microphone
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 44100
+                    } 
+                });
+                
+                if (stream && stream.active) {
+                    setStatus('mic-status', '✅ Accès au microphone accordé', 'success');
+                    log('Permissions microphone: ACCORDÉES');
+                    
+                    // Vérifier les pistes audio
+                    const audioTracks = stream.getAudioTracks();
+                    log(`Nombre de pistes audio: ${audioTracks.length}`);
+                    
+                    if (audioTracks.length > 0) {
+                        const track = audioTracks[0];
+                        log(`Piste audio - Label: ${track.label}, État: ${track.readyState}`);
+                        log(`Contraintes: ${JSON.stringify(track.getConstraints())}`);
+                        log(`Paramètres: ${JSON.stringify(track.getSettings())}`);
+                    }
+                } else {
+                    throw new Error('Stream non actif');
+                }
+            } catch (error) {
+                setStatus('mic-status', `❌ Erreur: ${error.message}`, 'error');
+                log(`Erreur permissions microphone: ${error.message}`, 'error');
+                
+                if (error.name === 'NotAllowedError') {
+                    log('L\'utilisateur a refusé l\'accès au microphone', 'error');
+                } else if (error.name === 'NotFoundError') {
+                    log('Aucun microphone trouvé', 'error');
+                } else if (error.name === 'NotReadableError') {
+                    log('Microphone déjà utilisé par une autre application', 'error');
+                }
+            }
+        }
+        
+        // Test 3: Reconnaissance vocale
+        function testSpeechRecognition() {
+            log('Test de la reconnaissance vocale...');
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                setStatus('speech-status', '❌ SpeechRecognition non supporté', 'error');
+                log('SpeechRecognition non disponible', 'error');
+                return;
+            }
+            
+            try {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.lang = 'fr-FR';
+                recognition.maxAlternatives = 1;
+                
+                log('Configuration de la reconnaissance vocale terminée');
+                
+                recognition.onstart = () => {
+                    setStatus('speech-status', '🎤 Reconnaissance vocale démarrée - Parlez maintenant!', 'info');
+                    log('Reconnaissance vocale: DÉMARRÉE');
+                    document.getElementById('stop-recognition').disabled = false;
+                };
+                
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    const fullTranscript = finalTranscript + interimTranscript;
+                    document.getElementById('transcript-display').innerHTML = 
+                        `<div class="status info">Transcription: "${fullTranscript}"</div>`;
+                    
+                    if (finalTranscript) {
+                        log(`Transcription finale: "${finalTranscript}"`);
+                    }
+                    if (interimTranscript) {
+                        log(`Transcription intermédiaire: "${interimTranscript}"`);
+                    }
+                };
+                
+                recognition.onerror = (event) => {
+                    setStatus('speech-status', `❌ Erreur: ${event.error}`, 'error');
+                    log(`Erreur reconnaissance vocale: ${event.error}`, 'error');
+                    document.getElementById('stop-recognition').disabled = true;
+                };
+                
+                recognition.onend = () => {
+                    setStatus('speech-status', '⏹️ Reconnaissance vocale arrêtée', 'warning');
+                    log('Reconnaissance vocale: ARRÊTÉE');
+                    document.getElementById('stop-recognition').disabled = true;
+                };
+                
+                recognition.start();
+                log('Démarrage de la reconnaissance vocale...');
+                
+            } catch (error) {
+                setStatus('speech-status', `❌ Erreur: ${error.message}`, 'error');
+                log(`Erreur lors de l'initialisation: ${error.message}`, 'error');
+            }
+        }
+        
+        function stopSpeechRecognition() {
+            if (recognition) {
+                recognition.stop();
+                log('Arrêt manuel de la reconnaissance vocale');
+            }
+        }
+        
+        // Test 4: Enregistrement audio
+        function startRecording() {
+            log('Test de l\'enregistrement audio...');
+            
+            if (!stream) {
+                setStatus('recording-status', '❌ Veuillez d\'abord tester les permissions du microphone', 'error');
+                return;
+            }
+            
+            try {
+                let mimeType = 'audio/webm;codecs=opus';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/webm';
+                    if (!MediaRecorder.isTypeSupported(mimeType)) {
+                        mimeType = '';
+                    }
+                }
+                
+                log(`Type MIME utilisé: ${mimeType || 'défaut du navigateur'}`);
+                
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: mimeType,
+                    audioBitsPerSecond: 128000
+                });
+                
+                const chunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        chunks.push(event.data);
+                        log(`Chunk reçu: ${event.data.size} bytes`);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    log(`Enregistrement terminé: ${blob.size} bytes`);
+                    setStatus('recording-status', `✅ Enregistrement terminé (${blob.size} bytes)`, 'success');
+                    document.getElementById('stop-recording').disabled = true;
+                };
+                
+                mediaRecorder.onerror = (event) => {
+                    log(`Erreur MediaRecorder: ${event.error}`, 'error');
+                    setStatus('recording-status', `❌ Erreur: ${event.error}`, 'error');
+                };
+                
+                mediaRecorder.start(1000);
+                setStatus('recording-status', '🔴 Enregistrement en cours...', 'info');
+                log('Enregistrement: DÉMARRÉ');
+                document.getElementById('stop-recording').disabled = false;
+                
+            } catch (error) {
+                setStatus('recording-status', `❌ Erreur: ${error.message}`, 'error');
+                log(`Erreur enregistrement: ${error.message}`, 'error');
+            }
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                log('Arrêt de l\'enregistrement...');
+            }
+        }
+        
+        // Initialisation
+        window.onload = function() {
+            log('Diagnostic démarré');
+            checkBrowserCompatibility();
+        };
+        
+        // Nettoyage lors de la fermeture
+        window.onbeforeunload = function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (recognition) {
+                recognition.stop();
+            }
+        };
+    </script>
+</body>
+</html>

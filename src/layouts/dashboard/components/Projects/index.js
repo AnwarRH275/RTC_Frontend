@@ -31,7 +31,7 @@ import DataTable from "examples/Tables/DataTable";
 // Data
 import data from "layouts/dashboard/components/Projects/data";
 
-function Projects() {
+function Projects({ title }) {
   const { columns, rows } = data();
   const [menu, setMenu] = useState(null);
 
@@ -52,6 +52,12 @@ function Projects() {
       }}
       open={Boolean(menu)}
       onClose={closeMenu}
+      sx={{ 
+        "& .MuiPaper-root": { 
+          borderRadius: "10px",
+          boxShadow: "0 8px 16px 0 rgba(0, 0, 0, 0.1)"
+        } 
+      }}
     >
       <MenuItem onClick={closeMenu}>Action</MenuItem>
       <MenuItem onClick={closeMenu}>Another action</MenuItem>
@@ -60,11 +66,20 @@ function Projects() {
   );
 
   return (
-    <Card>
+    <Card sx={{ 
+      borderRadius: "12px", 
+      boxShadow: "0 8px 16px 0 rgba(0, 0, 0, 0.05)",
+      overflow: "hidden",
+      transition: "transform 0.3s, box-shadow 0.3s",
+      "&:hover": {
+        transform: "translateY(-5px)",
+        boxShadow: "0 12px 20px 0 rgba(0, 0, 0, 0.1)"
+      }
+    }}>
       <MDBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
         <MDBox>
-          <MDTypography variant="h6" gutterBottom>
-            Projects
+          <MDTypography variant="h6" gutterBottom fontWeight="bold">
+            {title}
           </MDTypography>
           <MDBox display="flex" alignItems="center" lineHeight={0}>
             <Icon
@@ -76,7 +91,7 @@ function Projects() {
             >
               done
             </Icon>
-            <MDTypography variant="button" fontWeight="regular" color="text">
+            <MDTypography variant="button" fontWeight="regular" color="text" sx={{ opacity: 0.8 }}>
               &nbsp;<strong>30 done</strong> this month
             </MDTypography>
           </MDBox>
@@ -95,6 +110,11 @@ function Projects() {
           isSorted={false}
           noEndBorder
           entriesPerPage={false}
+          sx={{ 
+            "& .MuiTableRow-root:hover": {
+              backgroundColor: "rgba(0, 0, 0, 0.02)"
+            } 
+          }}
         />
       </MDBox>
     </Card>

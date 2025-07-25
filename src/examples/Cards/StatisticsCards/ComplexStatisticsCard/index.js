@@ -27,8 +27,17 @@ import MDTypography from "components/MDTypography";
 
 function ComplexStatisticsCard({ color, title, count, percentage, icon }) {
   return (
-    <Card>
-      <MDBox display="flex" justifyContent="space-between" pt={1} px={2}>
+    <Card sx={{ 
+      borderRadius: "12px", 
+      boxShadow: "0 8px 16px 0 rgba(0, 0, 0, 0.05)",
+      overflow: "hidden",
+      transition: "transform 0.3s, box-shadow 0.3s",
+      "&:hover": {
+        transform: "translateY(-5px)",
+        boxShadow: "0 12px 20px 0 rgba(0, 0, 0, 0.1)"
+      }
+    }}>
+      <MDBox display="flex" justifyContent="space-between" pt={1.5} px={2.5}>
         <MDBox
           variant="gradient"
           bgColor={color}
@@ -38,24 +47,25 @@ function ComplexStatisticsCard({ color, title, count, percentage, icon }) {
           display="flex"
           justifyContent="center"
           alignItems="center"
-          width="4rem"
-          height="4rem"
+          width="4.5rem"
+          height="4.5rem"
           mt={-3}
+          sx={{ boxShadow: "0 8px 16px 0 rgba(0, 0, 0, 0.1)" }}
         >
           <Icon fontSize="medium" color="inherit">
             {icon}
           </Icon>
         </MDBox>
         <MDBox textAlign="right" lineHeight={1.25}>
-          <MDTypography variant="button" fontWeight="light" color="text">
+          <MDTypography variant="button" fontWeight="regular" color="text" textTransform="capitalize">
             {title}
           </MDTypography>
-          <MDTypography variant="h4">{count}</MDTypography>
+          <MDTypography variant="h4" fontWeight="bold" sx={{ mt: 1 }}>{count}</MDTypography>
         </MDBox>
       </MDBox>
-      <Divider />
-      <MDBox pb={2} px={2}>
-        <MDTypography component="p" variant="button" color="text" display="flex">
+      <Divider sx={{ opacity: 0.5, my: 1 }} />
+      <MDBox pb={2} px={2.5}>
+        <MDTypography component="p" variant="button" color="text" display="flex" alignItems="center">
           <MDTypography
             component="span"
             variant="button"

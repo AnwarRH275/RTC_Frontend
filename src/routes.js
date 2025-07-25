@@ -28,6 +28,9 @@ import TCFSimulator from "layouts/tcf-simulator";
 import TCFSimulatorWritten from "layouts/tcf-simulator-written";
 import TCFExamInterface from "layouts/tcf-simulator-written/exam";
 import TCFResultsInterface from "layouts/tcf-simulator-written/results";
+import TCFSimulatorOral from "layouts/tcf-simulator-oral";
+import TCFOralExamInterface from "layouts/tcf-simulator-oral/exam";
+import TCFOralResultsInterface from "layouts/tcf-simulator-oral/results";
 import TCFAdminSimulator from "layouts/tcf-admin";
 import UserManagement from "layouts/user-management";
 import PackManagement from "layouts/pack-management";
@@ -82,7 +85,23 @@ const routes = [
     key: "tcf-simulator-oral",
     icon: <MicIcon fontSize="small" />,
     route: "/tcf-simulator/oral",
-    component: <TCFSimulator />,
+    component: <TCFSimulatorOral />,
+    roles: ["Administrator", "Moderator", "Client"],
+  },
+  {
+    type: "route",
+    name: "Examen TCF Oral",
+    key: "tcf-exam-oral",
+    route: "/tcf-simulator/oral/:subjectId/exam",
+    component: <TCFOralExamInterface />,
+    roles: ["Administrator", "Moderator", "Client"],
+  },
+  {
+    type: "route",
+    name: "Résultats TCF Oral",
+    key: "tcf-results-oral",
+    route: "/tcf-simulator/oral/results/:subjectId",
+    component: <TCFOralResultsInterface />,
     roles: ["Administrator", "Moderator", "Client"],
   },
   {

@@ -21,7 +21,7 @@ Coded by www.creative-tim.com
 
 const colors = {
   background: {
-    default: "#f0f2f5",
+    default: "#f8fafc",
   },
 
   text: {

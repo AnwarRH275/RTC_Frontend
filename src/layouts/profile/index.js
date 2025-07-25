@@ -274,10 +274,10 @@ function Overview() {
           sx={{ 
             p: { xs: 3, md: 4 }, 
             mb: 3, 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+            background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
             color: 'white',
             borderRadius: 3,
-            boxShadow: '0 20px 60px rgba(102, 126, 234, 0.3)',
+            boxShadow: '0 20px 60px rgba(79, 204, 231, 0.3)',
             position: 'relative',
             overflow: 'hidden',
             '&::before': {
@@ -338,7 +338,7 @@ function Overview() {
                 startIcon={<EditIcon />}
                 onClick={() => setOpenPasswordDialog(true)}
                 sx={{ 
-                  color: '#667eea',
+                  color: '#0083b0',
                   fontWeight: 'bold',
                   borderRadius: 2,
                   px: 3,

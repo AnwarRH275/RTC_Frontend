@@ -97,7 +97,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
     return () => window.removeEventListener("scroll", handleTransparentNavbar);
   }, [dispatch, fixedNavbar]);
 
-  console.log('infoUser dans DashboardNavbar:', infoUser);
+  //console.log('infoUser dans DashboardNavbar:', infoUser);
 
   const handleMiniSidenav = () => setMiniSidenav(dispatch, !miniSidenav);
   const handleOpenNotificationMenu = (event) => setOpenNotificationMenu(event.currentTarget);
