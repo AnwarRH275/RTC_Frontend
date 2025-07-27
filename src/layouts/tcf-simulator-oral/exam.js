@@ -52,6 +52,7 @@ const TCFOralExam = () => {
   const recordingTimerRef = useRef(null);
   const examTimerRef = useRef(null);
   const accumulatedTranscriptRef = useRef('');
+  const streamRef = useRef(null);
 
   // États principaux
   const [examData, setExamData] = useState(null);
@@ -93,6 +94,21 @@ const TCFOralExam = () => {
   // États pour le flux objectif -> confirmation -> trigger
   const [currentPhase, setCurrentPhase] = useState('objective'); // 'objective', 'waiting_confirmation', 'trigger', 'interview', 'preparation', 'conversation'
   const [userConfirmed, setUserConfirmed] = useState(false);
+  const isRecordingRef = useRef(isRecording);
+  const currentTaskIndexRef = useRef(currentTaskIndex);
+  const currentPhaseRef = useRef(currentPhase);
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  useEffect(() => {
+    currentTaskIndexRef.current = currentTaskIndex;
+  }, [currentTaskIndex]);
+
+  useEffect(() => {
+    currentPhaseRef.current = currentPhase;
+  }, [currentPhase]);
   
   // États spécifiques à la tâche 2
   const [preparationTime, setPreparationTime] = useState(0); // Timer de préparation (2 minutes)
@@ -397,6 +413,11 @@ const TCFOralExam = () => {
       setIsConversationPhase(true);
       setConversationTime(0);
       addChatMessage('system', 'Phase de conversation démarrée (3 minutes 30 secondes). À vous d\'initier la conversation.');
+      
+      // Activer automatiquement le microphone après la phrase de transition
+      setTimeout(() => {
+         simulateMicrophoneClick();
+      }, 100); // Délai court pour s'assurer que l'audio est bien terminé
     } catch (error) {
       console.warn('Erreur génération audio transition:', error);
       await addChatMessage('examiner', transitionMessage);
@@ -410,6 +431,12 @@ const TCFOralExam = () => {
 
   // Gérer la fin de la phase de conversation (tâche 2)
   const handleConversationEnd = async () => {
+    if (isRecording) {
+      setTimeout(async() => {
+         await handleStopRecording();
+      }, 2000);
+      await handleStopRecording();
+    }
     setIsConversationPhase(false);
     
     // Message de fin de conversation
@@ -639,6 +666,7 @@ const TCFOralExam = () => {
         <IconButton
           onClick={onClick}
           disabled={disabled}
+          className="animated-microphone"
           sx={{
             width: 100,
             height: 100,
@@ -874,6 +902,45 @@ const TCFOralExam = () => {
             intensity={isRecording ? 0.9 : 0.7}
           />
           
+          {/* Affichage en temps réel de la transcription pour diagnostic */}
+          {(isRecording || isTranscribing) && (
+            <Fade in={true}>
+              <Paper 
+                elevation={3}
+                sx={{
+                  p: 2,
+                  mt: 3,
+                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  borderRadius: 2,
+                  maxWidth: '80%',
+                  mx: 'auto'
+                }}
+              >
+                <Typography variant="h6" sx={{ mb: 1, color: '#1976d2', fontWeight: 'bold' }}>
+                  🎤 Transcription en temps réel (DEBUG)
+                </Typography>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    fontFamily: 'monospace',
+                    backgroundColor: '#f5f5f5',
+                    p: 1.5,
+                    borderRadius: 1,
+                    border: '1px solid #ddd',
+                    minHeight: '60px',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {transcript || 'En attente de votre voix...'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  📊 Longueur: {transcript.length} caractères | ⏱️ Temps: {recordingTime}s | 🔄 Transcription: {isTranscribing ? 'ACTIVE' : 'INACTIVE'}
+                </Typography>
+              </Paper>
+            </Fade>
+          )}
+          
           {/* Microphone central animé */}
           <AnimatedMicrophone 
             isRecording={isRecording}
@@ -950,9 +1017,54 @@ const TCFOralExam = () => {
     );
   };
 
-  // Initialisation de l'enregistrement
-  const initializeRecording = async () => {
+  // Fonction pour simuler le clic sur le microphone
+  const simulateMicrophoneClick = () => {
+    const microphoneBtn = document.querySelector('.animated-microphone');
+    if (microphoneBtn) {
+      microphoneBtn.click();
+    } else {
+      console.warn('Bouton microphone non trouvé');
+    }
+  };
+
+  // Initialisation du stream audio
+  const initializeStream = async () => {
     try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100
+        }
+       });
+      streamRef.current = stream;
+      return true;
+    } catch (error) {
+      console.error('Erreur initialisation stream:', error);
+      if (error.name === 'NotAllowedError') {
+        setError('Accès au microphone refusé. Veuillez autoriser l\'accès dans les paramètres de votre navigateur.');
+      } else if (error.name === 'NotFoundError') {
+        setError('Aucun microphone détecté. Veuillez vérifier que votre microphone est bien branché et activé.');
+      } else {
+        setError('Impossible d\'accéder au microphone. Vérifiez les permissions et votre matériel.');
+      }
+      return false;
+    }
+  };
+
+  // Configuration du MediaRecorder avec le stream existant
+  const setupMediaRecorder = async () => {
+    try {
+      if (!streamRef.current || streamRef.current.getTracks().length === 0) {
+        console.log("Stream non disponible, tentative d'initialisation...");
+        const streamInitialized = await initializeStream();
+        if (!streamInitialized) return false;
+      }
+
       // Vérifier la compatibilité MediaRecorder
       if (!window.MediaRecorder) {
         throw new Error('MediaRecorder non supporté par ce navigateur');
@@ -966,15 +1078,6 @@ const TCFOralExam = () => {
         mediaRecorderRef.current = null;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 44100
-        }
-      });
-
       // Tester différents formats MIME
       let mimeType = 'audio/webm';
       if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
@@ -987,7 +1090,7 @@ const TCFOralExam = () => {
 
       console.log('Utilisation du format MIME:', mimeType);
 
-      const mediaRecorder = new MediaRecorder(stream, { 
+      const mediaRecorder = new MediaRecorder(streamRef.current, { 
         mimeType,
         audioBitsPerSecond: 128000
       });
@@ -1005,9 +1108,6 @@ const TCFOralExam = () => {
         const blob = new Blob(recordedChunksRef.current, { type: mimeType });
         setRecordingBlob(blob);
         setHasRecorded(true);
-        
-        // Arrêter le stream
-        stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorder.onerror = (event) => {
@@ -1017,8 +1117,24 @@ const TCFOralExam = () => {
 
       return true;
     } catch (error) {
+      console.error('Erreur configuration MediaRecorder:', error);
+      setError('Impossible de configurer l\'enregistreur audio.');
+      return false;
+    }
+  };
+
+  // Initialisation de l'enregistrement
+  const initializeRecording = async () => {
+    try {
+      const streamInitialized = await initializeStream();
+      if (!streamInitialized) return false;
+
+      const success = await setupMediaRecorder();
+      return success;
+
+    } catch (error) {
       console.error('Erreur initialisation enregistrement:', error);
-      setError('Impossible d\'accéder au microphone. Vérifiez les permissions.');
+      setError('Impossible d\'initialiser l\'enregistrement.');
       return false;
     }
   };
@@ -1049,14 +1165,18 @@ const TCFOralExam = () => {
     try {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
-      
+
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'fr-FR';
       recognition.maxAlternatives = 1;
 
-      // Utiliser le ref pour accumuler la transcription
       let restartTimeout = null;
+      let currentTranscript = '';
+      let storedTranscript = '';
+      let lastUpdateTime = 0;
+      let transcriptCheckTimer = null;
+      const COMPARISON_DELAY = 1000; // 1.5 secondes avant comparaison
 
       recognition.onresult = (event) => {
         let finalTranscript = '';
@@ -1071,26 +1191,94 @@ const TCFOralExam = () => {
           }
         }
 
-        // Accumuler seulement les transcriptions finales
         if (finalTranscript) {
           accumulatedTranscriptRef.current += finalTranscript;
-          console.log('Transcription finale ajoutée:', finalTranscript);
-          console.log('Transcription accumulée:', accumulatedTranscriptRef.current);
         }
 
-        // Afficher la transcription accumulée + la transcription intermédiaire en cours
         const fullTranscript = accumulatedTranscriptRef.current + interimTranscript;
         setTranscript(fullTranscript);
+
+        // Mettre à jour la transcription actuelle et l'horodatage
+        currentTranscript = fullTranscript;
+        lastUpdateTime = Date.now();
+        
+        // DEBUG: Affichage en temps réel pour diagnostic
+        console.log('🎤 TRANSCRIPTION TEMPS RÉEL:', {
+          finalTranscript,
+          interimTranscript,
+          fullTranscript,
+          currentTranscript,
+          storedTranscript,
+          lastUpdateTime: new Date(lastUpdateTime).toLocaleTimeString(),
+          timeSinceLastUpdate: Date.now() - lastUpdateTime
+        });
       };
 
       recognition.onstart = () => {
         console.log('Reconnaissance vocale démarrée');
         setIsTranscribing(true);
-        // Annuler tout redémarrage en attente
         if (restartTimeout) {
           clearTimeout(restartTimeout);
           restartTimeout = null;
         }
+
+        // Réinitialiser les variables
+        currentTranscript = '';
+        storedTranscript = '';
+        lastUpdateTime = Date.now();
+
+        if (transcriptCheckTimer) {
+          clearInterval(transcriptCheckTimer);
+        }
+
+        // Vérification périodique pour la Tâche 2
+        transcriptCheckTimer = setInterval(() => {
+          if (
+            isRecordingRef.current &&
+            currentTaskIndexRef.current === 1 &&
+            currentPhaseRef.current === 'conversation'
+          ) {
+            const now = Date.now();
+            const timeSinceUpdate = now - lastUpdateTime;
+            
+            // DEBUG: Affichage détaillé de l'état de la vérification
+            console.log('🔍 VÉRIFICATION TRANSCRIPTION:', {
+              isRecording,
+              currentTaskIndex,
+              currentPhase,
+              timeSinceUpdate,
+              COMPARISON_DELAY,
+              shouldCompare: timeSinceUpdate >= COMPARISON_DELAY,
+              currentTranscript: `"${currentTranscript}"`,
+              storedTranscript: `"${storedTranscript}"`,
+              areIdentical: currentTranscript === storedTranscript,
+              isNotEmpty: currentTranscript.trim() !== ''
+            });
+            
+            // Si 1.5 seconde s'est écoulée depuis la dernière mise à jour
+            if (timeSinceUpdate >= COMPARISON_DELAY) {
+              // Comparer la transcription actuelle avec celle stockée
+              if (currentTranscript === storedTranscript && currentTranscript.trim() !== '') {
+                console.log('✅ ARRÊT AUTOMATIQUE: Transcriptions identiques détectées après 1.5s');
+              simulateMicrophoneClick();
+              } else {
+                // Stocker la transcription actuelle pour la prochaine comparaison
+                console.log('📝 MISE À JOUR: Stockage nouvelle transcription pour comparaison');
+                storedTranscript = currentTranscript;
+                lastUpdateTime = now;
+              }
+            }
+          } else {
+            // DEBUG: Pourquoi la vérification n'est pas active
+            console.log('⏸️ VÉRIFICATION INACTIVE:', {
+              isRecording: isRecordingRef.current,
+              currentTaskIndex: currentTaskIndexRef.current,
+              currentPhase: currentPhaseRef.current,
+              isTask2: currentTaskIndexRef.current === 1,
+              isConversationPhase: currentPhaseRef.current === 'conversation'
+            });
+          }
+        }, 250);
       };
 
       recognition.onerror = (event) => {
@@ -1105,12 +1293,15 @@ const TCFOralExam = () => {
       recognition.onend = () => {
         console.log('Reconnaissance vocale terminée');
         setIsTranscribing(false);
-        
-        // Redémarrer automatiquement si l'enregistrement est toujours en cours
+
+        if (transcriptCheckTimer) {
+          clearInterval(transcriptCheckTimer);
+          transcriptCheckTimer = null;
+        }
+
         if (isRecording && !restartTimeout) {
           restartTimeout = setTimeout(() => {
             try {
-              // Vérifier l'état avant de redémarrer
               if (recognition.state === 'inactive' || recognition.state === undefined) {
                 console.log('Redémarrage automatique de la reconnaissance vocale');
                 recognition.start();
@@ -1138,12 +1329,11 @@ const TCFOralExam = () => {
     try {
       // Initialiser l'enregistrement et la reconnaissance vocale
       const recordingOk = await initializeRecording();
-      const recognitionOk = initializeSpeechRecognition();
-
       if (!recordingOk) {
-        setError('Impossible d\'initialiser l\'enregistrement');
+        // L'erreur est déjà définie dans initializeRecording/initializeStream
         return;
       }
+      const recognitionOk = initializeSpeechRecognition();
 
       setExamStarted(true);
       setCurrentTaskIndex(0);
@@ -1180,6 +1370,15 @@ const TCFOralExam = () => {
     setAudioPlaying(false);
     setAudioEnded(true);
     setCanProceed(true);
+    
+    // Activer automatiquement le microphone après la fin de l'audio de l'agent IA dans la tâche 2
+    if (currentTaskIndex === 1 && currentPhase === 'conversation' && !isRecording) {
+      // Petit délai pour laisser le temps à l'interface de se mettre à jour
+      setTimeout(() => {
+        handleStartRecording();
+         setCurrentPhase('conversation');
+      }, 100);
+    }
   };
 
   // Effets sonores pour les notifications
@@ -1214,25 +1413,33 @@ const TCFOralExam = () => {
 
   // Démarrer l'enregistrement
   const handleStartRecording = async () => {
+    console.log('🚀 DÉMARRAGE ENREGISTREMENT - État initial:', {
+      audioPlaying,
+      isRecording,
+      isTranscribing,
+      currentTaskIndex,
+      currentPhase,
+      mediaRecorderState: mediaRecorderRef.current?.state,
+      recognitionState: recognitionRef.current?.state
+    });
+    
     // Empêcher l'enregistrement si l'examinateur parle
     if (audioPlaying) {
-      // Optionnel : afficher un message à l'utilisateur
-      console.warn("Veuillez attendre que l'examinateur ait fini de parler.");
-      // Idéalement, fournir un retour visuel à l'utilisateur ici
+      console.warn("⚠️ BLOCAGE: Examinateur en train de parler");
       return;
     }
 
     try {
       // Vérifier si un enregistrement est déjà en cours
       if (isRecording) {
-        console.warn('Enregistrement déjà en cours');
+        console.warn('⚠️ BLOCAGE: Enregistrement déjà en cours');
         return;
       }
 
       if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
-        const success = await initializeRecording();
+        const success = await setupMediaRecorder();
         if (!success) {
-          setError('Impossible d\'initialiser l\'enregistrement');
+          setError('Impossible de configurer l\'enregistreur');
           return;
         }
       }
@@ -1240,7 +1447,7 @@ const TCFOralExam = () => {
       // Vérifier l'état du MediaRecorder
       if (mediaRecorderRef.current.state !== 'inactive') {
         console.warn('MediaRecorder dans un état invalide:', mediaRecorderRef.current.state);
-        await initializeRecording();
+        await setupMediaRecorder();
       }
 
       setTranscript('');
@@ -1297,16 +1504,32 @@ const TCFOralExam = () => {
   };
 
   // Arrêter l'enregistrement
-  const handleStopRecording = () => {
+  const handleStopRecording = async () => {
     try {
-      console.log('Arrêt de l\'enregistrement demandé');
-      
-      if (!isRecording) {
-        console.warn('Aucun enregistrement en cours');
+      console.log('🛑 ARRÊT ENREGISTREMENT - État initial:', {
+        isRecording: isRecordingRef.current, // Utiliser la ref pour l'état le plus à jour
+        isTranscribing,
+        recordingTime,
+        transcript: `"${transcript}"`,
+        transcriptLength: transcript.length,
+        currentTaskIndex: currentTaskIndexRef.current,
+        currentPhase: currentPhaseRef.current,
+        mediaRecorderState: mediaRecorderRef.current?.state,
+        recognitionState: recognitionRef.current?.state
+      });
+
+      // Bloquer si aucun enregistrement n'est en cours (vérification avec la ref)
+      if (!isRecordingRef.current) {
+        console.warn('⚠️ BLOCAGE: Aucun enregistrement en cours (vérifié par ref)');
         return;
       }
       
       const finalRecordingTime = recordingTime;
+      console.log('📊 STATISTIQUES FINALES:', {
+        finalRecordingTime,
+        finalTranscript: `"${transcript}"`,
+        finalTranscriptLength: transcript.length
+      });
       setIsRecording(false);
       
       // Jouer le son de fin d'enregistrement
@@ -1346,8 +1569,8 @@ const TCFOralExam = () => {
         }
       }
       
-      // Traiter la transcription
-      setTimeout(async () => {
+      // Traiter la transcription immédiatement
+      (async () => {
         // Vérifier les scénarios de durée selon la tâche
         const shouldTriggerScenario = (currentTaskIndex === 0 && finalRecordingTime >= 120) || 
                                      (currentTaskIndex === 2 && finalRecordingTime >= 270);
@@ -1397,12 +1620,41 @@ const TCFOralExam = () => {
           // Traitement normal pour les enregistrements qui n'ont pas dépassé le temps
           if (transcript.trim()) {
             await addChatMessage('user', transcript.trim());
-            await handleUserResponse(transcript.trim());
+            
+            // Traitement spécial pour la tâche 2 en phase conversation (arrêt automatique)
+            if (currentTaskIndexRef.current === 1 && currentPhaseRef.current === 'conversation') {
+              console.log('🤖 TRAITEMENT AUTOMATIQUE TÂCHE 2: Envoi de la transcription à l\'agent');
+              
+              // Sauvegarder la réponse utilisateur dans localStorage (comme pour l'arrêt manuel)
+              const examSession = JSON.parse(localStorage.getItem(`exam_session_${subjectId}_task_${currentTaskIndexRef.current}`) || '{}');
+              examSession.userResponses = examSession.userResponses || [];
+              examSession.userResponses.push({
+                message: transcript.trim(),
+                timestamp: new Date().toISOString(),
+                conversationTime: conversationTime
+              });
+              localStorage.setItem(`exam_session_${subjectId}_task_${currentTaskIndexRef.current}`, JSON.stringify(examSession));
+              
+              const currentTask = examData.tasks[currentTaskIndexRef.current];
+              const agentResponse = await task2AgentServiceRef.current.sendMessage(transcript.trim(), currentTask.objective);
+              
+              if (agentResponse && agentResponse.text) {
+                // L'audio se déclenchera automatiquement si une URL audio est fournie
+                await addChatMessage('examiner', agentResponse.text, agentResponse.audioUrl, 'audio');
+              setTimeout(()=>{
+                simulateMicrophoneClick();
+              },100);
+               
+              }
+            } else {
+              // Pour les autres tâches, utiliser le traitement standard
+              await handleUserResponse(transcript.trim());
+            }
           } else {
             await addChatMessage('system', 'Aucun texte détecté dans l\'enregistrement.');
           }
         }
-      }, 1500); // Délai pour s'assurer que la transcription est complète
+      })(); // Exécution immédiate sans délai
       // Removed redundant duration check and transition logic here, as it's handled in handleUserResponse
       
     } catch (error) {
@@ -1492,11 +1744,13 @@ const TCFOralExam = () => {
           const currentTask = examData.tasks[currentTaskIndex];
           console.log('currentTask')
           console.log(currentTask)
+           setCurrentPhase('conversation');
           const agentResponse = await task2AgentServiceRef.current.sendMessage(userMessage, currentTask.objective);
           
           if (agentResponse && agentResponse.text) {
             // L'audio se déclenchera automatiquement si une URL audio est fournie
             await addChatMessage('examiner', agentResponse.text, agentResponse.audioUrl, 'audio');
+             setCurrentPhase('conversation');
           }
         } else {
           // Pour les tâches 1 et 3, juste confirmer la réception
@@ -1593,6 +1847,7 @@ const TCFOralExam = () => {
       await addChatMessage('system', 'Erreur lors du traitement de votre réponse.');
     } finally {
       setWaitingForResponse(false);
+      
     }
   };
 
@@ -1644,7 +1899,7 @@ const TCFOralExam = () => {
       setAudioEnded(false);
       setHasRecorded(false);
       setTranscript('');
-      setCurrentPhase('objective');
+      // Ne pas réinitialiser currentPhase ici pour éviter l'affichage temporaire d'"objective"
       setUserConfirmed(false);
       
       // Réinitialiser les états spécifiques à la tâche 2
@@ -1683,7 +1938,8 @@ const TCFOralExam = () => {
       
       // Logique différente selon la tâche
       if (nextTaskIndex === 1) {
-        // Pour la tâche 2, passer directement à la phase de préparation après l'objectif
+        // Pour la tâche 2, définir la phase objective puis passer à la préparation
+       // setCurrentPhase('objective');
         setTimeout(() => {
           setCurrentPhase('preparation');
           setIsPreparationPhase(true);
@@ -1691,7 +1947,8 @@ const TCFOralExam = () => {
           addChatMessage('system', 'Phase de préparation démarrée (2 minutes). Préparez vos questions.');
         }, 3000); // Attendre que l'audio de l'objectif se termine
       } else {
-        // Pour les autres tâches, passer en phase d'attente de confirmation après l'audio
+        // Pour les autres tâches, définir la phase objective puis passer en attente de confirmation
+        setCurrentPhase('objective');
         setTimeout(() => {
           setCurrentPhase('waiting_confirmation');
           addChatMessage('system', 'Êtes-vous prêt(e) à commencer cette nouvelle tâche ? Répondez "oui" pour continuer.');
@@ -1798,6 +2055,10 @@ const TCFOralExam = () => {
     }
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
     
     // Sauvegarder les résultats (legacy)
@@ -1982,15 +2243,13 @@ const TCFOralExam = () => {
               {/* Affichage de la phase actuelle */}
               {currentPhase && (
                 <Chip 
-                  label={
-                    currentPhase === 'objective' ? 'Présentation de l\'objectif' :
-                    currentPhase === 'waiting_confirmation' ? 'En attente de confirmation' :
-                    currentPhase === 'trigger' ? 'Déclenchement de la tâche' :
-                    currentPhase === 'interview' ? 'Entretien en cours' :
-                    currentPhase === 'preparation' ? 'Préparation (2 min)' :
-                    currentPhase === 'conversation' ? 'Conversation (3m30)' :
-                    'Phase inconnue'
-                  }
+                  label={currentPhase === 'objective' ? 'Présentation de l\'objectif' :
+                         currentPhase === 'waiting_confirmation' ? 'En attente de confirmation' :
+                         currentPhase === 'trigger' ? 'Déclenchement de la tâche' :
+                         currentPhase === 'interview' ? 'Entretien en cours' :
+                         currentPhase === 'preparation' ? 'Préparation (2 min)' :
+                         currentPhase === 'conversation' ? 'Conversation (3m30)' :
+                         'Phase inconnue'}
                   color={
                     currentPhase === 'objective' ? 'info' :
                     currentPhase === 'waiting_confirmation' ? 'warning' :
