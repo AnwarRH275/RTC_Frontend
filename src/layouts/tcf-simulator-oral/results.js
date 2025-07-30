@@ -755,9 +755,9 @@ function TCFResultsInterface() {
                     {/* En-tête de la tâche */}
                     <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                       <MDBox>
-                        <MDTypography variant="h4" fontWeight="bold" color="dark" mb={1}>
-                          {task?.title || `Tâche ${index + 1}`}
-                        </MDTypography>
+                        <MDTypography variant="h4" fontWeight="bold" color="dark" mb={1}
+                          dangerouslySetInnerHTML={{ __html: task?.title || `Tâche ${index + 1}` }}
+                        />
                         <Chip 
                           icon={<Icon>{getScoreIcon(taskData.NoteExam)}</Icon>}
                           label={taskData.NoteExam || 'Non évalué'}
@@ -820,7 +820,7 @@ function TCFResultsInterface() {
                         </Paper>
                       </Grid>
 
-                      {/* Correction IA */}
+                      {/* Correction */}
                       <Grid item xs={12} md={6}>
                         <Paper 
                           elevation={2} 
@@ -834,7 +834,7 @@ function TCFResultsInterface() {
                           <MDBox display="flex" alignItems="center" mb={2}>
                             <Icon sx={{ mr: 1, color: 'success.main' }}>smart_toy</Icon>
                             <MDTypography variant="h6" fontWeight="bold" color="success">
-                              Correction IA
+                              Correction
                             </MDTypography>
                           </MDBox>
                           

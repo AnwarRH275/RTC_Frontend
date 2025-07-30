@@ -421,6 +421,7 @@ const TCFOralExam = () => {
     } catch (error) {
       console.warn('Erreur génération audio transition:', error);
       await addChatMessage('examiner', transitionMessage);
+      // Le microphone ne s'active pas automatiquement - le candidat doit l'activer manuellement
       
       // Démarrer le chronomètre de conversation même en cas d'erreur
       setIsConversationPhase(true);
@@ -450,7 +451,12 @@ const TCFOralExam = () => {
       
       // Attendre que l'audio de fin soit terminé
       await addChatMessage('examiner', endMessage, audioUrl, 'audio');
-      
+      // Activer automatiquement le microphone après le message de fin
+       if (isRecording) {
+        setTimeout(() => {
+          simulateMicrophoneClick();
+        }, 100);
+      }
       // Passer à la tâche suivante ou terminer l'examen après l'audio
       if (currentTaskIndex < examData.tasks.length - 1) {
         handleNextTask();
@@ -460,6 +466,10 @@ const TCFOralExam = () => {
     } catch (error) {
       console.warn('Erreur génération audio fin conversation:', error);
       await addChatMessage('examiner', endMessage);
+      // Activer automatiquement le microphone même sans audio
+      setTimeout(() => {
+        simulateMicrophoneClick();
+      }, 500);
       
       // Passer à la tâche suivante même en cas d'erreur
       if (currentTaskIndex < examData.tasks.length - 1) {
@@ -634,7 +644,7 @@ const TCFOralExam = () => {
   };
   
   // Composant microphone central animé
-  const AnimatedMicrophone = ({ isRecording, isExaminerSpeaking, onClick, disabled, feedbackMessage }) => {
+  const AnimatedMicrophone = ({ isRecording, isExaminerSpeaking, onClick, feedbackMessage }) => {
     return (
       <Box sx={{
         display: 'flex',
@@ -665,7 +675,6 @@ const TCFOralExam = () => {
         {/* Bouton microphone principal */}
         <IconButton
           onClick={onClick}
-          disabled={disabled}
           className="animated-microphone"
           sx={{
             width: 100,
@@ -681,14 +690,10 @@ const TCFOralExam = () => {
             transform: isRecording ? 'scale(1.15)' : 'scale(1)',
             animation: isRecording ? `${glowAnimation} 2s infinite` : 'none',
             '&:hover': {
-              transform: disabled ? 'scale(1)' : 'scale(1.08)',
+              transform: 'scale(1.08)',
               boxShadow: isRecording 
                 ? '0 16px 50px rgba(255,82,82,0.6)'
                 : '0 16px 50px rgba(79,204,231,0.6)'
-            },
-            '&:disabled': {
-              opacity: 0.6,
-              transform: 'scale(0.95)'
             }
           }}
         >
@@ -903,7 +908,7 @@ const TCFOralExam = () => {
           />
           
           {/* Affichage en temps réel de la transcription pour diagnostic */}
-          {(isRecording || isTranscribing) && (
+          {/* {(isRecording || isTranscribing) && (
             <Fade in={true}>
               <Paper 
                 elevation={3}
@@ -921,7 +926,7 @@ const TCFOralExam = () => {
                 </Typography>
                 <Typography 
                   variant="body1" 
-                  sx={{ 
+                  sx={{
                     fontFamily: 'monospace',
                     backgroundColor: '#f5f5f5',
                     p: 1.5,
@@ -939,14 +944,14 @@ const TCFOralExam = () => {
                 </Typography>
               </Paper>
             </Fade>
-          )}
+          )} */}
           
           {/* Microphone central animé */}
           <AnimatedMicrophone 
             isRecording={isRecording}
             isExaminerSpeaking={audioPlaying}
             onClick={isRecording ? handleStopRecording : handleStartRecording}
-            disabled={waitingForResponse || audioPlaying}
+            
             feedbackMessage={audioPlaying ? "Attendez que l'examinateur ait fini de parler" : ''}
           />
           
@@ -1235,8 +1240,7 @@ const TCFOralExam = () => {
         transcriptCheckTimer = setInterval(() => {
           if (
             isRecordingRef.current &&
-            currentTaskIndexRef.current === 1 &&
-            currentPhaseRef.current === 'conversation'
+            (currentPhaseRef.current === 'conversation' || currentPhaseRef.current === 'interview' || currentPhaseRef.current === 'waiting_confirmation')
           ) {
             const now = Date.now();
             const timeSinceUpdate = now - lastUpdateTime;
@@ -1268,15 +1272,6 @@ const TCFOralExam = () => {
                 lastUpdateTime = now;
               }
             }
-          } else {
-            // DEBUG: Pourquoi la vérification n'est pas active
-            console.log('⏸️ VÉRIFICATION INACTIVE:', {
-              isRecording: isRecordingRef.current,
-              currentTaskIndex: currentTaskIndexRef.current,
-              currentPhase: currentPhaseRef.current,
-              isTask2: currentTaskIndexRef.current === 1,
-              isConversationPhase: currentPhaseRef.current === 'conversation'
-            });
           }
         }, 250);
       };
@@ -1357,6 +1352,10 @@ const TCFOralExam = () => {
       setTimeout(() => {
         setCurrentPhase('waiting_confirmation');
         addChatMessage('system', 'Êtes-vous prêt(e) à commencer cette tâche ? Répondez "oui" pour continuer.');
+        // Activer automatiquement le microphone après le message de confirmation
+        setTimeout(() => {
+          simulateMicrophoneClick();
+        }, 500);
       }, 2000);
       
     } catch (error) {
@@ -1592,7 +1591,7 @@ const TCFOralExam = () => {
               
               // Logique selon la tâche et le scénario
               if (currentTaskIndex === 0) {
-                // Tâche 1: passer à la tâche suivante
+                // Tâche 1: passer à la tâche suivante (pas d'activation du microphone car transition)
                 setTimeout(async () => {
                   await addChatMessage('system', 'Chargement de la tâche suivante...');
                   setWaitingForResponse(true);
@@ -1605,10 +1604,15 @@ const TCFOralExam = () => {
               } else if (currentTaskIndex === 2) {
                 // Tâche 3: gérer les scénarios de fin
                 if (durationScenario.shouldEndExam) {
+                  // Pas d'activation du microphone car fin d'examen
                   setTimeout(() => {
                     handleExamEnd();
                   }, 3000);
                 } else if (durationScenario.allowExtraTime && !extraTimeUsed) {
+                  // Activer le microphone seulement si temps supplémentaire accordé
+                  setTimeout(() => {
+                    simulateMicrophoneClick();
+                  }, 500);
                   setIsExtraTimePhase(true);
                   setExtraTimeUsed(true);
                   setCanProceed(true);
@@ -1695,6 +1699,8 @@ const TCFOralExam = () => {
             // Jouer le trigger de la tâche 2 et attendre qu'il se termine
             const triggerAudioUrl = audioUrls[`task_${currentTask.id}_trigger`];
             await addChatMessage('examiner', currentTask.trigger, triggerAudioUrl, 'audio');
+            // Activer automatiquement le microphone après le trigger
+            
             
             // Après le trigger, démarrer automatiquement la phase de préparation
             setCurrentPhase('preparation');
@@ -1707,6 +1713,10 @@ const TCFOralExam = () => {
             
             const triggerAudioUrl = audioUrls[`task_${currentTask.id}_trigger`];
             await addChatMessage('examiner', currentTask.trigger, triggerAudioUrl, 'audio');
+            // Activer automatiquement le microphone après le trigger
+            setTimeout(() => {
+              simulateMicrophoneClick();
+            }, 500);
             
             // Après le trigger, passer en mode entretien
             setCurrentPhase('interview');
@@ -1750,6 +1760,10 @@ const TCFOralExam = () => {
           if (agentResponse && agentResponse.text) {
             // L'audio se déclenchera automatiquement si une URL audio est fournie
             await addChatMessage('examiner', agentResponse.text, agentResponse.audioUrl, 'audio');
+            // Activer automatiquement le microphone après la réponse de l'agent
+            setTimeout(() => {
+              simulateMicrophoneClick();
+            }, 500);
              setCurrentPhase('conversation');
           }
         } else {
@@ -1768,7 +1782,7 @@ const TCFOralExam = () => {
               
               // Logique selon la tâche
               if (currentTaskIndex === 0) {
-                // Tâche 1: passer à la tâche suivante
+                // Tâche 1: passer à la tâche suivante (pas d'activation du microphone car transition)
                 setTimeout(async () => {
                   await addChatMessage('system', 'Chargement de la tâche suivante...');
                   setWaitingForResponse(true);
@@ -1781,10 +1795,15 @@ const TCFOralExam = () => {
               } else if (currentTaskIndex === 2) {
                 // Tâche 3: gérer selon le scénario
                 if (durationScenario.shouldEndExam) {
+                  // Pas d'activation du microphone car fin d'examen
                   setTimeout(() => {
                     handleExamEnd();
                   }, 3000);
                 } else if (durationScenario.allowExtraTime && !extraTimeUsed) {
+                  // Activer le microphone seulement si temps supplémentaire accordé
+                  setTimeout(() => {
+                    simulateMicrophoneClick();
+                  }, 500);
                   // Marquer le temps supplémentaire comme utilisé et terminer l'examen après la réponse
                   setExtraTimeUsed(true);
                   setCanProceed(true);
@@ -1823,10 +1842,14 @@ const TCFOralExam = () => {
         const agentResponse = await task2AgentServiceRef.current.sendMessage(userMessage, currentTask.objective);
         
         if (agentResponse && agentResponse.text) {
-          // Utiliser l'audio fourni par l'agent ou générer un nouveau si nécessaire
-          if (agentResponse.audioUrl) {
-            await addChatMessage('examiner', agentResponse.text, agentResponse.audioUrl, 'audio');
-          } else {
+            // Utiliser l'audio fourni par l'agent ou générer un nouveau si nécessaire
+            if (agentResponse.audioUrl) {
+              await addChatMessage('examiner', agentResponse.text, agentResponse.audioUrl, 'audio');
+              // Activer automatiquement le microphone après la réponse de l'agent
+              setTimeout(() => {
+                simulateMicrophoneClick();
+              }, 500);
+            } else {
             // Générer l'audio si l'agent n'en fournit pas
             try {
               const audioResult = await synthesisService.synthesizeText(agentResponse.text);
@@ -1835,9 +1858,17 @@ const TCFOralExam = () => {
                 : null;
               
               await addChatMessage('examiner', agentResponse.text, audioUrl, 'audio');
+              // Activer automatiquement le microphone après la réponse de l'agent
+              setTimeout(() => {
+                simulateMicrophoneClick();
+              }, 500);
             } catch (error) {
               console.warn('Erreur génération audio agent:', error);
               await addChatMessage('examiner', agentResponse.text);
+              // Activer automatiquement le microphone même sans audio
+              setTimeout(() => {
+                simulateMicrophoneClick();
+              }, 500);
             }
           }
         }
@@ -1923,7 +1954,11 @@ const TCFOralExam = () => {
       console.log(chatMessages);
       // Réinitialiser le chat pour la nouvelle tâche
       setChatMessages([]);
-      
+       if (!isRecording) {
+        setTimeout(() => {
+          simulateMicrophoneClick();
+        }, 100);
+      }
       // Réinitialiser l'agent pour la tâche 2
       if (currentTaskIndex === 0) {
         task2AgentServiceRef.current.resetSessionId();
@@ -1935,6 +1970,12 @@ const TCFOralExam = () => {
       
       // Attendre que l'audio de l'objectif soit terminé
       await addChatMessage('examiner', `Objectif de la tâche ${nextTaskIndex + 1}: ${nextTask.objective}`, objectiveAudioUrl, 'audio');
+      // Activer automatiquement le microphone après l'objectif
+     if (nextTaskIndex !== 1) {
+      setTimeout(() => {
+        simulateMicrophoneClick();
+      }, 500);
+    }
       
       // Logique différente selon la tâche
       if (nextTaskIndex === 1) {
@@ -1952,6 +1993,10 @@ const TCFOralExam = () => {
         setTimeout(() => {
           setCurrentPhase('waiting_confirmation');
           addChatMessage('system', 'Êtes-vous prêt(e) à commencer cette nouvelle tâche ? Répondez "oui" pour continuer.');
+          // Activer automatiquement le microphone après le message de confirmation
+          setTimeout(() => {
+            simulateMicrophoneClick();
+          }, 500);
         }, 3000); // Attendre que l'audio de l'objectif se termine
       }
     } else {

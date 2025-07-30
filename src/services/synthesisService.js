@@ -2,9 +2,10 @@ import axios from 'axios';
 import authService from './authService';
 
 // S'assurer que l'URL de base de l'API est toujours définie et se termine par un slash
-//let API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/';
 
- let API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.mydrtool.com';
+let API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/';
+
+ //let API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.mydrtool.com';
 if (!API_BASE_URL.endsWith('/')) {
   API_BASE_URL += '/';
 }
