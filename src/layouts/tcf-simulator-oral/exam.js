@@ -110,6 +110,11 @@ const TCFOralExam = () => {
     currentPhaseRef.current = currentPhase;
   }, [currentPhase]);
   
+  // États spécifiques à la tâche 1
+  const [totalRecordingTime, setTotalRecordingTime] = useState(0); // Temps cumulé d'enregistrement pour la tâche 1
+  const [continuationCount, setContinuationCount] = useState(0); // Nombre de questions de relance posées
+  const [isInContinuation, setIsInContinuation] = useState(false); // Indique si on est en phase de continuation
+  
   // États spécifiques à la tâche 2
   const [preparationTime, setPreparationTime] = useState(0); // Timer de préparation (2 minutes)
   const [conversationTime, setConversationTime] = useState(0); // Timer de conversation (3m30)
@@ -221,9 +226,9 @@ const TCFOralExam = () => {
           
           // Règles spécifiques par tâche
           if (currentTaskIndex === 0) { // Tâche 1
-            if (newTime >= 120) { // 2 minutes maximum
-              handleStopRecording();
-              return newTime;
+            if (newTime >= 120) { // 2 minutes exactement - stop la présentation
+              simulateMicrophoneClick();
+              return 120;
             }
           } else if (currentTaskIndex === 1) { // Tâche 2
             if (newTime >= 90) { // 1.5 minutes maximum
@@ -315,8 +320,12 @@ const TCFOralExam = () => {
   const audioDurationScenarios = {
     // Tâche 1
     "si_dépasse_2_minutes": "Excusez-moi, vous avez dépassé le temps imparti. Nous allons maintenant passer à la tâche suivante.",
-    "si_fin_avant_1min30": "Très bien, vous avez terminé un peu avant la fin du temps imparti. Nous allons passer à la tâche suivante.",
-    "si_fin_avant_2min": "Merci, vous avez terminé juste avant la fin. C'est parfait, passons à la tâche suivante.",
+    "si_fin_avant_1min30": "Très bien, vous avez terminé un peu avant la fin du temps imparti. Pouvez-vous nous en dire un peu plus sur ce que vous venez de partager ?",
+    "si_fin_avant_2min": "Merci, vous avez terminé juste avant la fin. Y a-t-il des exemples ou des expériences que vous aimeriez partager pour illustrer votre point ?",
+    // Questions de relance pour la tâche 1
+    "question_relance_1": "Pouvez-vous me parler d'un voyage que vous avez fait récemment ?",
+    "question_relance_2": "Pouvez-vous développer davantage ce point ?",
+    "question_relance_3": "Avez-vous d'autres détails à ajouter ?",
     // Tâche 3
     "si_le_candidat_parle_plus_de_4m30": "Le temps est écoulé. Merci pour votre réponse.",
     "si_le_candidat_termine_entre_3m30_et_4m30": "Merci pour votre réponse, nous avons encore un peu de temps si vous souhaitez compléter votre point de vue.",
@@ -351,20 +360,37 @@ const TCFOralExam = () => {
   // Fonction pour vérifier la durée audio et retourner le bon scénario
   const checkAudioDurationAndGetScenario = (audioDuration, taskIndex = currentTaskIndex) => {
     if (taskIndex === 0) { // Tâche 1
-      if (audioDuration > 120) { // Plus de 2 minutes
+      console.log("============="+audioDuration)
+      console.log("Temps total cumulé:", totalRecordingTime + audioDuration)
+      
+      const cumulativeTime = totalRecordingTime + audioDuration;
+      
+      if (cumulativeTime >= 120) { // 2 minutes cumulées atteintes ou dépassées
         return {
           text: audioDurationScenarios.si_dépasse_2_minutes,
-          audioUrl: scenarioAudioUrls.si_dépasse_2_minutes
+          audioUrl: scenarioAudioUrls.si_dépasse_2_minutes,
+          shouldEndTask: true
         };
-      } else if (audioDuration < 90) { // Moins de 1min30
+      } else if (audioDuration < 90 && !isInContinuation) { // Moins de 1min30 sur cette intervention
         return {
           text: audioDurationScenarios.si_fin_avant_1min30,
-          audioUrl: scenarioAudioUrls.si_fin_avant_1min30
+          audioUrl: scenarioAudioUrls.si_fin_avant_1min30,
+          allowContinuation: true
         };
-      } else if (audioDuration < 120) { // Entre 1min30 et 2min
+      } else if (audioDuration >= 90 && audioDuration < 120 && !isInContinuation) { // Entre 1min30 et 2min sur cette intervention
         return {
           text: audioDurationScenarios.si_fin_avant_2min,
-          audioUrl: scenarioAudioUrls.si_fin_avant_2min
+          audioUrl: scenarioAudioUrls.si_fin_avant_2min,
+          allowContinuation: true
+        };
+      } else if (isInContinuation && cumulativeTime < 120) { // En continuation et pas encore 2min cumulées
+        // Choisir une question de relance selon le nombre de continuations
+        const questions = ['question_relance_1', 'question_relance_2', 'question_relance_3'];
+        const questionKey = questions[Math.min(continuationCount, questions.length - 1)];
+        return {
+          text: audioDurationScenarios[questionKey],
+          audioUrl: scenarioAudioUrls[questionKey],
+          allowContinuation: true
         };
       }
     } else if (taskIndex === 2) { // Tâche 3
@@ -1591,16 +1617,40 @@ const TCFOralExam = () => {
               
               // Logique selon la tâche et le scénario
               if (currentTaskIndex === 0) {
-                // Tâche 1: passer à la tâche suivante (pas d'activation du microphone car transition)
-                setTimeout(async () => {
-                  await addChatMessage('system', 'Chargement de la tâche suivante...');
-                  setWaitingForResponse(true);
+                // Tâche 1: gérer la continuation ou passer à la tâche suivante
+                if (durationScenario.shouldEndTask) {
+                  // Temps dépassé, passer à la tâche suivante
+                  setTimeout(async () => {
+                    await addChatMessage('system', 'Chargement de la tâche suivante...');
+                    setWaitingForResponse(true);
+                    
+                    setTimeout(() => {
+                      handleNextTask();
+                      setWaitingForResponse(false);
+                    }, 2000);
+                  }, 3000);
+                } else if (durationScenario.allowContinuation) {
+                  // Permettre la continuation
+                  setTotalRecordingTime(prev => prev + finalRecordingTime);
+                  setContinuationCount(prev => prev + 1);
+                  setIsInContinuation(true);
                   
+                  // Activer le microphone pour la continuation
                   setTimeout(() => {
-                    handleNextTask();
-                    setWaitingForResponse(false);
-                  }, 2000);
-                }, 3000);
+                    simulateMicrophoneClick();
+                  }, 500);
+                } else {
+                  // Cas par défaut, passer à la tâche suivante
+                  setTimeout(async () => {
+                    await addChatMessage('system', 'Chargement de la tâche suivante...');
+                    setWaitingForResponse(true);
+                    
+                    setTimeout(() => {
+                      handleNextTask();
+                      setWaitingForResponse(false);
+                    }, 2000);
+                  }, 3000);
+                }
               } else if (currentTaskIndex === 2) {
                 // Tâche 3: gérer les scénarios de fin
                 if (durationScenario.shouldEndExam) {
@@ -1620,6 +1670,9 @@ const TCFOralExam = () => {
               }
             }, 1000);
           }
+          
+          // IMPORTANT: Ne pas appeler handleUserResponse pour éviter le double traitement
+          return;
         } else {
           // Traitement normal pour les enregistrements qui n'ont pas dépassé le temps
           if (transcript.trim()) {
@@ -1771,27 +1824,50 @@ const TCFOralExam = () => {
           await addChatMessage('system', 'Réponse enregistrée. Vous pouvez continuer ou passer à la tâche suivante.');
           
           // Appliquer les scénarios de durée même pour les messages texte
-          // Estimer la durée basée sur la longueur du texte (approximativement 150 mots par minute)
-          const wordCount = userMessage.split(' ').length;
-          const estimatedDuration = (wordCount / 150) * 60; // en secondes
+          // Utiliser la durée réelle de l'enregistrement au lieu d'une estimation
+          const actualDuration = recordingTime;
           
-          const durationScenario = checkAudioDurationAndGetScenario(estimatedDuration, currentTaskIndex);
+          const durationScenario = checkAudioDurationAndGetScenario(actualDuration, currentTaskIndex);
           if (durationScenario && currentPhase === 'interview') {
             setTimeout(async () => {
               await addChatMessage('examiner', durationScenario.text, durationScenario.audioUrl, 'audio');
               
               // Logique selon la tâche
               if (currentTaskIndex === 0) {
-                // Tâche 1: passer à la tâche suivante (pas d'activation du microphone car transition)
-                setTimeout(async () => {
-                  await addChatMessage('system', 'Chargement de la tâche suivante...');
-                  setWaitingForResponse(true);
-                  
-                  setTimeout(() => {
-                    handleNextTask();
-                    setWaitingForResponse(false);
+                // Tâche 1: gérer la continuation ou passer à la tâche suivante
+                if (durationScenario.shouldEndTask) {
+                  // Temps dépassé, passer à la tâche suivante
+                  setTimeout(async () => {
+                    await addChatMessage('system', 'Chargement de la tâche suivante...');
+                    setWaitingForResponse(true);
+                    
+                    setTimeout(() => {
+                      handleNextTask();
+                      setWaitingForResponse(false);
+                    }, 4000);
                   }, 4000);
-                }, 4000);
+                } else if (durationScenario.allowContinuation) {
+                  // Permettre la continuation
+                  setTotalRecordingTime(prev => prev + actualDuration);
+                  setContinuationCount(prev => prev + 1);
+                  setIsInContinuation(true);
+                  
+                  // Activer le microphone pour la continuation
+                  setTimeout(() => {
+                    simulateMicrophoneClick();
+                  }, 500);
+                } else {
+                  // Cas par défaut, passer à la tâche suivante
+                  setTimeout(async () => {
+                    await addChatMessage('system', 'Chargement de la tâche suivante...');
+                    setWaitingForResponse(true);
+                    
+                    setTimeout(() => {
+                      handleNextTask();
+                      setWaitingForResponse(false);
+                    }, 4000);
+                  }, 4000);
+                }
               } else if (currentTaskIndex === 2) {
                 // Tâche 3: gérer selon le scénario
                 if (durationScenario.shouldEndExam) {
@@ -1932,6 +2008,13 @@ const TCFOralExam = () => {
       setTranscript('');
       // Ne pas réinitialiser currentPhase ici pour éviter l'affichage temporaire d'"objective"
       setUserConfirmed(false);
+      
+      // Réinitialiser les états spécifiques à la tâche 1 (continuation)
+      if (currentTaskIndex === 0) {
+        setTotalRecordingTime(0);
+        setContinuationCount(0);
+        setIsInContinuation(false);
+      }
       
       // Réinitialiser les états spécifiques à la tâche 2
       setPreparationTime(0);
@@ -2334,7 +2417,7 @@ const TCFOralExam = () => {
               {isRecording && (
                 <Chip 
                   icon={<Mic />} 
-                  label={`REC ${formatTime(recordingTime)}`}
+                  label={`REC ${formatTime(currentTaskIndex === 0 ? totalRecordingTime + recordingTime : recordingTime)}`}
                   color="error"
                   variant="filled"
                   sx={{ animation: 'pulse 1s infinite' }}
