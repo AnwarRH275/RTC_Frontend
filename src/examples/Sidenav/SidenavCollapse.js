@@ -36,7 +36,7 @@ import {
 // Simulateur TCF Canada React context
 import { useMaterialUIController } from "context";
 
-function SidenavCollapse({ icon, name, active, ...rest }) {
+function SidenavCollapse({ icon, name, active, noCollapse, ...rest }) {
   const [controller] = useMaterialUIController();
   const { miniSidenav, transparentSidenav, whiteSidenav, darkMode, sidenavColor } = controller;
 
@@ -85,6 +85,7 @@ function SidenavCollapse({ icon, name, active, ...rest }) {
 // Setting default values for the props of SidenavCollapse
 SidenavCollapse.defaultProps = {
   active: false,
+  noCollapse: false,
 };
 
 // Typechecking props for the SidenavCollapse
@@ -92,6 +93,7 @@ SidenavCollapse.propTypes = {
   icon: PropTypes.node.isRequired,
   name: PropTypes.string.isRequired,
   active: PropTypes.bool,
+  noCollapse: PropTypes.bool,
 };
 
 export default SidenavCollapse;

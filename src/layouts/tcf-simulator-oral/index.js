@@ -216,11 +216,39 @@ function TCFSimulatorOral() {
     setExamResults(null);
   };
 
-  const handleStartExam = () => {
-    if (selectedSubject) {
-      navigate(`/tcf-simulator/oral/${selectedSubject.id}/exam`);
-    }
-    handleCloseRecap();
+  const handleStartExam = async () => {
+    try {
+      // Utiliser les informations utilisateur du contexte
+      const userInfo = await authService.getCurrentUser();
+
+      if (userInfo) {
+        const currentSold = userInfo.sold;
+        
+        // Vérifier si l'utilisateur a suffisamment de crédits
+        if (currentSold > 0) {
+         
+          // Décrémenter le solde de 1
+          const newSold = currentSold - 1;
+          console.log(newSold)
+          // Mettre à jour le solde dans le backend via API
+          await authService.updateSold(userInfo.username, newSold);
+          
+          // Naviguer vers l'examen
+          if (selectedSubject) {
+            navigate(`/tcf-simulator/oral/${selectedSubject.id}/exam`);
+          }
+          handleCloseRecap();
+        } else {
+          // Afficher un message d'erreur si pas assez de crédits
+          alert('Vous n\'avez pas suffisamment de crédits pour commencer cet examen.');
+        }
+      } else {
+        alert('Erreur: Informations utilisateur non trouvées.');
+      }
+    } catch (error) {
+       console.error('Erreur lors de la mise à jour du solde:', error);
+       alert('Erreur lors du démarrage de l\'examen. Veuillez réessayer.');
+     }
   };
 
   const handleRetakeExam = async (subjectId) => {

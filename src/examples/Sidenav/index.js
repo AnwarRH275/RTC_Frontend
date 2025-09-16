@@ -214,10 +214,9 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
               justifyContent="center"
             >
               <MDTypography 
-                component="h7" 
+                component="h6" 
                 variant="h5" 
-                fontWeight="bold" 
-                color="black"
+                fontWeight="bold"
                 sx={{
                   textShadow: "0 2px 4px rgba(0, 0, 0, 0.8)",
                   letterSpacing: "0.5px",

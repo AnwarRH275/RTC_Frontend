@@ -118,7 +118,7 @@ function TCFResultsInterface() {
   };
 
   // Fonction pour enregistrer les résultats via l'API
-  const saveResultsToAPI = async (correctionResults, subjectData) => {
+  const saveResultsToAPI = async (correctionResults, subjectData, userResponses) => {
     try {
       setSaving(true);
       const userId = getUserIdFromToken();
@@ -128,19 +128,22 @@ function TCFResultsInterface() {
         const taskKey = Object.keys(taskResult.output)[0]; // tache1, tache2, etc.
         const taskData = taskResult.output[taskKey];
         const task = subjectData.tasks[index];
-        const taskResponse = responses[index] || '';
+        const taskResponse = userResponses[index] || '';
         
         const payload = {
           id_user: userId,
           id_subject: parseInt(subjectId),
           id_task: task.id || index + 1,
-          reponse_utilisateur: taskResponse,
+          reponse_utilisateur: taskResponse, // Stocker uniquement le texte brut
           score: taskData.NoteExam || '',
-          reponse_ia: taskData.corrections_taches?.[0] || '',
+          reponse_ia: taskData.corrections_taches || '',
           points_fort: taskData.pointsForts?.join(', ') || '',
           point_faible: taskData.pointsAmeliorer?.join(', ') || '',
-          traduction_reponse_ia: null
+          traduction_reponse_ia: null,
+          type_exam: 'écrit'
         };
+        
+        console.log('Envoi de la réponse utilisateur:', payload.reponse_utilisateur);
         
         return axios.post(`${API_BASE_URL}/exam/exams/user`, payload, {
           headers: {
@@ -403,8 +406,8 @@ function TCFResultsInterface() {
               // Calculer la note moyenne
               await calculateNoteMoyenne(response.data);
               
-              // Enregistrer les résultats via l'API d'enregistrement, en passant subjectData
-              await saveResultsToAPI(response.data, subjectData);
+              // Enregistrer les résultats via l'API d'enregistrement, en passant subjectData et les réponses
+              await saveResultsToAPI(response.data, subjectData, parsedResponses);
               setLoading(false);
             } else {
               throw new Error('Format de réponse invalide');
@@ -787,7 +790,7 @@ function TCFResultsInterface() {
                           const taskData = taskResult.output[taskKey];
                           
                           // Récupérer les données de la tâche
-                          const correction = taskData.corrections_taches && taskData.corrections_taches[0] || '';
+                          const correction = taskData.corrections_taches || '';
                           const pointsForts = taskData.pointsForts || [];
                           const pointsAmeliorer = taskData.pointsAmeliorer || [];
                           const noteExam = taskData.NoteExam || '';
@@ -1061,11 +1064,7 @@ function TCFResultsInterface() {
                                         >
                                           <ReactMarkdown>{correction}</ReactMarkdown>
                                         </MDBox>
-                                        <MDBox mt={2} display="flex" justifyContent="flex-end">
-                                          <MDTypography variant="caption" color="text">
-                                            {correction ? correction.split(/\s+/).filter(word => word.length > 0).length : 0} mots
-                                          </MDTypography>
-                                        </MDBox>
+
                                       </MDBox>
                                     </Grid>
                                     
@@ -1264,7 +1263,8 @@ function TCFResultsInterface() {
               background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
               p: 3,
               justifyContent: 'center',
-              borderTop: '1px solid #e2e8f0'
+              borderTop: '1px solid #e2e8f0',
+              gap: 2
             }}
           >
             <MDButton
@@ -1288,6 +1288,29 @@ function TCFResultsInterface() {
             >
               <Icon sx={{ mr: 1 }}>arrow_back</Icon>
               Retour aux exercices
+            </MDButton>
+            
+            <MDButton
+              variant="gradient"
+              color="info"
+              size="large"
+              onClick={() => window.open('https://reussir-tcfcanada.com/expression-ecrite/', '_blank')}
+              sx={{
+                background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
+                px: 4,
+                py: 1.5,
+                borderRadius: '12px',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                boxShadow: '0 8px 25px rgba(0, 131, 176, 0.3)',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 12px 35px rgba(0, 131, 176, 0.4)'
+                }
+              }}
+            >
+              <Icon sx={{ mr: 1 }}>article</Icon>
+              Sujet d'actualité d'expression écrite
             </MDButton>
           </DialogActions>
         </Dialog>

@@ -163,9 +163,9 @@ function Cover() {
             boxShadow: "0 12px 20px -10px rgba(0, 123, 255, 0.28), 0 4px 20px 0px rgba(0, 0, 0, 0.12), 0 7px 8px -5px rgba(0, 123, 255, 0.2)",
           }}
         >
-          <MDTypography variant="h4" fontWeight="bold" color="white">
+          {/* <MDTypography variant="h4" fontWeight="bold" color="white">
             Réussir TCF Canada
-          </MDTypography>
+          </MDTypography> */}
           <MDTypography display="block" variant="button" color="white" my={1} fontSize="1rem">
             {activeStep === 0 ? "Créez votre compte pour commencer votre préparation" : "Choisissez votre plan d'abonnement"}
           </MDTypography>
@@ -517,6 +517,9 @@ function Cover() {
                       localStorage.setItem('token', response.data.access_token);
                       localStorage.setItem('user_info', JSON.stringify(response.data.user_info));
                     }
+                   
+                    // NOTE: La commande sera créée automatiquement par le webhook Stripe après paiement réussi
+                    // Pas besoin de créer une commande manuellement ici pour éviter les doublons
                     
                     // Maintenant procéder au paiement Stripe
                      // Créer une session de paiement via le backend

@@ -106,9 +106,9 @@ function Basic() {
             background: "linear-gradient(to right, rgba(79, 204, 231, 1), #0083b0)"
           }}
         >
-          <MDTypography variant="h3" fontWeight="medium" color="white" mt={1}>
+          {/* <MDTypography variant="h3" fontWeight="medium" color="white" mt={1}>
             Réussir TCF Canada
-          </MDTypography>
+          </MDTypography> */}
           <MDTypography variant="body2" color="white" mb={1}>
             Connectez-vous pour accéder à votre espace d'entraînement
           </MDTypography>
@@ -209,7 +209,7 @@ function Basic() {
             <MDBox mt={2} textAlign="center">
               <MDTypography
                 component={Link}
-                to="#"
+                to="/authentication/reset-password/cover"
                 variant="button"
                 color="primary"
                 fontWeight="regular"

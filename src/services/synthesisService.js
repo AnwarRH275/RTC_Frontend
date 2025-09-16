@@ -3,9 +3,11 @@ import authService from './authService';
 
 // S'assurer que l'URL de base de l'API est toujours définie et se termine par un slash
 
-let API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/';
+let API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/';
 
- //let API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.mydrtool.com';
+// let API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.expressiontcf.com';
+
+
 if (!API_BASE_URL.endsWith('/')) {
   API_BASE_URL += '/';
 }
@@ -53,7 +55,7 @@ class SynthesisService {
    * @param {string} text - Le texte à convertir
    * @returns {Promise<Object>} - Objet contenant l'URL de l'audio et le nom du fichier
    */
-  async synthesizeText(text) {
+  async synthesizeText(text, sessionId = null) {
     try {
       // Vérification si le texte est vide ou non défini
       if (!text || text.trim() === '') {
@@ -62,9 +64,11 @@ class SynthesisService {
       }
       
       console.log(`Envoi de la requête de synthèse pour: "${text.substring(0, 30)}..."`);
-      const response = await this.apiClient.post('/synthesize', {
-        text: text
-      });
+      const payload = { text };
+      if (sessionId) {
+        payload.session_id = sessionId;
+      }
+      const response = await this.apiClient.post('/synthesize', payload);
       
       // Vérification si la réponse contient les données nécessaires
       if (!response.data) {
@@ -107,8 +111,8 @@ class SynthesisService {
       if (!API_BASE_URL) {
         console.error('API_BASE_URL n\'est pas défini');
         // Utiliser une URL par défaut si API_BASE_URL n'est pas défini
-        API_BASE_URL = 'http://localhost:5001/';
-       // API_BASE_URL = 'https://api.mydrtool.com/';
+       API_BASE_URL = 'http://localhost:5002/';
+       //API_BASE_URL = 'https://api.expressiontcf.com/';
         
       }
       

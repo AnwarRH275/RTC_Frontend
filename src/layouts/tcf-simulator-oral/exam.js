@@ -39,10 +39,18 @@ import synthesisService from 'services/synthesisService';
 import TCFOralService from 'services/tcfOralService';
 import { validateReadiness } from 'services/agentValidationService';
 import task2AgentService from 'services/task2AgentService';
+import task1AgentService from 'services/task1AgentService';
+import authService from 'services/authService';
+import { useInfoUser } from 'context/InfoUserContext';
+import { useExamState } from './hooks/useExamState';
+import { useTaskState } from './hooks/useTaskState';
+import { useChatState } from './hooks/useChatState';
+import { generateAudio } from './utils/audioUtils';
 
 const TCFOralExam = () => {
   const { subjectId } = useParams();
   const navigate = useNavigate();
+  const { userInfo, loadUserInfo } = useInfoUser();
   const audioPlayerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
@@ -54,49 +62,69 @@ const TCFOralExam = () => {
   const accumulatedTranscriptRef = useRef('');
   const streamRef = useRef(null);
 
-  // États principaux
-  const [examData, setExamData] = useState(null);
-  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
-  const [currentInteraction, setCurrentInteraction] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    examData, setExamData,
+    currentTaskIndex, setCurrentTaskIndex,
+    currentInteraction, setCurrentInteraction,
+    isLoading, setIsLoading,
+    error, setError,
+    examStarted, setExamStarted,
+    examCompleted, setExamCompleted,
+    isRecording, setIsRecording,
+    recordingTime, setRecordingTime,
+    hasRecorded, setHasRecorded,
+    recordingBlob, setRecordingBlob,
+    transcript, setTranscript,
+    isTranscribing, setIsTranscribing,
+    userReady, setUserReady,
+    readinessChecked, setReadinessChecked,
+    audioPlaying, setAudioPlaying,
+    audioEnded, setAudioEnded,
+    canProceed, setCanProceed,
+    audioUrls, setAudioUrls,
+    currentPhase, setCurrentPhase,
+    userConfirmed, setUserConfirmed,
+    resetForNewTask,
+    resetRecordingStates,
+  } = useExamState();
 
-  // États de l'examen
-  const [examStarted, setExamStarted] = useState(false);
-  const [examCompleted, setExamCompleted] = useState(false);
+  const {
+    totalRecordingTime, setTotalRecordingTime,
+    continuationCount, setContinuationCount,
+    isInContinuation, setIsInContinuation,
+    preparationTime, setPreparationTime,
+    conversationTime, setConversationTime,
+    isPreparationPhase, setIsPreparationPhase,
+    isConversationPhase, setIsConversationPhase,
+    isExtraTimePhase, setIsExtraTimePhase,
+    extraTimeUsed, setExtraTimeUsed,
+    task3ContinuationCount, setTask3ContinuationCount,
+    isInTask3Continuation, setIsInTask3Continuation,
+    resetTask1States,
+    resetTask2States,
+    resetTask3States,
+    resetAllTaskStates,
+  } = useTaskState();
 
-  // États d'enregistrement
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [hasRecorded, setHasRecorded] = useState(false);
-  const [recordingBlob, setRecordingBlob] = useState(null);
+  const {
+    chatMessages, setChatMessages,
+    inputMethod, setInputMethod,
+    textInput, setTextInput,
+    waitingForResponse, setWaitingForResponse,
+    resetChatMessages,
+    resetInputStates,
+    resetAllChatStates,
+  } = useChatState();
 
-  // États de transcription vocale
-  const [transcript, setTranscript] = useState('');
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [userReady, setUserReady] = useState(false);
-  const [readinessChecked, setReadinessChecked] = useState(false);
-
-  // États audio
-  const [audioPlaying, setAudioPlaying] = useState(false);
-  const [audioEnded, setAudioEnded] = useState(false);
-  const [canProceed, setCanProceed] = useState(false);
-  const [audioUrls, setAudioUrls] = useState({});
-
-  // États du chat
-  const [chatMessages, setChatMessages] = useState([]);
   const chatMessagesRef = useRef(chatMessages);
   chatMessagesRef.current = chatMessages;
-  const [inputMethod, setInputMethod] = useState('voice');
-  const [textInput, setTextInput] = useState('');
-  const [waitingForResponse, setWaitingForResponse] = useState(false);
-  
-  // États pour le flux objectif -> confirmation -> trigger
-  const [currentPhase, setCurrentPhase] = useState('objective'); // 'objective', 'waiting_confirmation', 'trigger', 'interview', 'preparation', 'conversation'
-  const [userConfirmed, setUserConfirmed] = useState(false);
   const isRecordingRef = useRef(isRecording);
   const currentTaskIndexRef = useRef(currentTaskIndex);
   const currentPhaseRef = useRef(currentPhase);
+  const confirmationTimeoutRef = useRef(null);
+  const isConversationActiveRef = useRef(false);
+  const preparationTimerRef = useRef(null);
+  const conversationTimerRef = useRef(null);
 
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -108,24 +136,45 @@ const TCFOralExam = () => {
 
   useEffect(() => {
     currentPhaseRef.current = currentPhase;
-  }, [currentPhase]);
-  
-  // États spécifiques à la tâche 1
-  const [totalRecordingTime, setTotalRecordingTime] = useState(0); // Temps cumulé d'enregistrement pour la tâche 1
-  const [continuationCount, setContinuationCount] = useState(0); // Nombre de questions de relance posées
-  const [isInContinuation, setIsInContinuation] = useState(false); // Indique si on est en phase de continuation
-  
-  // États spécifiques à la tâche 2
-  const [preparationTime, setPreparationTime] = useState(0); // Timer de préparation (2 minutes)
-  const [conversationTime, setConversationTime] = useState(0); // Timer de conversation (3m30)
-  const [isPreparationPhase, setIsPreparationPhase] = useState(false);
-  const [isConversationPhase, setIsConversationPhase] = useState(false);
-  const preparationTimerRef = useRef(null);
-  const conversationTimerRef = useRef(null);
-  
-  // États spécifiques à la tâche 3
-  const [isExtraTimePhase, setIsExtraTimePhase] = useState(false); // Pour gérer le temps supplémentaire
-  const [extraTimeUsed, setExtraTimeUsed] = useState(false); // Pour éviter les répétitions de scénarios
+    
+    // Désactiver le microphone si on passe à la phase 'objective' et qu'il est actif
+    if (currentPhase === 'objective' && isRecording) {
+      console.log('🔇 Désactivation automatique du microphone lors du passage à la phase objective');
+      setTimeout(() => handleStopRecording(), 100);
+    }
+  }, [currentPhase, isRecording]);
+
+  // Gestion du timeout automatique pour la confirmation (3 secondes)
+  useEffect(() => {
+    // Ne déclencher le timeout que si l'examen a démarré
+    if (currentPhase === 'waiting_confirmation' && examStarted) {
+      // Nettoyer tout timeout existant
+      if (confirmationTimeoutRef.current) {
+        clearTimeout(confirmationTimeoutRef.current);
+      }
+      
+      // Démarrer un nouveau timeout de 3 secondes
+      confirmationTimeoutRef.current = setTimeout(() => {
+        console.log('⏰ Timeout de confirmation atteint - continuation automatique');
+        // Simuler une réponse "oui" automatique
+        simulateMicrophoneClick();
+        handleUserResponse('oui');
+      }, 4000);
+    } else {
+      // Nettoyer le timeout si on quitte la phase de confirmation
+      if (confirmationTimeoutRef.current) {
+        clearTimeout(confirmationTimeoutRef.current);
+        confirmationTimeoutRef.current = null;
+      }
+    }
+
+    return () => {
+      // Nettoyer le timeout au démontage du composant
+      if (confirmationTimeoutRef.current) {
+        clearTimeout(confirmationTimeoutRef.current);
+      }
+    };
+  }, [currentPhase, examStarted]);
 
   // Chargement des données d'examen
   useEffect(() => {
@@ -143,16 +192,24 @@ const TCFOralExam = () => {
           ...data,
           tasks: data.tasks.map((task, index) => ({
             ...task,
-            // Pour la tâche 2 (index 1), ne pas inclure d'interactions
-            interactions: index === 1 ? [] : (task.interactions || [{
+              // Préserver le trigger de la tâche
+            trigger: task.trigger,
+            // Inclure les interactions pour toutes les tâches
+            interactions: task.interactions || [{
               id: `${task.id}_interaction_1`,
               content: task.instruction || task.description,
               type: 'instruction'
-            }])
+            }]
           }))
         };
 
         setExamData(transformedData);
+        
+        // Debug: Afficher la structure des interactions pour la tâche 2
+        if (transformedData.tasks[1]) {
+          console.log('🔍 Structure de la tâche 2:', transformedData.tasks[1]);
+          console.log('🔍 Interactions de la tâche 2:', transformedData.tasks[1].interactions);
+        }
 
         // Générer les URLs audio pour l'objectif et le trigger de chaque tâche
         const urls = {};
@@ -162,40 +219,37 @@ const TCFOralExam = () => {
           // Générer audio pour l'objectif
           if (task.objective) {
             try {
-              const objectiveAudioResult = await synthesisService.synthesizeText(task.objective);
-              if (objectiveAudioResult && (objectiveAudioResult.audioUrl || objectiveAudioResult.filename)) {
-                urls[`task_${task.id}_objective`] = objectiveAudioResult.audioUrl || synthesisService.getAudioUrl(objectiveAudioResult.filename);
+              const objectiveAudioUrl = await generateAudio(task.objective, subjectId);
+              if (objectiveAudioUrl) {
+                urls[`task_${task.id}_objective`] = objectiveAudioUrl;
               }
             } catch (audioError) {
               console.warn(`Erreur génération audio pour objectif tâche ${task.id}:`, audioError);
             }
           }
           
-          // Pour la tâche 2 (index 1), ne générer que l'objectif
-          if (i !== 1) {
-            // Générer audio pour le trigger
-            if (task.trigger) {
+          // Générer audio pour le trigger (toutes les tâches)
+          if (task.trigger) {
+            try {
+              const triggerAudioUrl = await generateAudio(task.trigger, subjectId);
+              if (triggerAudioUrl) {
+                urls[`task_${task.id}_trigger`] = triggerAudioUrl;
+              }
+            } catch (audioError) {
+              console.warn(`Erreur génération audio pour trigger tâche ${task.id}:`, audioError);
+            }
+          }
+          
+          // Générer audio pour les interactions existantes (toutes les tâches)
+          for (const interaction of task.interactions) {
+            if (interaction.content) {
               try {
-                const triggerAudioResult = await synthesisService.synthesizeText(task.trigger);
-                if (triggerAudioResult && (triggerAudioResult.audioUrl || triggerAudioResult.filename)) {
-                  urls[`task_${task.id}_trigger`] = triggerAudioResult.audioUrl || synthesisService.getAudioUrl(triggerAudioResult.filename);
+                const audioUrl = await generateAudio(interaction.content, subjectId);
+                if (audioUrl) {
+                  urls[interaction.id] = audioUrl;
                 }
               } catch (audioError) {
-                console.warn(`Erreur génération audio pour trigger tâche ${task.id}:`, audioError);
-              }
-            }
-            
-            // Générer audio pour les interactions existantes
-            for (const interaction of task.interactions) {
-              if (interaction.content) {
-                try {
-                  const audioResult = await synthesisService.synthesizeText(interaction.content);
-                  if (audioResult && (audioResult.audioUrl || audioResult.filename)) {
-                    urls[interaction.id] = audioResult.audioUrl || synthesisService.getAudioUrl(audioResult.filename);
-                  }
-                } catch (audioError) {
-                  console.warn(`Erreur génération audio pour ${interaction.id}:`, audioError);
-                }
+                console.warn(`Erreur génération audio pour ${interaction.id}:`, audioError);
               }
             }
           }
@@ -226,10 +280,8 @@ const TCFOralExam = () => {
           
           // Règles spécifiques par tâche
           if (currentTaskIndex === 0) { // Tâche 1
-            if (newTime >= 120) { // 2 minutes exactement - stop la présentation
-              simulateMicrophoneClick();
-              return 120;
-            }
+            // Pour la tâche 1, on laisse la détection de silence gérer l'arrêt
+            // Pas d'arrêt automatique après 2 minutes, seulement après 1,5s de silence
           } else if (currentTaskIndex === 1) { // Tâche 2
             if (newTime >= 90) { // 1.5 minutes maximum
               handleStopRecording();
@@ -320,16 +372,61 @@ const TCFOralExam = () => {
   const audioDurationScenarios = {
     // Tâche 1
     "si_dépasse_2_minutes": "Excusez-moi, vous avez dépassé le temps imparti. Nous allons maintenant passer à la tâche suivante.",
-    "si_fin_avant_1min30": "Très bien, vous avez terminé un peu avant la fin du temps imparti. Pouvez-vous nous en dire un peu plus sur ce que vous venez de partager ?",
-    "si_fin_avant_2min": "Merci, vous avez terminé juste avant la fin. Y a-t-il des exemples ou des expériences que vous aimeriez partager pour illustrer votre point ?",
-    // Questions de relance pour la tâche 1
-    "question_relance_1": "Pouvez-vous me parler d'un voyage que vous avez fait récemment ?",
-    "question_relance_2": "Pouvez-vous développer davantage ce point ?",
-    "question_relance_3": "Avez-vous d'autres détails à ajouter ?",
+    // Questions de relance pour la tâche 1 seront récupérées dynamiquement
+   
     // Tâche 3
     "si_le_candidat_parle_plus_de_4m30": "Le temps est écoulé. Merci pour votre réponse.",
-    "si_le_candidat_termine_entre_3m30_et_4m30": "Merci pour votre réponse, nous avons encore un peu de temps si vous souhaitez compléter votre point de vue.",
-    "si_le_candidat_termine_avant_3m30": "Très bien. Souhaitez-vous ajouter quelque chose ? Il nous reste un peu de temps."
+    "si_le_candidat_termine_entre_3m30_et_4m30": "Peux-tu me donner un exemple concret pour illustrer ton point de vue ?",
+    "si_le_candidat_termine_avant_3m30": "Peux-tu me donner un exemple concret pour illustrer ton point de vue ?"
+  };
+
+  // État pour stocker les questions de relance dynamiques de la tâche 1
+  const [task1FollowUpQuestions, setTask1FollowUpQuestions] = useState({});
+  const [task1QuestionAudioUrls, setTask1QuestionAudioUrls] = useState({});
+
+  // Fonction pour récupérer une question de relance dynamique pour la tâche 1
+  const getTask1FollowUpQuestion = async (scenario, userResponse = '') => {
+    try {
+      console.log('[Task1] Récupération question de relance pour:', scenario);
+      
+      // Construire le message pour l'agent IA
+      let promptMessage = '';
+      if (scenario === 'si_fin_avant_1min30') {
+        promptMessage = `L'utilisateur a parlé moins de 1min30. Voici sa réponse: "${userResponse}". Pose-lui une question de relance pour l'encourager à développer davantage sa présentation personnelle.`;
+      } else if (scenario === 'si_fin_avant_2min') {
+        promptMessage = `L'utilisateur a parlé entre 1min30 et 2min. Voici sa réponse: "${userResponse}". Pose-lui une question de relance pour compléter sa présentation personnelle.`;
+      }
+      
+      const response = await task1AgentService.sendMessage(promptMessage, 'Générer une question de relance pour la tâche 1');
+      
+      if (response && response.text) {
+        // Stocker la question et son audio
+        setTask1FollowUpQuestions(prev => ({
+          ...prev,
+          [scenario]: response.text
+        }));
+        
+        if (response.audioUrl) {
+          setTask1QuestionAudioUrls(prev => ({
+            ...prev,
+            [scenario]: response.audioUrl
+          }));
+        }
+        
+        return {
+          text: response.text,
+          audioUrl: response.audioUrl
+        };
+      }
+    } catch (error) {
+      console.error('[Task1] Erreur récupération question de relance:', error);
+      // Fallback vers une question par défaut
+      const fallbackQuestion = "Pouvez-vous nous en dire plus sur votre parcours ?";
+      return {
+        text: fallbackQuestion,
+        audioUrl: null
+      };
+    }
   };
 
   // Générer l'audio pour les scénarios de durée
@@ -341,7 +438,7 @@ const TCFOralExam = () => {
       const urls = {};
       for (const [key, text] of Object.entries(audioDurationScenarios)) {
         try {
-          const audioResult = await synthesisService.synthesizeText(text);
+          const audioResult = await synthesisService.synthesizeText(text, subjectId);
           if (audioResult && (audioResult.audioUrl || audioResult.filename)) {
             urls[key] = audioResult.audioUrl || synthesisService.getAudioUrl(audioResult.filename);
           }
@@ -358,7 +455,7 @@ const TCFOralExam = () => {
   }, [examStarted]);
 
   // Fonction pour vérifier la durée audio et retourner le bon scénario
-  const checkAudioDurationAndGetScenario = (audioDuration, taskIndex = currentTaskIndex) => {
+  const checkAudioDurationAndGetScenario = async (audioDuration, taskIndex = currentTaskIndex, userResponse = '') => {
     if (taskIndex === 0) { // Tâche 1
       console.log("============="+audioDuration)
       console.log("Temps total cumulé:", totalRecordingTime + audioDuration)
@@ -372,45 +469,82 @@ const TCFOralExam = () => {
           shouldEndTask: true
         };
       } else if (audioDuration < 90 && !isInContinuation) { // Moins de 1min30 sur cette intervention
+        // Récupérer une question dynamique
+        const dynamicQuestion = await getTask1FollowUpQuestion('si_fin_avant_1min30', userResponse);
         return {
-          text: audioDurationScenarios.si_fin_avant_1min30,
-          audioUrl: scenarioAudioUrls.si_fin_avant_1min30,
+          text: dynamicQuestion.text,
+          audioUrl: dynamicQuestion.audioUrl,
           allowContinuation: true
         };
       } else if (audioDuration >= 90 && audioDuration < 120 && !isInContinuation) { // Entre 1min30 et 2min sur cette intervention
+        // Récupérer une question dynamique
+        const dynamicQuestion = await getTask1FollowUpQuestion('si_fin_avant_2min', userResponse);
         return {
-          text: audioDurationScenarios.si_fin_avant_2min,
-          audioUrl: scenarioAudioUrls.si_fin_avant_2min,
+          text: dynamicQuestion.text,
+          audioUrl: dynamicQuestion.audioUrl,
           allowContinuation: true
         };
-      } else if (isInContinuation && cumulativeTime < 120) { // En continuation et pas encore 2min cumulées
-        // Choisir une question de relance selon le nombre de continuations
-        const questions = ['question_relance_1', 'question_relance_2', 'question_relance_3'];
-        const questionKey = questions[Math.min(continuationCount, questions.length - 1)];
+      } else if (isInContinuation && cumulativeTime < 120 && continuationCount < 3) { // En continuation et pas encore 2min cumulées, max 3 questions
+        // Utiliser une question de relance dynamique
+        const dynamicQuestion = await getTask1FollowUpQuestion('si_fin_avant_1min30', userResponse);
         return {
-          text: audioDurationScenarios[questionKey],
-          audioUrl: scenarioAudioUrls[questionKey],
+          text: dynamicQuestion.text,
+          audioUrl: dynamicQuestion.audioUrl,
           allowContinuation: true
+        };
+      } else if (isInContinuation && continuationCount >= 3) { // Maximum 3 questions atteint
+        return {
+          text: audioDurationScenarios.si_dépasse_2_minutes,
+          audioUrl: scenarioAudioUrls.si_dépasse_2_minutes,
+          shouldEndTask: true
+        };
+      } else if (isInContinuation && cumulativeTime >= 120) { // 2 minutes écoulées même en continuation
+        return {
+          text: audioDurationScenarios.si_dépasse_2_minutes,
+          audioUrl: scenarioAudioUrls.si_dépasse_2_minutes,
+          shouldEndTask: true
         };
       }
     } else if (taskIndex === 2) { // Tâche 3
+      const cumulativeTimeTask3 = conversationTime + audioDuration;
+      
       if (audioDuration > 270) { // Plus de 4m30 (270 secondes)
         return {
           text: audioDurationScenarios.si_le_candidat_parle_plus_de_4m30,
           audioUrl: scenarioAudioUrls.si_le_candidat_parle_plus_de_4m30,
           shouldEndExam: true
         };
-      } else if (audioDuration >= 210 && audioDuration <= 270) { // Entre 3m30 et 4m30
+      } else if (audioDuration >= 210 && audioDuration <= 270 && !isInTask3Continuation) { // Entre 3m30 et 4m30
         return {
           text: audioDurationScenarios.si_le_candidat_termine_entre_3m30_et_4m30,
           audioUrl: scenarioAudioUrls.si_le_candidat_termine_entre_3m30_et_4m30,
           allowExtraTime: true
         };
-      } else if (audioDuration < 210) { // Moins de 3m30
+      } else if (audioDuration < 210 && !isInTask3Continuation) { // Moins de 3m30
+        // text: audioDurationScenarios.si_le_candidat_termine_avant_3m30,
+         // audioUrl: scenarioAudioUrls.si_le_candidat_termine_avant_3m30,
         return {
-          text: audioDurationScenarios.si_le_candidat_termine_avant_3m30,
-          audioUrl: scenarioAudioUrls.si_le_candidat_termine_avant_3m30,
+          text: "Vous avez encore du temps, continuez à développer votre argumentation.",
+          audioUrl: null, // Sera généré dynamiquement
           allowExtraTime: true
+        };
+      } else if (isInTask3Continuation && cumulativeTimeTask3 < 270 && task3ContinuationCount < 2) { // En continuation et pas encore 4m30 cumulées, max 2 questions
+        return {
+          text: "Vous avez encore du temps, continuez à développer votre argumentation.",
+          audioUrl: null, // Sera généré dynamiquement
+          allowExtraTime: true
+        };
+      } else if (isInTask3Continuation && task3ContinuationCount >= 2) { // Maximum 2 questions atteint
+        return {
+          text: audioDurationScenarios.si_le_candidat_parle_plus_de_4m30,
+          audioUrl: scenarioAudioUrls.si_le_candidat_parle_plus_de_4m30,
+          shouldEndExam: true
+        };
+      } else if (isInTask3Continuation && cumulativeTimeTask3 >= 270) { // 4m30 écoulées même en continuation
+        return {
+          text: audioDurationScenarios.si_le_candidat_parle_plus_de_4m30,
+          audioUrl: scenarioAudioUrls.si_le_candidat_parle_plus_de_4m30,
+          shouldEndExam: true
         };
       }
     }
@@ -427,7 +561,7 @@ const TCFOralExam = () => {
     
     // Générer l'audio pour le message de transition
     try {
-      const audioResult = await synthesisService.synthesizeText(transitionMessage);
+      const audioResult = await synthesisService.synthesizeText(transitionMessage, subjectId);
       const audioUrl = audioResult && (audioResult.audioUrl || audioResult.filename) 
         ? audioResult.audioUrl || synthesisService.getAudioUrl(audioResult.filename)
         : null;
@@ -441,9 +575,12 @@ const TCFOralExam = () => {
       addChatMessage('system', 'Phase de conversation démarrée (3 minutes 30 secondes). À vous d\'initier la conversation.');
       
       // Activer automatiquement le microphone après la phrase de transition
-      setTimeout(() => {
-         simulateMicrophoneClick();
-      }, 100); // Délai court pour s'assurer que l'audio est bien terminé
+      // Ajout d'une vérification pour ne pas activer le micro automatiquement à la fin de la préparation de la tâche 2
+      if (currentPhaseRef.current !== 'preparation') {
+        setTimeout(() => {
+           simulateMicrophoneClick();
+        }, 100); // Délai court pour s'assurer que l'audio est bien terminé
+      }
     } catch (error) {
       console.warn('Erreur génération audio transition:', error);
       await addChatMessage('examiner', transitionMessage);
@@ -459,18 +596,17 @@ const TCFOralExam = () => {
   // Gérer la fin de la phase de conversation (tâche 2)
   const handleConversationEnd = async () => {
     if (isRecording) {
-      setTimeout(async() => {
-         await handleStopRecording();
-      }, 2000);
       await handleStopRecording();
     }
     setIsConversationPhase(false);
+    isConversationActiveRef.current = false;
+    setCurrentPhase('transition');
     
     // Message de fin de conversation
     const endMessage = "Le temps de conversation est écoulé. Merci pour cet échange.";
     
     try {
-      const audioResult = await synthesisService.synthesizeText(endMessage);
+      const audioResult = await synthesisService.synthesizeText(endMessage, subjectId);
       const audioUrl = audioResult && (audioResult.audioUrl || audioResult.filename) 
         ? audioResult.audioUrl || synthesisService.getAudioUrl(audioResult.filename)
         : null;
@@ -877,6 +1013,18 @@ const TCFOralExam = () => {
         position: 'relative',
         overflow: 'hidden'
       }}>
+        {/* Overlay transparent pour bloquer les interactions utilisateur */}
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'transparent',
+          zIndex: 9999,
+          pointerEvents: 'all'
+         
+        }} />
         {/* Effet de particules en arrière-plan */}
         <Box sx={{
           position: 'absolute',
@@ -908,6 +1056,7 @@ const TCFOralExam = () => {
                currentPhase === 'interview' ? '🎤 Entretien en cours' :
                currentPhase === 'preparation' ? '📝 Phase de préparation' :
                currentPhase === 'conversation' ? '💬 Conversation libre' :
+               currentPhase === 'transition' ? '🔄 Transition en cours' :
                '🎙️ Examen oral TCF'}
             </Typography>
           </Fade>
@@ -1032,7 +1181,7 @@ const TCFOralExam = () => {
               lineHeight: 1.6
             }}>
               {currentPhase === 'waiting_confirmation' ? 
-                '💡 Dites "oui", "prêt" ou "ready" pour confirmer' :
+                '💡 Dites "oui", "prêt" pour confirmer. L\'examen continuera automatiquement dans 3 secondes.' :
                isRecording ? 
                 '🎯 Exprimez-vous clairement et naturellement' :
                audioPlaying ? 
@@ -1048,8 +1197,16 @@ const TCFOralExam = () => {
     );
   };
 
-  // Fonction pour simuler le clic sur le microphone
+  // Fonction pour simuler le clic sur le microphone avec debounce
+  const lastMicClickRef = useRef(0);
   const simulateMicrophoneClick = () => {
+    const now = Date.now();
+    if (now - lastMicClickRef.current < 400) {
+      console.warn('Ignoré: clic microphone trop proche');
+      return;
+    }
+    lastMicClickRef.current = now;
+
     const microphoneBtn = document.querySelector('.animated-microphone');
     if (microphoneBtn) {
       microphoneBtn.click();
@@ -1207,7 +1364,16 @@ const TCFOralExam = () => {
       let storedTranscript = '';
       let lastUpdateTime = 0;
       let transcriptCheckTimer = null;
-      const COMPARISON_DELAY = 1000; // 1.5 secondes avant comparaison
+      // Délai dynamique selon la tâche
+      const getComparisonDelay = (taskIndex) => {
+        switch (taskIndex) {
+          case 0: return 2000; // Tâche 1: 2 secondes
+          case 1: return 1200; // Tâche 2: 1.2 secondes
+          case 2: return 2500; // Tâche 3: 2.5 secondes
+          default: return 1500; // Valeur par défaut
+        }
+      };
+      const COMPARISON_DELAY = getComparisonDelay(currentTaskIndex);
 
       recognition.onresult = (event) => {
         let finalTranscript = '';
@@ -1348,7 +1514,23 @@ const TCFOralExam = () => {
   // Démarrer l'examen
   const handleStartExam = async () => {
     try {
-      // Initialiser l'enregistrement et la reconnaissance vocale
+      // Utiliser les informations utilisateur du contexte
+      if (userInfo) {
+        const currentSold = userInfo.sold;
+        
+        // Vérifier si l'utilisateur a suffisamment de crédits
+        if (currentSold > 0) {
+         
+          // Décrémenter le solde de 1
+          const newSold = currentSold - 1;
+          console.log(newSold);
+          // Mettre à jour le solde dans le backend via API
+          await authService.updateSold(userInfo.username, newSold);
+          
+          // Recharger les informations utilisateur pour synchroniser
+          await loadUserInfo(true);
+          
+          // Initialiser l'enregistrement et la reconnaissance vocale
       const recordingOk = await initializeRecording();
       if (!recordingOk) {
         // L'erreur est déjà définie dans initializeRecording/initializeStream
@@ -1356,12 +1538,15 @@ const TCFOralExam = () => {
       }
       const recognitionOk = initializeSpeechRecognition();
 
+      // Réinitialiser seulement les états nécessaires pour le démarrage
       setExamStarted(true);
       setCurrentTaskIndex(0);
-      setCurrentInteraction(0);
-      setChatMessages([]);
       setCurrentPhase('objective');
-      setUserConfirmed(false);
+      
+      // Utiliser les fonctions de réinitialisation sélective
+      resetForNewTask();
+      resetAllChatStates();
+      resetAllTaskStates();
 
       // Sauvegarder les données du sujet dès le début de l'examen
       localStorage.setItem(`exam_subject_${subjectId}`, JSON.stringify(examData));
@@ -1384,9 +1569,16 @@ const TCFOralExam = () => {
         }, 500);
       }, 2000);
       
+        } else {
+          // Afficher un message d'erreur si pas assez de crédits
+          alert('Vous n\'avez pas suffisamment de crédits pour commencer cet examen.');
+        }
+      } else {
+        alert('Erreur: Informations utilisateur non trouvées.');
+      }
     } catch (error) {
-      console.error('Erreur démarrage examen:', error);
-      setError('Erreur lors du démarrage de l\'examen');
+      console.error('Erreur lors de la mise à jour du solde:', error);
+      alert('Erreur lors du démarrage de l\'examen. Veuillez réessayer.');
     }
   };
 
@@ -1448,6 +1640,11 @@ const TCFOralExam = () => {
       recognitionState: recognitionRef.current?.state
     });
     
+    if (currentPhase === 'objective') {
+      console.warn("⚠️ BLOCAGE: Impossible de démarrer l'enregistrement pendant la présentation de l'objectif.");
+      return;
+    }
+
     // Empêcher l'enregistrement si l'examinateur parle
     if (audioPlaying) {
       console.warn("⚠️ BLOCAGE: Examinateur en train de parler");
@@ -1597,7 +1794,7 @@ const TCFOralExam = () => {
       // Traiter la transcription immédiatement
       (async () => {
         // Vérifier les scénarios de durée selon la tâche
-        const shouldTriggerScenario = (currentTaskIndex === 0 && finalRecordingTime >= 120) || 
+        const shouldTriggerScenario = (currentTaskIndex === 0 && (totalRecordingTime + finalRecordingTime) >= 120) || 
                                      (currentTaskIndex === 2 && finalRecordingTime >= 270);
         
         if (shouldTriggerScenario) {
@@ -1609,10 +1806,20 @@ const TCFOralExam = () => {
           }
           
           // Déclencher immédiatement le scénario de dépassement de temps
-          const durationScenario = checkAudioDurationAndGetScenario(finalRecordingTime, currentTaskIndex);
+          const durationScenario = await checkAudioDurationAndGetScenario(finalRecordingTime, currentTaskIndex, transcript.trim());
           if (durationScenario && currentPhase === 'interview') {
             setTimeout(async () => {
-              await addChatMessage('examiner', durationScenario.text, durationScenario.audioUrl, 'audio');
+              // Générer l'audio dynamiquement si nécessaire (pour les messages de relance tâche 3)
+              let audioUrl = durationScenario.audioUrl;
+              if (!audioUrl && currentTaskIndex === 2 && durationScenario.allowExtraTime) {
+                try {
+                  audioUrl = await generateAudio(durationScenario.text);
+                } catch (error) {
+                  console.error('Erreur génération audio tâche 3:', error);
+                }
+              }
+              
+              await addChatMessage('examiner', durationScenario.text, audioUrl, 'audio');
               setCanProceed(true);
               
               // Logique selon la tâche et le scénario
@@ -1652,19 +1859,26 @@ const TCFOralExam = () => {
                   }, 3000);
                 }
               } else if (currentTaskIndex === 2) {
-                // Tâche 3: gérer les scénarios de fin
+                // Tâche 3: gérer les scénarios de fin et les continuations
                 if (durationScenario.shouldEndExam) {
                   // Pas d'activation du microphone car fin d'examen
                   setTimeout(() => {
                     handleExamEnd();
                   }, 3000);
-                } else if (durationScenario.allowExtraTime && !extraTimeUsed) {
-                  // Activer le microphone seulement si temps supplémentaire accordé
+                } else if (durationScenario.allowExtraTime && !isInTask3Continuation) {
+                  // Premier temps supplémentaire ou continuation
                   setTimeout(() => {
                     simulateMicrophoneClick();
                   }, 500);
-                  setIsExtraTimePhase(true);
-                  setExtraTimeUsed(true);
+                  setIsInTask3Continuation(true);
+                  setTask3ContinuationCount(prev => prev + 1);
+                  setCanProceed(true);
+                } else if (durationScenario.allowExtraTime && isInTask3Continuation && task3ContinuationCount < 2) {
+                  // Continuation avec questions de relance limitées à 2
+                  setTimeout(() => {
+                    simulateMicrophoneClick();
+                  }, 500);
+                  setTask3ContinuationCount(prev => prev + 1);
                   setCanProceed(true);
                 }
               }
@@ -1693,7 +1907,13 @@ const TCFOralExam = () => {
               localStorage.setItem(`exam_session_${subjectId}_task_${currentTaskIndexRef.current}`, JSON.stringify(examSession));
               
               const currentTask = examData.tasks[currentTaskIndexRef.current];
-              const agentResponse = await task2AgentServiceRef.current.sendMessage(transcript.trim(), currentTask.objective);
+              
+              // Concaténer l'objectif avec le trigger pour former le prompt complet
+              const combinedObjective = currentTask.trigger ? `${currentTask.objective} ${currentTask.trigger}` : currentTask.objective;
+              console.log('🎯 Objectif combiné (auto):', combinedObjective);
+              console.log('🔗 Trigger utilisé (auto):', currentTask.trigger);
+              
+              const agentResponse = await task2AgentServiceRef.current.sendMessage(transcript.trim(), combinedObjective);
               
               if (agentResponse && agentResponse.text) {
                 // L'audio se déclenchera automatiquement si une URL audio est fournie
@@ -1752,10 +1972,15 @@ const TCFOralExam = () => {
             // Jouer le trigger de la tâche 2 et attendre qu'il se termine
             const triggerAudioUrl = audioUrls[`task_${currentTask.id}_trigger`];
             await addChatMessage('examiner', currentTask.trigger, triggerAudioUrl, 'audio');
-            // Activer automatiquement le microphone après le trigger
             
+            // Jouer l'audio d'interaction après le trigger
+            if (currentTask.interactions && currentTask.interactions.length > 0) {
+              const interaction = currentTask.interactions[0];
+              const interactionAudioUrl = audioUrls[interaction.id];
+              await addChatMessage('examiner', interaction.content, interactionAudioUrl, 'audio');
+            }
             
-            // Après le trigger, démarrer automatiquement la phase de préparation
+            // Après les interactions, démarrer automatiquement la phase de préparation
             setCurrentPhase('preparation');
             setIsPreparationPhase(true);
             setPreparationTime(0);
@@ -1808,7 +2033,20 @@ const TCFOralExam = () => {
           console.log('currentTask')
           console.log(currentTask)
            setCurrentPhase('conversation');
-          const agentResponse = await task2AgentServiceRef.current.sendMessage(userMessage, currentTask.objective);
+          
+          // Concaténer l'objectif avec le trigger
+          console.log('🔍 Debug currentTask:', currentTask);
+          console.log('🔍 Debug currentTask.trigger:', currentTask.trigger);
+          
+          let combinedObjective = currentTask.objective;
+          if (currentTask.trigger) {
+            combinedObjective = currentTask.objective + "   " + currentTask.trigger;
+            console.log('🔗 Objectif concaténé avec trigger:', combinedObjective);
+          } else {
+            console.log('⚠️ Aucun trigger trouvé, envoi de l\'objectif seul:', combinedObjective);
+          }
+          
+          const agentResponse = await task2AgentServiceRef.current.sendMessage(userMessage, combinedObjective);
           
           if (agentResponse && agentResponse.text) {
             // L'audio se déclenchera automatiquement si une URL audio est fournie
@@ -1827,10 +2065,20 @@ const TCFOralExam = () => {
           // Utiliser la durée réelle de l'enregistrement au lieu d'une estimation
           const actualDuration = recordingTime;
           
-          const durationScenario = checkAudioDurationAndGetScenario(actualDuration, currentTaskIndex);
+          const durationScenario = await checkAudioDurationAndGetScenario(actualDuration, currentTaskIndex, userMessage);
           if (durationScenario && currentPhase === 'interview') {
             setTimeout(async () => {
-              await addChatMessage('examiner', durationScenario.text, durationScenario.audioUrl, 'audio');
+              // Générer l'audio dynamiquement si nécessaire (pour les messages de relance tâche 3)
+              let audioUrl = durationScenario.audioUrl;
+              if (!audioUrl && currentTaskIndex === 2 && durationScenario.allowExtraTime) {
+                try {
+                  audioUrl = await generateAudio(durationScenario.text);
+                } catch (error) {
+                  console.error('Erreur génération audio tâche 3:', error);
+                }
+              }
+              
+              await addChatMessage('examiner', durationScenario.text, audioUrl, 'audio');
               
               // Logique selon la tâche
               if (currentTaskIndex === 0) {
@@ -1875,20 +2123,21 @@ const TCFOralExam = () => {
                   setTimeout(() => {
                     handleExamEnd();
                   }, 3000);
-                } else if (durationScenario.allowExtraTime && !extraTimeUsed) {
-                  // Activer le microphone seulement si temps supplémentaire accordé
+                } else if (durationScenario.allowExtraTime && !isInTask3Continuation) {
+                  // Premier temps supplémentaire ou continuation
                   setTimeout(() => {
                     simulateMicrophoneClick();
                   }, 500);
-                  // Marquer le temps supplémentaire comme utilisé et terminer l'examen après la réponse
-                  setExtraTimeUsed(true);
+                  setIsInTask3Continuation(true);
+                  setTask3ContinuationCount(prev => prev + 1);
                   setCanProceed(true);
+                } else if (durationScenario.allowExtraTime && isInTask3Continuation && task3ContinuationCount < 2) {
+                  // Continuation avec questions de relance limitées à 2
                   setTimeout(() => {
-                    addChatMessage('system', 'Merci pour votre réponse. L\'examen va se terminer.');
-                    setTimeout(() => {
-                      handleExamEnd();
-                    }, 3000);
-                  }, 3000);
+                    simulateMicrophoneClick();
+                  }, 500);
+                  setTask3ContinuationCount(prev => prev + 1);
+                  setCanProceed(true);
                 }
               }
             }, 1000);
@@ -1915,9 +2164,21 @@ const TCFOralExam = () => {
         
         // Interaction avec l'agent IA pour la tâche 2
         const currentTask = examData.tasks[currentTaskIndex];
-        const agentResponse = await task2AgentServiceRef.current.sendMessage(userMessage, currentTask.objective);
         
-        if (agentResponse && agentResponse.text) {
+        // Concaténer l'objectif avec le trigger
+        let combinedObjective = currentTask.objective;
+        if (currentTask.trigger) {
+          combinedObjective = currentTask.objective + "\n\n" + currentTask.trigger;
+          console.log('🔗 Objectif concaténé avec trigger (conversation):', combinedObjective);
+        } else {
+          console.log('⚠️ Aucun trigger trouvé (conversation), envoi de l\'objectif seul:', combinedObjective);
+        }
+        
+        const agentResponse = await task2AgentServiceRef.current.sendMessage(userMessage, combinedObjective);
+        
+        // Vérifier si la conversation est toujours active avant de jouer la réponse
+        // Cela empêche les réponses tardives de s'activer si l'utilisateur est déjà passé à la tâche 3
+        if (agentResponse && agentResponse.text && currentTaskIndex === 1 && currentPhase === 'conversation' && isConversationPhase) {
             // Utiliser l'audio fourni par l'agent ou générer un nouveau si nécessaire
             if (agentResponse.audioUrl) {
               await addChatMessage('examiner', agentResponse.text, agentResponse.audioUrl, 'audio');
@@ -1928,7 +2189,7 @@ const TCFOralExam = () => {
             } else {
             // Générer l'audio si l'agent n'en fournit pas
             try {
-              const audioResult = await synthesisService.synthesizeText(agentResponse.text);
+              const audioResult = await synthesisService.synthesizeText(agentResponse.text, subjectId);
               const audioUrl = audioResult && (audioResult.audioUrl || audioResult.filename) 
                 ? audioResult.audioUrl || synthesisService.getAudioUrl(audioResult.filename)
                 : null;
@@ -1947,6 +2208,9 @@ const TCFOralExam = () => {
               }, 500);
             }
           }
+        } else if (agentResponse && agentResponse.text) {
+          // Si la conversation n'est plus active, enregistrer la réponse sans jouer l'audio
+          console.log('Réponse tardive ignorée car la conversation est terminée:', agentResponse.text);
         }
       }
     } catch (error) {
@@ -1998,33 +2262,15 @@ const TCFOralExam = () => {
       };
       localStorage.setItem(`exam_session_${subjectId}_task_${currentTaskIndex}_complete`, JSON.stringify(completeSession));
       
-      // Nettoyer les états
+      // Nettoyer les états avec les nouvelles fonctions de réinitialisation
       const nextTaskIndex = currentTaskIndex + 1;
       setCurrentTaskIndex(nextTaskIndex);
-      setCurrentInteraction(0);
-      setCanProceed(false);
-      setAudioEnded(false);
-      setHasRecorded(false);
-      setTranscript('');
-      // Ne pas réinitialiser currentPhase ici pour éviter l'affichage temporaire d'"objective"
-      setUserConfirmed(false);
+      setCurrentPhase('objective');
       
-      // Réinitialiser les états spécifiques à la tâche 1 (continuation)
-      if (currentTaskIndex === 0) {
-        setTotalRecordingTime(0);
-        setContinuationCount(0);
-        setIsInContinuation(false);
-      }
-      
-      // Réinitialiser les états spécifiques à la tâche 2
-      setPreparationTime(0);
-      setConversationTime(0);
-      setIsPreparationPhase(false);
-      setIsConversationPhase(false);
-      
-      // Réinitialiser les états spécifiques à la tâche 3
-      setIsExtraTimePhase(false);
-      setExtraTimeUsed(false);
+      // Utiliser les fonctions de réinitialisation sélective
+      resetForNewTask();
+      resetAllTaskStates();
+      resetChatMessages();
       
       // Nettoyer les timers
       if (preparationTimerRef.current) {
@@ -2033,11 +2279,8 @@ const TCFOralExam = () => {
       if (conversationTimerRef.current) {
         clearInterval(conversationTimerRef.current);
       }
-      setChatMessages([]);
       console.log(chatMessages);
-      // Réinitialiser le chat pour la nouvelle tâche
-      setChatMessages([]);
-       if (!isRecording) {
+       if (isRecording) {
         setTimeout(() => {
           simulateMicrophoneClick();
         }, 100);
@@ -2060,28 +2303,16 @@ const TCFOralExam = () => {
       }, 500);
     }
       
-      // Logique différente selon la tâche
-      if (nextTaskIndex === 1) {
-        // Pour la tâche 2, définir la phase objective puis passer à la préparation
-       // setCurrentPhase('objective');
+      // Pour toutes les tâches, définir la phase objective puis passer en attente de confirmation
+      setCurrentPhase('objective');
+      setTimeout(() => {
+        setCurrentPhase('waiting_confirmation');
+        addChatMessage('system', 'Êtes-vous prêt(e) à commencer cette nouvelle tâche ? Répondez "oui" pour continuer.');
+        // Activer automatiquement le microphone après le message de confirmation
         setTimeout(() => {
-          setCurrentPhase('preparation');
-          setIsPreparationPhase(true);
-          setPreparationTime(0);
-          addChatMessage('system', 'Phase de préparation démarrée (2 minutes). Préparez vos questions.');
-        }, 3000); // Attendre que l'audio de l'objectif se termine
-      } else {
-        // Pour les autres tâches, définir la phase objective puis passer en attente de confirmation
-        setCurrentPhase('objective');
-        setTimeout(() => {
-          setCurrentPhase('waiting_confirmation');
-          addChatMessage('system', 'Êtes-vous prêt(e) à commencer cette nouvelle tâche ? Répondez "oui" pour continuer.');
-          // Activer automatiquement le microphone après le message de confirmation
-          setTimeout(() => {
-            simulateMicrophoneClick();
-          }, 500);
-        }, 3000); // Attendre que l'audio de l'objectif se termine
-      }
+          simulateMicrophoneClick();
+        }, 500);
+      }, 3000); // Attendre que l'audio de l'objectif se termine
     } else {
       handleExamEnd();
     }
@@ -2368,6 +2599,17 @@ const TCFOralExam = () => {
                <div dangerouslySetInnerHTML={{ __html: currentTask.title }} />
             </MDTypography>
             <Box display="flex" alignItems="center" gap={2}>
+              {/* Affichage du temps cumulé pour la tâche 1 */}
+              {currentTaskIndex === 0 && (
+                <Chip 
+                  icon={<AccessTime />} 
+                  label={`Temps cumulé: ${formatTime(totalRecordingTime)} / 2:00`}
+                  color={totalRecordingTime >= 120 ? "error" : totalRecordingTime >= 90 ? "warning" : "primary"}
+                  variant="filled"
+                  size="small"
+                />
+              )}
+              
               {/* Affichage de la phase actuelle */}
               {currentPhase && (
                 <Chip 
@@ -2377,6 +2619,7 @@ const TCFOralExam = () => {
                          currentPhase === 'interview' ? 'Entretien en cours' :
                          currentPhase === 'preparation' ? 'Préparation (2 min)' :
                          currentPhase === 'conversation' ? 'Conversation (3m30)' :
+                         currentPhase === 'transition' ? 'Transition en cours' :
                          'Phase inconnue'}
                   color={
                     currentPhase === 'objective' ? 'info' :
@@ -2385,6 +2628,7 @@ const TCFOralExam = () => {
                     currentPhase === 'interview' ? 'success' :
                     currentPhase === 'preparation' ? 'warning' :
                     currentPhase === 'conversation' ? 'success' :
+                    currentPhase === 'transition' ? 'secondary' :
                     'default'
                   }
                   variant="filled"
@@ -2417,7 +2661,7 @@ const TCFOralExam = () => {
               {isRecording && (
                 <Chip 
                   icon={<Mic />} 
-                  label={`REC ${formatTime(currentTaskIndex === 0 ? totalRecordingTime + recordingTime : recordingTime)}`}
+                  label={`REC ${formatTime(recordingTime)}`}
                   color="error"
                   variant="filled"
                   sx={{ animation: 'pulse 1s infinite' }}
@@ -2444,7 +2688,7 @@ const TCFOralExam = () => {
               <Alert severity="info" sx={{ mb: 3 }}>
                 <Typography>
                   <strong>Êtes-vous prêt(e) à commencer cette tâche ?</strong><br/>
-                  Appuie sur le micro en bas et réponds "oui", "je suis prêt" ou "je suis prête" pour confirmer et commencer l'entretien.
+               Réponds simplement par “oui”, “je suis prêt” ou “je suis prête” pour confirmer et commencer l’entretien.
                 </Typography>
               </Alert>
             )}
@@ -2505,8 +2749,8 @@ const TCFOralExam = () => {
             </Box>
           </Paper>
 
-          {/* Chat des échanges */}
-          {renderChatInterface()}
+            {/* Chat des échanges */}
+          {/* {renderChatInterface()} */}
         </Box>
         
         {/* Lecteur audio caché */}

@@ -18,12 +18,14 @@
     "@emotion/styled": "11.10.8",
     "@mui/icons-material": "5.11.16",
     "@mui/material": "5.12.3",
+    "@mui/x-date-pickers": "^6.19.9",
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^7.3.0",
     "@tinymce/tinymce-react": "^6.1.0",
     "axios": "^1.9.0",
     "chart.js": "4.3.0",
     "chroma-js": "2.4.2",
+    "date-fns": "^3.6.0",
     "prop-types": "15.8.1",
     "react": "18.2.0",
     "react-chartjs-2": "5.2.0",
@@ -36,6 +38,7 @@
     "react-scripts": "5.0.1",
     "react-swipeable-views": "^0.14.0",
     "react-table": "7.8.0",
+    "recharts": "^3.1.2",
     "stylis": "4.1.4",
     "stylis-plugin-rtl": "2.1.1",
     "uuid": "^11.1.0",
@@ -67,7 +70,9 @@
     ]
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
     "ajv": "^7.2.4",
+    "craco": "^0.0.3",
     "eslint": "8.39.0",
     "eslint-config-prettier": "8.8.0",
     "eslint-plugin-import": "2.27.5",
@@ -75,7 +80,11 @@
     "eslint-plugin-prettier": "4.2.1",
     "eslint-plugin-react": "7.32.2",
     "eslint-plugin-react-hooks": "4.6.0",
-    "prettier": "2.8.8"
+    "javascript-obfuscator": "^4.1.1",
+    "prettier": "2.8.8",
+    "terser-webpack-plugin": "^5.3.14",
+    "webpack-bundle-analyzer": "^4.10.2",
+    "webpack-obfuscator": "^3.5.1"
   },
   "overrides": {
     "svgo": "3.0.2"

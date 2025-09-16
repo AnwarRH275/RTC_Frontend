@@ -16,7 +16,11 @@ const getAuthHeader = () => {
 // Inscription d'un nouvel utilisateur
 const signup = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/signup`, userData);
+    // Pour l'inscription publique, ne pas envoyer de token d'autorisation
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    
+    const response = await axios.post(`${API_URL}/signup`, userData, { headers });
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token);
     }

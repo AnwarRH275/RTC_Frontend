@@ -161,95 +161,124 @@ function Overview() {
     }
   };
 
-  const InfoCard = ({ icon, title, value, color = "info", showButton = false, onButtonClick }) => (
+  const InfoCard = ({ icon, title, value, color = "#1976d2", showButton = false, onButtonClick }) => (
     <Card 
-      sx={{ 
-        p: 3, 
+      sx={{
+        borderRadius: 4,
+        background: `linear-gradient(135deg, ${color}15 0%, ${color}05 100%)`,
+        border: `1px solid ${color}20`,
+        cursor: showButton ? 'pointer' : 'default',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         height: '100%',
-        background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
-        color: 'white',
-        borderRadius: 3,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
         '&:hover': {
-          transform: 'translateY(-5px)',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+          transform: 'translateY(-8px) scale(1.02)',
+          boxShadow: `0 20px 40px ${color}20`,
+          background: `linear-gradient(135deg, ${color}20 0%, ${color}10 100%)`,
         }
       }}
+      onClick={onButtonClick}
     >
-      <MDBox display="flex" alignItems="center" mb={2}>
-        <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 2 }}>
-          {icon}
-        </Avatar>
-        <MDTypography variant="h6" color="white" fontWeight="medium">
-          {title}
-        </MDTypography>
-      </MDBox>
-      <MDTypography variant="h5" color="white" fontWeight="bold">
-        {value}
-      </MDTypography>
-      {showButton && (
-        <MDBox mt={2}>
-          <MDButton 
-            variant="contained" 
-            color="white" 
-            size="small"
-            onClick={onButtonClick}
-            sx={{ 
-              color: '#0083b0',
-              fontWeight: 'bold',
-              '&:hover': { 
-                backgroundColor: 'rgba(255,255,255,0.9)' 
-              }
-            }}
-          >
-            Utiliser mes crédits
-          </MDButton>
+      <MDBox p={3}>
+        <MDBox display="flex" justifyContent="space-between" alignItems="flex-start">
+          <MDBox>
+            <MDBox display="flex" alignItems="center" mb={1}>
+              <Avatar 
+                sx={{ 
+                  bgcolor: `${color}25`,
+                  color: color,
+                  mr: 2,
+                  width: 56,
+                  height: 56,
+                  fontSize: '1.5rem'
+                }}
+              >
+                {icon}
+              </Avatar>
+            </MDBox>
+            <MDTypography variant="h3" fontWeight="bold" color="dark" mb={0.5}>
+              {value}
+            </MDTypography>
+            <MDTypography variant="button" color="text" fontWeight="medium">
+              {title}
+            </MDTypography>
+            {showButton && (
+              <MDBox mt={2}>
+                <MDButton 
+                  variant="contained" 
+                  size="small"
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)`,
+                    color: 'white',
+                    fontWeight: 'bold',
+                    borderRadius: 2,
+                    '&:hover': { 
+                      background: `linear-gradient(135deg, ${color}dd 0%, ${color}bb 100%)`,
+                      transform: 'translateY(-2px)',
+                    }
+                  }}
+                >
+                  Utiliser mes crédits
+                </MDButton>
+              </MDBox>
+            )}
+          </MDBox>
         </MDBox>
-      )}
+      </MDBox>
     </Card>
   );
 
-  const TotalCreditsCard = () => (
-    <Card 
-      sx={{ 
-        p: 3, 
-        height: '100%',
-        background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
-        color: 'white',
-        borderRadius: 3,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        '&:hover': {
-          transform: 'translateY(-5px)',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
-        }
-      }}
-    >
-      <MDBox display="flex" alignItems="center" mb={2}>
-        <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mr: 2 }}>
-          <StarIcon />
-        </Avatar>
-        <MDTypography variant="h6" color="white" fontWeight="medium">
-          Total des crédits
-        </MDTypography>
-      </MDBox>
-      
-      <MDBox display="flex" alignItems="center" mb={2}>
-        <WorkspacePremiumIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
-        <MDTypography variant="body1" color="white" fontWeight="medium">
-          Plan: {userInfo.subscription_plan?.toUpperCase() || 'STANDARD'}
-        </MDTypography>
-      </MDBox>
-      
-      <MDBox display="flex" alignItems="center">
-        <AccountBalanceWalletIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
-        <MDTypography variant="h5" color="white" fontWeight="bold">
-          {userInfo.total_sold || 0} crédits
-        </MDTypography>
-      </MDBox>
-    </Card>
-  );
+  const TotalCreditsCard = () => {
+    const color = '#ff9800'; // Orange color for credits
+    return (
+      <Card 
+        sx={{
+          borderRadius: 4,
+          background: `linear-gradient(135deg, ${color}15 0%, ${color}05 100%)`,
+          border: `1px solid ${color}20`,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          height: '100%',
+          '&:hover': {
+            transform: 'translateY(-8px) scale(1.02)',
+            boxShadow: `0 20px 40px ${color}20`,
+            background: `linear-gradient(135deg, ${color}20 0%, ${color}10 100%)`,
+          }
+        }}
+      >
+        <MDBox p={3}>
+          <MDBox display="flex" justifyContent="space-between" alignItems="flex-start">
+            <MDBox>
+              <MDBox display="flex" alignItems="center" mb={1}>
+                <Avatar 
+                 sx={{ 
+                   bgcolor: `${color}25`,
+                   color: color,
+                   mr: 2,
+                   width: 56,
+                   height: 56,
+                   fontSize: '1.5rem'
+                 }}
+               >
+                 <StarIcon />
+               </Avatar>
+              </MDBox>
+              <MDTypography variant="h3" fontWeight="bold" color="dark" mb={0.5}>
+                {userInfo?.total_sold || 0}
+              </MDTypography>
+              <MDTypography variant="button" color="text" fontWeight="medium">
+                Total des crédits
+              </MDTypography>
+              <MDBox display="flex" alignItems="center" mt={1}>
+                <WorkspacePremiumIcon sx={{ mr: 1, fontSize: '1.2rem', color: color }} />
+                <MDTypography variant="caption" color="text" sx={{ opacity: 0.8 }}>
+                  Plan: {userInfo?.subscription_plan?.toUpperCase() || 'STANDARD'}
+                </MDTypography>
+              </MDBox>
+            </MDBox>
+          </MDBox>
+        </MDBox>
+      </Card>
+    );
+  };
 
   if (!userInfo) {
     return (
@@ -274,12 +303,17 @@ function Overview() {
           sx={{ 
             p: { xs: 3, md: 4 }, 
             mb: 3, 
-            background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
-            color: 'white',
-            borderRadius: 3,
-            boxShadow: '0 20px 60px rgba(79, 204, 231, 0.3)',
+            borderRadius: 4,
+            background: 'linear-gradient(135deg, #1976d215 0%, #1976d205 100%)',
+            border: '1px solid #1976d220',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             position: 'relative',
             overflow: 'hidden',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '0 20px 40px #1976d220',
+              background: 'linear-gradient(135deg, #1976d220 0%, #1976d210 100%)',
+            },
             '&::before': {
               content: '""',
               position: 'absolute',
@@ -287,8 +321,8 @@ function Overview() {
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.1) 100%)',
-              opacity: 0.5
+              background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%231976d2" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+              opacity: 0.3
             }
           }}
         >
@@ -298,20 +332,22 @@ function Overview() {
                 sx={{ 
                   width: { xs: 80, md: 120 }, 
                   height: { xs: 80, md: 120 }, 
-                  bgcolor: 'rgba(255,255,255,0.25)',
+                  bgcolor: 'rgba(79, 204, 231, 0.2)',
                   fontSize: { xs: '2rem', md: '3rem' },
-                  border: '3px solid rgba(255,255,255,0.3)',
+                  border: '3px solid rgba(79, 204, 231, 1)',
+                  color:'#344767',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
                 }}
+              
               >
                 {userInfo.prenom?.[0]?.toUpperCase() || userInfo.username?.[0]?.toUpperCase() || 'U'}
               </Avatar>
             </Grid>
             <Grid item xs>
-              <MDTypography variant="h3" color="white" fontWeight="bold" mb={1}>
+              <MDTypography variant="h3" color="dark" fontWeight="bold" mb={1}>
                 {userInfo.prenom} {userInfo.nom}
               </MDTypography>
-              <MDTypography variant={{ xs: 'body1', md: 'h6' }} color="white" opacity={0.9} mb={2}>
+              <MDTypography variant={{ xs: 'body1', md: 'h6' }} color="text" opacity={0.8} mb={2}>
                 @{userInfo.username}
               </MDTypography>
               <Grid item xs>
@@ -325,7 +361,7 @@ function Overview() {
                   py: 0.5
                 }}
               >
-                <MDTypography variant="body2" color="white" fontWeight="medium">
+                <MDTypography variant="body2" color="text" fontWeight="medium">
                   Membre depuis {formatDate(userInfo.date_create)}
                 </MDTypography>
               </MDBox>
@@ -369,6 +405,7 @@ function Overview() {
               icon={<CalendarTodayIcon />}
               title="Date de création"
               value={formatDate(userInfo.date_create)}
+              color="#4caf50"
             />
           </Grid>
 
@@ -377,6 +414,7 @@ function Overview() {
               icon={<EmailIcon />}
               title="Email"
               value={userInfo.email || 'Non spécifié'}
+              color="#2196f3"
             />
           </Grid>
           
@@ -385,15 +423,12 @@ function Overview() {
               icon={<AccountBalanceWalletIcon />}
               title="Crédits disponibles"
               value={`${userInfo.sold || 0} crédits`}
+              color="#9c27b0"
               showButton={true}
               onButtonClick={() => setOpenCreditsDialog(true)}
             />
-          </Grid>
-        
+          </Grid>        
         </Grid>
-
-        {/* Informations supplémentaires */}
-    
 
         {/* Dialog pour changer le mot de passe */}
         <Dialog 

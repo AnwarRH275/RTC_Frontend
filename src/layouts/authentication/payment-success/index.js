@@ -211,9 +211,9 @@ function PaymentSuccess() {
             boxShadow: "0 12px 20px -10px rgba(0, 123, 255, 0.28), 0 4px 20px 0px rgba(0, 0, 0, 0.12), 0 7px 8px -5px rgba(0, 123, 255, 0.2)",
           }}
         >
-          <MDTypography variant="h4" fontWeight="bold" color="white">
+          {/* <MDTypography variant="h4" fontWeight="bold" color="white">
             Réussir TCF Canada
-          </MDTypography>
+          </MDTypography> */}
         </MDBox>
         <MDBox pt={4} pb={3} px={3} textAlign="center">
           {loading ? (

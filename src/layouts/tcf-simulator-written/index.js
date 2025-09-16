@@ -82,6 +82,7 @@ function TCFSimulatorWritten() {
   const [retakeData, setRetakeData] = useState(null);
   const [retakeSubjectId, setRetakeSubjectId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const itemsPerPage = 9;
   const navigate = useNavigate();
 
@@ -127,9 +128,27 @@ function TCFSimulatorWritten() {
       const userExams = await authService.getUserExams();
       const subjectExams = userExams.filter(exam => exam.id_subject === subject.id);
       
-      // Récupérer les réponses de l'utilisateur depuis le localStorage
-      const storedResponses = localStorage.getItem(`tcf-responses-${subject.id}`);
-      const userResponses = storedResponses ? JSON.parse(storedResponses) : {};
+      // Récupérer les réponses de l'utilisateur depuis le backend
+      let userResponses = {};
+      if (subjectExams.length > 0) {
+        // Reconstituer les réponses utilisateur depuis les examens du backend
+        subjectExams.forEach(exam => {
+          if (exam.reponse_utilisateur) {
+            try {
+              const examResponses = JSON.parse(exam.reponse_utilisateur);
+              // Fusionner les réponses par tâche
+              Object.keys(examResponses).forEach(taskKey => {
+                if (!userResponses[taskKey]) {
+                  userResponses[taskKey] = examResponses[taskKey];
+                }
+              });
+            } catch (error) {
+              console.error('Erreur lors du parsing des réponses utilisateur:', error);
+            }
+          }
+        });
+      }
+      console.log('Réponses utilisateur récupérées depuis le backend:', userResponses);
       
       if (subjectExams.length > 0) {
         // Grouper les examens par sujet et tâche pour reconstituer les résultats complets
@@ -183,7 +202,9 @@ function TCFSimulatorWritten() {
                 ["Aucun point fort détecté"],
               pointsAmeliorer: exam.point_faible ? 
                 exam.point_faible.split(',').map(p => p.trim()).filter(p => p) : 
-                ["Le texte est incompréhensible et ne répond pas à la consigne"]
+                ["Le texte est incompréhensible et ne répond pas à la consigne"],
+              // Ajouter la réponse de l'utilisateur
+              userResponse: exam.reponse_utilisateur || "Aucune réponse fournie"
             };
           });
         
@@ -194,7 +215,7 @@ function TCFSimulatorWritten() {
           pointsForts: processPoints(examValues, 'points_fort'),
           pointsAmeliorer: processPoints(examValues, 'point_faible'),
           // Ajouter les réponses de l'utilisateur
-          user_responses: userResponses
+          user_responses: taskResults.map(task => task.userResponse) 
         };
         
         // Si aucun point fort/faible n'est trouvé, utiliser des valeurs par défaut
@@ -280,92 +301,119 @@ function TCFSimulatorWritten() {
     setRetakeSubjectId(null);
   };
 
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        // Récupérer les sujets depuis le service TCFAdmin
-        const writtenData = await TCFAdminService.getAllSubjects('Écrit');
-        const userSubscriptionPlan = await authService.getCurrentUserPlan();
-        // Récupérer les examens passés par l'utilisateur
-        const userExams = await authService.getUserExams();
-        console.log(userSubscriptionPlan);
-        console.log('Examens utilisateur:', userExams);
-        
-        // Créer un Set des IDs de sujets déjà passés par l'utilisateur
-        // Utiliser un Set pour éviter les doublons
-        const completedSubjectIds = new Set();
-        
-        // Ajouter chaque ID de sujet au Set
-        userExams.forEach(exam => {
-          completedSubjectIds.add(exam.id_subject);
-        });
-        
-        console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
-        
-        // Transformer les données pour correspondre au format attendu
-        const formattedSubjects = writtenData.map(subject => {
-          const plan = subject.plans;
-          const userPlan = userSubscriptionPlan;
-        
-          let status = "";
-        
-          // Vérifier si l'utilisateur a déjà passé cet examen
-          if (completedSubjectIds.has(subject.id)) {
-            status = "completed";
-          } else if (plan === "Pack Écrit Standard") {
-            status = ""; // Toujours accessible
-          } else if (plan === "Pack Écrit Performance") {
-            if (userPlan === "standard") {
-              status = "locked";
-            } else {
-              status = ""; // performance ou pro
-            }
-          } else if (plan === "Pack Écrit Pro") {
-            if (userPlan === "standard" || userPlan === "performance") {
-              status = "locked";
-            } else {
-              status = ""; // seulement si utilisateur est "pro"
-            }
+  // Fonction pour charger les sujets
+  const fetchSubjects = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Récupérer les sujets depuis le service TCFAdmin
+      const writtenData = await TCFAdminService.getAllSubjects('Écrit');
+      const userSubscriptionPlan = await authService.getCurrentUserPlan();
+      // Récupérer les examens passés par l'utilisateur
+      const userExams = await authService.getUserExams();
+      console.log(userSubscriptionPlan);
+      console.log('Examens utilisateur:', userExams);
+      
+      // Créer un Set des IDs de sujets déjà passés par l'utilisateur
+      // Utiliser un Set pour éviter les doublons
+      const completedSubjectIds = new Set();
+      
+      // Ajouter chaque ID de sujet au Set
+      userExams.forEach(exam => {
+        completedSubjectIds.add(exam.id_subject);
+      });
+      
+      console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
+      
+      // Transformer les données pour correspondre au format attendu
+      const formattedSubjects = writtenData.map(subject => {
+        const plan = subject.plans;
+        const userPlan = userSubscriptionPlan;
+      
+        let status = "";
+      
+        // Vérifier si l'utilisateur a déjà passé cet examen
+        if (completedSubjectIds.has(subject.id)) {
+          status = "completed";
+        } else if (plan === "Pack Écrit Standard") {
+          status = ""; // Toujours accessible
+        } else if (plan === "Pack Écrit Performance") {
+          if (userPlan === "standard") {
+            status = "locked";
+          } else {
+            status = ""; // performance ou pro
           }
-        
-          return {
-            id: subject.id,
-            name: "",
-            blog: subject.blog || "",
-            tasks: subject.tasks || [],
-            pack: subject.name + ' : ' + subject.combination,
-            bgColor: "#f72585",
-            duration: subject.duration || 60,
-            status: status
-          };
-        });
-        
-        // Define the desired order of plans
-        const planOrder = {
-          "Pack Écrit Standard": 1,
-          "Pack Écrit Performance": 2,
-          "Pack Écrit Pro": 3,
+        } else if (plan === "Pack Écrit Pro") {
+          if (userPlan === "standard" || userPlan === "performance") {
+            status = "locked";
+          } else {
+            status = ""; // seulement si utilisateur est "pro"
+          }
+        }
+      
+        return {
+          id: subject.id,
+          name: "",
+          blog: subject.blog || "",
+          tasks: subject.tasks || [],
+          pack: subject.name + ' : ' + subject.combination,
+          bgColor: "#f72585",
+          duration: subject.duration || 60,
+          status: status
         };
+      });
+      
+      // Define the desired order of plans
+      const planOrder = {
+        "Pack Écrit Standard": 1,
+        "Pack Écrit Performance": 2,
+        "Pack Écrit Pro": 3,
+      };
 
-        // Sort the subjects based on the defined order
-        formattedSubjects.sort((a, b) => {
-          const orderA = planOrder[a.pack] || 99; // Default to a high number if plan is not in the map
-          const orderB = planOrder[b.pack] || 99;
-          return orderA - orderB;
-        });
+      // Sort the subjects based on the defined order
+      formattedSubjects.sort((a, b) => {
+        const orderA = planOrder[a.pack] || 99; // Default to a high number if plan is not in the map
+        const orderB = planOrder[b.pack] || 99;
+        return orderA - orderB;
+      });
 
-        setSubjects(formattedSubjects);
-        setLoading(false);
-      } catch (error) {
-        console.error("Erreur lors du chargement des sujets:", error);
-        // En cas d'erreur, utiliser les données statiques comme fallback
-        setSubjects([]);
-        setError("Impossible de charger les sujets. Veuillez réessayer plus tard.");
-        setLoading(false);
+      setSubjects(formattedSubjects);
+      setLoading(false);
+    } catch (error) {
+      console.error("Erreur lors du chargement des sujets:", error);
+      // En cas d'erreur, utiliser les données statiques comme fallback
+      setSubjects([]);
+      setError("Impossible de charger les sujets. Veuillez réessayer plus tard.");
+      setLoading(false);
+    }
+  };
+
+  // Effect pour charger les sujets au montage et lors des rafraîchissements
+  useEffect(() => {
+    fetchSubjects();
+  }, [refreshTrigger]);
+
+  // Effect pour détecter quand l'utilisateur revient sur la page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // L'utilisateur revient sur la page, rafraîchir les données
+        setRefreshTrigger(prev => prev + 1);
       }
     };
-    
-    fetchSubjects();
+
+    const handleFocus = () => {
+      // L'utilisateur revient sur la fenêtre, rafraîchir les données
+      setRefreshTrigger(prev => prev + 1);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
 

@@ -16,7 +16,7 @@ Coded by www.creative-tim.com
 import { useState, useEffect, useMemo } from "react";
 
 // react-router components
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 
 // @mui material components
 import { ThemeProvider } from "@mui/material/styles";
@@ -70,6 +70,19 @@ function ConditionalRedirect() {
   
   // Sinon, rediriger vers la page d'inscription
   return <Navigate to="/authentication/sign-up" replace />;
+}
+
+// Composant pour rediriger /reset-password vers /authentication/reset-password/cover
+function ResetPasswordRedirect() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+  
+  // Construire l'URL de destination avec le token
+  const destinationUrl = token 
+    ? `/authentication/reset-password/cover?token=${token}`
+    : '/authentication/reset-password/cover';
+  
+  return <Navigate to={destinationUrl} replace />;
 }
 
 // Composant interne qui utilise le contexte utilisateur
@@ -225,6 +238,7 @@ function AppContent() {
             <Routes>
               {getRoutes(filteredRoutes)}
               <Route path="/" element={<ConditionalRedirect />} />
+              <Route path="/reset-password" element={<ResetPasswordRedirect />} />
               <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
             </Routes>
           </ThemeProvider>
@@ -250,6 +264,7 @@ function AppContent() {
           <Routes>
               {getRoutes(filteredRoutes)}
               <Route path="/" element={<ConditionalRedirect />} />
+              <Route path="/reset-password" element={<ResetPasswordRedirect />} />
               <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
             </Routes>
         </ThemeProvider>

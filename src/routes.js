@@ -22,6 +22,7 @@ import Notifications from "layouts/notifications";
 import Profile from "layouts/profile";
 import SignIn from "layouts/authentication/sign-in";
 import SignUp from "layouts/authentication/sign-up";
+import ResetPassword from "layouts/authentication/reset-password/cover";
 import PaymentSuccess from "layouts/authentication/payment-success";
 import SubscriptionPlansPage from "layouts/subscription-plans";
 import TCFSimulator from "layouts/tcf-simulator";
@@ -52,7 +53,7 @@ const routes = [
     icon: <QuizIcon fontSize="small" />,
     route: "/tcf-admin",
     component: <TCFAdminSimulator />,
-    roles: ["Administrator", "Moderator"],
+    roles: ["Administrator"],
   },
   {
     type: "collapse",
@@ -61,7 +62,7 @@ const routes = [
     icon: <CreateIcon fontSize="small" />,
     route: "/simulateur-tcf-canada/expression-ecrits",
     component: <TCFSimulatorWritten />,
-    roles: ["Administrator", "Moderator", "Client"],
+    roles: ["Administrator", "Client"],
   },
   {
     type: "route",
@@ -69,7 +70,7 @@ const routes = [
     key: "tcf-exam-written",
     route: "/simulateur-tcf-canada/expression-ecrits/:subjectId/exam",
     component: <TCFExamInterface />,
-    roles: ["Administrator", "Moderator", "Client"],
+    roles: ["Administrator", "Client"],
   },
   {
     type: "route",
@@ -77,7 +78,7 @@ const routes = [
     key: "tcf-results-written",
     route: "/simulateur-tcf-canada/expression-ecrits/results/:subjectId",
     component: <TCFResultsInterface />,
-    roles: ["Administrator", "Moderator", "Client"],
+    roles: ["Administrator", "Client"],
   },
   {
     type: "collapse",
@@ -86,7 +87,7 @@ const routes = [
     icon: <MicIcon fontSize="small" />,
     route: "/tcf-simulator/oral",
     component: <TCFSimulatorOral />,
-    roles: ["Administrator", "Moderator", "Client"],
+    roles: ["Administrator", "Client"],
   },
   {
     type: "route",
@@ -94,7 +95,7 @@ const routes = [
     key: "tcf-exam-oral",
     route: "/tcf-simulator/oral/:subjectId/exam",
     component: <TCFOralExamInterface />,
-    roles: ["Administrator", "Moderator", "Client"],
+    roles: ["Administrator", "Client"],
   },
   {
     type: "route",
@@ -102,7 +103,7 @@ const routes = [
     key: "tcf-results-oral",
     route: "/tcf-simulator/oral/results/:subjectId",
     component: <TCFOralResultsInterface />,
-    roles: ["Administrator", "Moderator", "Client"],
+    roles: ["Administrator", "Client"],
   },
   {
     type: "collapse",
@@ -110,7 +111,7 @@ const routes = [
     key: "packs-nabil",
     icon: <SchoolIcon fontSize="small" />,
     href: "https://examens.preptcfcanada.com/iump-subscription-plan/",
-    roles: ["Administrator", "Moderator", "Client"],
+    roles: ["Administrator", "Client"],
   },
   {
     type: "collapse",
@@ -119,7 +120,7 @@ const routes = [
     icon: <Icon fontSize="small">receipt_long</Icon>,
     route: "/billing",
     component: <Billing />,
-    roles: ["Administrator", "Moderator"],
+    roles: ["Administrator"],
   },
 
   {
@@ -138,7 +139,7 @@ const routes = [
     icon: <Icon fontSize="small">card_membership</Icon>,
     route: "/pack-management",
     component: <PackManagement />,
-    roles: ["Administrator", "Moderator"],
+    roles: ["Administrator"],
   },
   {
     type: "collapse",
@@ -167,6 +168,15 @@ const routes = [
     component: <SignUp />,
     roles: ["Administrator", "Moderator", "Client",""],
   },
+  {
+    type: "route",
+    name: "Reset Password",
+    key: "reset-password",
+    icon: <Icon fontSize="small">lock_reset</Icon>,
+    route: "/authentication/reset-password/cover",
+    component: <ResetPassword />,
+    roles: ["Administrator", "Moderator", "Client",""],
+  },
 
   {
     type: "route",
@@ -175,7 +185,7 @@ const routes = [
     icon: <Icon fontSize="small">payment</Icon>,
     route: "/authentication/payment-success",
     component: <PaymentSuccess />,
-    roles: ["Administrator", "Moderator", "Client"],
+    roles: ["Administrator", "Client"],
   },
   {
     type: "route",
@@ -184,7 +194,7 @@ const routes = [
     icon: <Icon fontSize="small">card_membership</Icon>,
     route: "/subscription-plans",
     component: <SubscriptionPlansPage />,
-    roles: ["Administrator", "Moderator", "Client"],
+    roles: ["Administrator", "Client"],
   },
 ];
 

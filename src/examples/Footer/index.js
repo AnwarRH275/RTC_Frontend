@@ -98,12 +98,11 @@ function Footer({ company, links }) {
 }
 
 // Setting default values for the props of Footer
-Footer.defaultProps = { company: { href: "https://www.creative-tim.com/", name: "Digiflow" },
+Footer.defaultProps = { company: { href: "https://reussir-tcfcanada.com/", name: "Réussir TCF Canada" },
   links: [
-    { href: "https://www.creative-tim.com/", name: "Digiflow" },
-    { href: "https://www.creative-tim.com/presentation", name: "About Us" },
-    { href: "https://www.creative-tim.com/blog", name: "Blog" },
-    { href: "https://www.creative-tim.com/license", name: "License" },
+    { href: "https://reussir-tcfcanada.com/tcf-methodologie-expression-ecrite/", name: "Méthodologie EE" },
+    { href: "https://reussir-tcfcanada.com/expression-orale-la-methodologie/", name: "Méthodologie EO" },
+    { href: "https://reussir-tcfcanada.com/blog/", name: "Blog" },
   ],
 };
 

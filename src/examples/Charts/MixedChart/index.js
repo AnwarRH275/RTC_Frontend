@@ -19,7 +19,7 @@ import { useRef, useEffect, useState, useMemo } from "react";
 import PropTypes from "prop-types";
 
 // react-chartjs-2 components
-import { Line } from "react-chartjs-2";
+import { Chart } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   LinearScale,
@@ -69,10 +69,6 @@ function MixedChart({ icon, title, description, height, chart }) {
   const [chartData, setChartData] = useState({});
 
   useEffect(() => {
-    const chartElement = chartRef.current;
-
-    if (!chartElement) return;
-
     const chartDatasets = chart.datasets
       ? chart.datasets.map((dataset) => {
           let finalConfigs;
@@ -103,10 +99,9 @@ function MixedChart({ icon, title, description, height, chart }) {
               : colors.dark.main,
             fill: true,
             maxBarThickness: 6,
-            backgroundColor: gradientChartLine(
-              chartElement.ctx,
-              colors[dataset.color] ? colors[dataset.color || "dark"].main : colors.dark.main
-            ),
+            backgroundColor: colors[dataset.color]
+              ? colors[dataset.color || "dark"].main + "20"
+              : colors.dark.main + "20",
           };
 
           const bar = {
@@ -187,8 +182,9 @@ function MixedChart({ icon, title, description, height, chart }) {
         </MDBox>
       ) : null}
       <MDBox sx={{ height }}>
-        <Line
+        <Chart
           ref={chartRef}
+          type="bar"
           data={{
             labels: data?.labels || [],
             datasets: data?.datasets || [],

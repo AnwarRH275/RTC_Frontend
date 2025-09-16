@@ -15,6 +15,66 @@ export const getDashboardStats = async () => {
   }
 };
 
+// Service pour récupérer les données complètes du dashboard avec calculs
+export const getCompleteDashboardData = async () => {
+  try {
+    const [userInfo, stats, recentActivity, monthlyData, userExams] = await Promise.all([
+      getUserInfo(),
+      getDashboardStats(),
+      getRecentActivity(),
+      getMonthlyChartData(),
+      getUserExams()
+    ]);
+    
+    // Calculer les statistiques supplémentaires basées sur les examens réels
+    const enhancedStats = {
+      ...stats,
+      // Ajouter les calculs basés sur les examens réels
+      totalExams: userExams?.length || stats.total_exams || 0,
+      averageScore: calculateAverageScore(userExams),
+      bestScore: calculateBestScore(userExams),
+      weeklyExams: calculateWeeklyExams(userExams),
+      monthlyProgress: calculateMonthlyProgress(userExams),
+      studyStreak: calculateStudyStreak(userExams),
+      remainingCredits: userInfo?.sold || 0,
+      totalCredits: userInfo?.total_sold || 0
+    };
+    
+    return {
+      userInfo,
+      stats: enhancedStats,
+      recentActivity,
+      monthlyData,
+      userExams
+    };
+  } catch (error) {
+    console.error('Erreur lors de la récupération des données complètes:', error);
+    throw error;
+  }
+};
+
+// Service pour récupérer les données du graphique mensuel
+export const getMonthlyChartData = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/dashboard/chart/monthly`, authService.getAuthHeader());
+    return response.data;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des données du graphique:', error);
+    throw error;
+  }
+};
+
+// Service pour récupérer l'activité récente
+export const getRecentActivity = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/dashboard/activity/recent`, authService.getAuthHeader());
+    return response.data;
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'activité récente:', error);
+    throw error;
+  }
+};
+
 // Service pour récupérer les examens de l'utilisateur
 export const getUserExams = async () => {
   try {
@@ -143,21 +203,7 @@ const calculateStudyStreak = (exams) => {
   return streak;
 };
 
-// Fonction pour obtenir l'activité récente
-const getRecentActivity = (exams) => {
-  if (!exams || exams.length === 0) return [];
-  
-  return exams
-    .sort((a, b) => new Date(b.date_passage) - new Date(a.date_passage))
-    .slice(0, 5)
-    .map(exam => ({
-      id: exam.id,
-      title: `Examen ${exam.id_subject}`,
-      description: `Score: ${exam.score}`,
-      date: exam.date_passage,
-      type: 'exam'
-    }));
-};
+
 
 // Fonction pour calculer les revenus
 const calculateRevenue = (users) => {
@@ -175,4 +221,96 @@ const calculateRevenue = (users) => {
   }, 0);
   
   return (totalRevenue / 1000).toFixed(1) + 'k';
+};
+
+// Fonctions pour calculer les statistiques basées sur les examens réels
+const calculateAverageScore = (exams) => {
+  if (!exams || exams.length === 0) return 'Aucun';
+  
+  // Convertir les niveaux CECR en valeurs numériques pour le calcul
+  const scores = exams
+    .map(exam => convertCECRToNumeric(exam.score))
+    .filter(score => score > 0);
+  
+  if (scores.length === 0) return 'Aucun';
+  
+  const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  return convertNumericToCECR(average);
+};
+
+const calculateBestScore = (exams) => {
+  if (!exams || exams.length === 0) return 'Aucun';
+  
+  // Convertir les niveaux CECR en valeurs numériques pour trouver le meilleur
+  const scores = exams
+    .map(exam => convertCECRToNumeric(exam.score))
+    .filter(score => score > 0);
+  
+  if (scores.length === 0) return 'Aucun';
+  
+  const bestScore = Math.max(...scores);
+  return convertNumericToCECR(bestScore);
+};
+
+// Fonction pour convertir les niveaux CECR en valeurs numériques
+const convertCECRToNumeric = (score) => {
+  if (!score) return 0;
+  
+  const scoreUpper = score.toString().toUpperCase();
+  
+  // Gestion des niveaux CECR
+  if (scoreUpper.includes('C2')) return 95;
+  if (scoreUpper.includes('C1')) return 85;
+  if (scoreUpper.includes('B2')) return 75;
+  if (scoreUpper.includes('B1')) return 65;
+  if (scoreUpper.includes('A2')) return 55;
+  if (scoreUpper.includes('A1')) return 45;
+  
+  // Gestion des niveaux numériques (1-6)
+  if (scoreUpper.includes('6')) return 95;
+  if (scoreUpper.includes('5')) return 85;
+  if (scoreUpper.includes('4')) return 75;
+  if (scoreUpper.includes('3')) return 65;
+  if (scoreUpper.includes('2')) return 55;
+  if (scoreUpper.includes('1')) return 45;
+  
+  // Gestion des niveaux mixtes
+  if (scoreUpper.includes('B1+') || scoreUpper.includes('B1/B2')) return 70;
+  if (scoreUpper.includes('A2-B1') || scoreUpper.includes('A1-A2')) return 50;
+  
+  return 50; // Score par défaut
+};
+
+// Fonction pour convertir une valeur numérique en niveau CECR
+const convertNumericToCECR = (numericScore) => {
+  if (numericScore >= 90) return 'C2';
+  if (numericScore >= 80) return 'C1';
+  if (numericScore >= 70) return 'B2';
+  if (numericScore >= 60) return 'B1';
+  if (numericScore >= 50) return 'A2';
+  return 'A1';
+};
+
+const calculateWeeklyExams = (exams) => {
+  if (!exams || exams.length === 0) return 0;
+  
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  
+  return exams.filter(exam => {
+    const examDate = new Date(exam.date_passage || exam.created_at);
+    return examDate >= oneWeekAgo;
+  }).length;
+};
+
+const calculateMonthlyProgress = (exams) => {
+  if (!exams || exams.length === 0) return 0;
+  
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+  
+  return exams.filter(exam => {
+    const examDate = new Date(exam.date_passage || exam.created_at);
+    return examDate >= oneMonthAgo;
+  }).length;
 };

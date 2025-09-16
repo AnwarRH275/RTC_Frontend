@@ -4,10 +4,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
 //const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.expressiontcf.com';
-class Task2AgentService {
+class Task1AgentService {
   constructor() {
     this.apiClient = axios.create({
-      baseURL: `${API_BASE_URL}/proxy-task2`,
+      baseURL: `${API_BASE_URL}/proxy-task1`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -40,7 +40,7 @@ class Task2AgentService {
     );
 
     // Initialiser ou récupérer l'ID de session
-    this.sessionId = localStorage.getItem('task2_session_id') || this.generateSessionId();
+    this.sessionId = localStorage.getItem('task1_session_id') || this.generateSessionId();
   }
 
   /**
@@ -49,7 +49,7 @@ class Task2AgentService {
    */
   generateSessionId() {
     const sessionId = uuidv4();
-    localStorage.setItem('task2_session_id', sessionId);
+    localStorage.setItem('task1_session_id', sessionId);
     return sessionId;
   }
 
@@ -77,7 +77,7 @@ class Task2AgentService {
    */
   async sendMessage(message, objectif = null) {
     try {
-      console.log('[Task2AgentService] Envoi du message avec sessionId:', this.sessionId);
+      console.log('[Task1AgentService] Envoi du message avec sessionId:', this.sessionId);
       const payload = {
         chatInput: message,
         sessionId: this.sessionId
@@ -91,7 +91,7 @@ class Task2AgentService {
       const response = await this.apiClient.post('/agent-vocal', payload);
       
       const data = response.data;
-      console.log('[Task2AgentService] Réponse brute de l\'API:', data);
+      console.log('[Task1AgentService] Réponse brute de l\'API:', data);
       
       // Normaliser la réponse pour le frontend
       return {
@@ -101,8 +101,8 @@ class Task2AgentService {
         rawResponse: data
       };
     } catch (error) {
-      console.error('[Task2AgentService] Erreur lors de la communication avec l\'agent IA:', error);
-      console.error('[Task2AgentService] Détails de l\'erreur:', error.response?.data || error.message);
+      console.error('[Task1AgentService] Erreur lors de la communication avec l\'agent IA:', error);
+      console.error('[Task1AgentService] Détails de l\'erreur:', error.response?.data || error.message);
       throw new Error(
         error.response?.data?.error || 
         error.response?.data?.message ||
@@ -112,4 +112,4 @@ class Task2AgentService {
   }
 }
 
-export default new Task2AgentService();
+export default new Task1AgentService();

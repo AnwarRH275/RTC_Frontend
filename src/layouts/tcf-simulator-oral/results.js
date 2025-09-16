@@ -139,7 +139,8 @@ function TCFResultsInterface() {
           reponse_ia: taskData.corrections_taches?.[0] || '',
           points_fort: taskData.pointsForts?.join(', ') || '',
           point_faible: taskData.pointsAmeliorer?.join(', ') || '',
-          traduction_reponse_ia: null
+          traduction_reponse_ia: null,
+          type_exam: 'oral'
         };
         
         return axios.post(`${API_BASE_URL}/exam/exams/user`, payload, {
@@ -199,32 +200,57 @@ function TCFResultsInterface() {
       try {
         // Appel réel à l'API de traduction
         const response = await axios.post(
-          `${API_BASE_URL}/proxy/translate`,
+          `${API_BASE_URL}/proxy-translation/translation`,
           payload,
           { headers: { 'Content-Type': 'application/json' } }
         );
         
+        // Traiter la réponse de l'API avec la nouvelle structure
         if (response.data && response.data.output) {
-          setTranslatedResults({
-            taskIndex: currentTaskToTranslate,
-            pointsForts: response.data.output.pointsForts || [],
-            pointsAmeliorer: response.data.output.pointsAmeliorer || []
-          });
+          const translations = response.data.output;
+          
+          // Utiliser la nouvelle structure de réponse
+          const pointsFortsTraduit = translations.pointsFortsTraduit || [];
+          const pointsAmeliorerTraduit = translations.pointsAmeliorerTraduit || [];
+          
+          // Mettre à jour seulement la tâche sélectionnée dans les résultats
+          if (results && Array.isArray(results) && results[currentTaskToTranslate]) {
+            const updatedResults = [...results];
+            const taskResult = updatedResults[currentTaskToTranslate];
+            const taskKey = Object.keys(taskResult.output)[0];
+            
+            // Ajouter les traductions à la tâche
+            updatedResults[currentTaskToTranslate] = {
+              ...taskResult,
+              output: {
+                ...taskResult.output,
+                [taskKey]: {
+                  ...taskResult.output[taskKey],
+                  pointsFortsTraduit: pointsFortsTraduit,
+                  pointsAmeliorerTraduit: pointsAmeliorerTraduit
+                }
+              }
+            };
+            
+            setResults(updatedResults);
+          }
+          
+          setTranslationOpen(false);
           setTranslating(false);
         } else {
-          throw new Error('Format de réponse invalide');
+          throw new Error('Format de réponse de traduction invalide');
         }
       } catch (apiError) {
         console.error(`Tentative de traduction ${retryCount + 1} échouée:`, apiError);
         
-        if (retryCount < 2) { // Retry jusqu'à 3 fois (0-2)
-          console.log(`Nouvelle tentative de traduction dans 2 secondes... (${retryCount + 2}/3)`);
+        if (retryCount < 1) { // Un seul retry
+          console.log(`Nouvelle tentative de traduction dans 2 secondes... (${retryCount + 2}/2)`);
           setTimeout(() => {
             makeTranslationAPICall(retryCount + 1);
-          }, 2000);
+          }, 2000); // Attendre 2 secondes avant de réessayer
         } else {
           console.error('Toutes les tentatives de traduction ont échoué');
-          setTranslationError("Erreur lors de la traduction après 3 tentatives. Veuillez réessayer.");
+          setTranslationError("Erreur lors de la traduction après 2 tentatives. Veuillez réessayer.");
           setTranslating(false);
         }
       }
@@ -279,36 +305,49 @@ function TCFResultsInterface() {
         
         if (storedResponses) {
           responsesData = JSON.parse(storedResponses);
-          setResponses(responsesData);
         }
         
-        // Vérifier s'il y a des sessions complètes non incluses dans les réponses
+        // Priorité 1: Récupérer les conversations formatées depuis localStorage
         for (let i = 0; i < subjectData.tasks.length; i++) {
-          const sessionKey = `exam_session_${subjectId}_task_${i}_complete`;
-          const sessionData = localStorage.getItem(sessionKey);
+          const formattedKey = `formatted_conversation_task_${i + 1}`;
+          const formattedConversation = localStorage.getItem(formattedKey);
           
-          if (sessionData && (!responsesData[i] || responsesData[i].trim() === '')) {
-            try {
-              const session = JSON.parse(sessionData);
-              if (session.messages && Array.isArray(session.messages)) {
-                // Filtrer et formater les messages selon le format demandé
-                const conversationParts = [];
-                
-                session.messages.forEach(message => {
-                  if (message.sender === 'user') {
-                    conversationParts.push(`User:${message.content}`);
-                  } else if (message.sender === 'examiner') {
-                    conversationParts.push(`Agent:${message.content}`);
-                  }
-                });
-                
-                responsesData[i] = conversationParts.join('\n');
+          if (formattedConversation) {
+            // Utiliser directement la conversation formatée
+            responsesData[i] = formattedConversation;
+            console.log(`Conversation formatée récupérée pour la tâche ${i + 1}:`, formattedConversation);
+          } else {
+            // Priorité 2: Vérifier s'il y a des sessions complètes
+            const sessionKey = `exam_session_${subjectId}_task_${i}_complete`;
+            const sessionData = localStorage.getItem(sessionKey);
+            
+            if (sessionData && (!responsesData[i] || responsesData[i].trim() === '')) {
+              try {
+                const session = JSON.parse(sessionData);
+                if (session.messages && Array.isArray(session.messages)) {
+                  // Filtrer et formater les messages selon le format demandé
+                  const conversationParts = [];
+                  
+                  session.messages.forEach(message => {
+                    if (message.sender === 'user') {
+                      conversationParts.push(`User:${message.content}`);
+                    } else if (message.sender === 'examiner') {
+                      conversationParts.push(`Agent:${message.content}`);
+                    }
+                  });
+                  
+                  responsesData[i] = conversationParts.join('\n');
+                }
+              } catch (e) {
+                console.error('Erreur lors du parsing de la session:', e);
               }
-            } catch (e) {
-              console.error('Erreur lors du parsing de la session:', e);
             }
           }
         }
+        
+        // Mettre à jour le state avec toutes les données récupérées
+        setResponses(responsesData);
+        console.log('Données de réponses finales:', responsesData);
         
         // Préparer les données pour l'API de correction
         const chatInputArray = [];
@@ -365,8 +404,20 @@ function TCFResultsInterface() {
               await saveResultsToAPI(response.data, subjectData);
               
               // Supprimer les entrées localStorage inutiles après traitement
-              localStorage.removeItem(`exam_subject_${subjectId}`);
-              localStorage.removeItem(`tcf-oral-responses-${subjectId}`);
+       
+        
+        // Nettoyer les fichiers audio générés pour éviter d'épuiser les ressources
+        try {
+          const response = await axios.post(
+            `${API_BASE_URL}/synthesis/cleanup-audio-files`,
+            { session_id: subjectId },
+            { headers: { 'Content-Type': 'application/json' } }
+          );
+          console.log('Nettoyage des fichiers audio:', response.data);
+        } catch (cleanupError) {
+          console.warn('Erreur lors du nettoyage des fichiers audio via API:', cleanupError);
+          // En cas d'erreur, continuer sans bloquer l'affichage des résultats
+        }
               
               setLoading(false);
             } else {
@@ -540,36 +591,20 @@ function TCFResultsInterface() {
                   sx={{
                     width: 120,
                     height: 120,
+                    border: '8px solid #f3f3f3',
+                    borderTop: '8px solid #667eea',
                     borderRadius: '50%',
-                    background: 'conic-gradient(from 0deg, #667eea, #764ba2, #667eea)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    animation: `${spinAnimation} 3s linear infinite`,
-                    position: 'relative'
+                    animation: `${spinAnimation} 1s linear infinite`
                   }}
-                >
-                  <Box
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      borderRadius: '50%',
-                      background: 'rgba(255,255,255,0.95)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <Icon sx={{ fontSize: 32, color: '#667eea' }}>psychology</Icon>
-                  </Box>
-                </Box>
+                />
               </MDBox>
               
-              <MDTypography variant="h6" color="primary" mb={2}>
-                Bonjour {userFirstName} !
+              <MDTypography variant="body2" color="text" fontStyle="italic">
+                Cela peut prendre environ 60 secondes...
               </MDTypography>
-              <MDTypography variant="body2" color="text">
-                Notre IA analyse votre expression orale...
+              
+              <MDTypography variant="body1" color="dark" fontWeight="medium" mt={2}>
+                Merci de patienter, {userFirstName} !
               </MDTypography>
             </MDBox>
           </Card>
@@ -586,27 +621,57 @@ function TCFResultsInterface() {
           minHeight: '100vh',
           background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          p: 3
+          p: 3,
+          pl:25
         }}
       >
-        <Card sx={{ maxWidth: 500, width: '100%', p: 4, textAlign: 'center' }}>
-          <Icon sx={{ fontSize: 64, color: 'error.main', mb: 2 }}>error_outline</Icon>
-          <MDTypography variant="h4" fontWeight="bold" color="error" mb={2}>
-            Erreur
-          </MDTypography>
-          <MDTypography variant="body1" color="text" mb={3}>
-            {error}
-          </MDTypography>
-          <MDButton 
-            variant="contained" 
-            color="primary" 
-            onClick={() => navigate('/dashboard')}
-          >
-            Retour au simulateur
-          </MDButton>
+        <Card 
+          sx={{ 
+            maxWidth: 600, 
+            p: 4, 
+            textAlign: 'center',
+            borderRadius: 4,
+            boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+            background: 'rgba(255,255,255,0.95)'
+          }}
+        >
+          <MDBox mb={2}>
+            <Avatar 
+              sx={{ 
+                width: 80, 
+                height: 80, 
+                backgroundColor: '#ef4444', 
+                margin: '0 auto 16px'
+              }}
+            >
+              <Icon sx={{ fontSize: 40, color: 'white' }}>error</Icon>
+            </Avatar>
+            <MDTypography variant="h4" fontWeight="bold" color="error" mb={1}>
+              Erreur
+            </MDTypography>
+            <MDTypography variant="body1" color="text" mb={3}>
+              {error}
+            </MDTypography>
+            <MDButton 
+              variant="contained" 
+              color="primary" 
+              onClick={() => { navigate('/tcf-simulator/oral'); window.location.reload(); }}
+              sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
+                backgroundImage: linearGradient(gradients.primaryToSecondary.main, gradients.primaryToSecondary.state),
+                borderRadius: 3,
+                px: 4,
+                py: 1.5,
+                '&:hover': {
+                  backgroundColor: 'rgba(79, 204, 231, 1)',
+                  boxShadow: '0 4px 20px 0 rgba(79, 204, 231, 0.4)',
+                },
+              })}
+            >
+              Retour aux sujets
+            </MDButton>
+          </MDBox>
         </Card>
       </MDBox>
     );
@@ -639,343 +704,501 @@ function TCFResultsInterface() {
         py: 4
       }}
     >
-      <MDBox maxWidth="1200px" mx="auto" px={3}>
-        {/* En-tête avec note moyenne */}
-        <Fade in timeout={1000}>
-          <Card 
-            sx={{ 
-              mb: 4, 
-              p: 4, 
-              textAlign: 'center',
-              borderRadius: 4,
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.25)'
-            }}
-          >
-            <MDBox mb={3}>
-              <Icon sx={{ fontSize: 64, color: 'success.main', mb: 2 }}>celebration</Icon>
-              <MDTypography variant="h3" fontWeight="bold" color="dark" mb={1}>
-                Félicitations ! Votre évaluation est prête
+      <Dialog
+        open={true}
+        maxWidth="1350px"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'hidden',
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
+            color: 'white',
+            textAlign: 'center',
+            py: 2,
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
+            }
+          }}
+        >
+          <MDBox display="flex" alignItems="center" justifyContent="space-between" px={2}>
+            {/* Section gauche avec icône et titre */}
+            <MDBox display="flex" alignItems="center" flexDirection="column">
+              <Icon sx={{ fontSize: '2rem', mb: 0.5, opacity: 0.9 }}>check_circle</Icon>
+              <MDTypography variant="h5" fontWeight="bold" color="white">
+                Résultats de votre évaluation
               </MDTypography>
-              <MDTypography variant="body1" color="text">
-                Voici les résultats détaillés de votre examen d'expression orale TCF Canada
+              <MDTypography variant="body2" color="white" opacity={0.9} mt={0.5}>
+                {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
               </MDTypography>
             </MDBox>
             
-            {/* Note moyenne */}
-            {loadingNoteMoyenne ? (
-              <Box display="flex" alignItems="center" justifyContent="center" gap={2}>
-                <CircularProgress size={24} />
-                <MDTypography variant="h6" color="text">
-                  Calcul de la note moyenne...
-                </MDTypography>
-              </Box>
-            ) : noteMoyenne ? (
-              <Zoom in timeout={1500}>
-                <Box
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    p: 3,
-                    borderRadius: 3,
-                    background: 'linear-gradient(45deg, #667eea, #764ba2)',
-                    color: 'white',
-                    boxShadow: '0 8px 32px rgba(102, 126, 234, 0.4)'
-                  }}
-                >
-                  <Icon sx={{ fontSize: 32 }}>star</Icon>
-                  <Box>
-                    <MDTypography variant="h4" fontWeight="bold">
-                      {noteMoyenne}
+            {/* Section droite avec note et icône attractive */}
+            <MDBox display="flex" alignItems="center" flexDirection="column">
+              <MDBox display="flex" alignItems="center" mb={1}>
+                <Icon sx={{ fontSize: '1.5rem', mr: 1, color: '#FFD700' }}>star</Icon>
+                {loadingNoteMoyenne ? (
+                  <MDBox display="flex" alignItems="center">
+                    <CircularProgress size={20} sx={{ color: 'white', mr: 1 }} />
+                    <MDTypography variant="body2" color="white">
+                      Calcul en cours...
                     </MDTypography>
-                    <MDTypography variant="body2" sx={{ opacity: 0.9 }}>
-                      Note moyenne
-                    </MDTypography>
-                  </Box>
-                </Box>
-              </Zoom>
-            ) : null}
-          </Card>
-        </Fade>
-
-        {/* En-tête de la tâche en cours */}
-        <Fade in timeout={800}>
-          <Card 
-            sx={{ 
-              mb: 4, 
-              p: 3, 
-              borderRadius: 4,
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.15)'
-            }}
-          >
-            <MDBox display="flex" alignItems="center" justifyContent="space-between">
-              <MDTypography variant="h5" fontWeight="bold" color="primary">
-                Tâche en cours: {subject?.currentTask?.title || 'Expression orale'}
-              </MDTypography>
-              <Chip 
-                icon={<Icon>check_circle</Icon>} 
-                label="Examen terminé" 
-                color="success" 
-                variant="outlined" 
-              />
-            </MDBox>
-          </Card>
-        </Fade>
-        
-        {/* Résultats par tâche */}
-        <Grid container spacing={3}>
-          {results && Array.isArray(results) && results.map((taskResult, index) => {
-            const taskKey = Object.keys(taskResult.output)[0];
-            const taskData = taskResult.output[taskKey];
-            const task = subject?.tasks[index];
-            const userResponse = responses[index] || '';
-            
-            // Vérifier si on a des résultats traduits pour cette tâche
-            const hasTranslation = translatedResults && translatedResults.taskIndex === index;
-            const displayPointsForts = hasTranslation ? translatedResults.pointsForts : taskData.pointsForts;
-            const displayPointsAmeliorer = hasTranslation ? translatedResults.pointsAmeliorer : taskData.pointsAmeliorer;
-            
-            return (
-              <Grid item xs={12} key={index}>
-                <Fade in timeout={1000 + (index * 200)}>
-                  <Card 
-                    sx={{ 
-                      p: 4,
-                      borderRadius: 4,
-                      background: 'rgba(255,255,255,0.95)',
-                      backdropFilter: 'blur(10px)',
-                      boxShadow: '0 15px 35px rgba(0,0,0,0.1)',
-                      border: '1px solid rgba(255,255,255,0.2)'
+                  </MDBox>
+                ) : (
+                  <Chip
+                    label={noteMoyenne || "Niveau B1"}
+                    sx={{
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      borderRadius: '20px',
+                      fontSize: '0.9rem',
+                      px: 2,
+                      py: 0.5,
+                      border: '2px solid rgba(255,255,255,0.3)'
                     }}
-                  >
-                    {/* En-tête de la tâche */}
-                    <MDBox display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                      <MDBox>
-                        <MDTypography variant="h4" fontWeight="bold" color="dark" mb={1}
-                          dangerouslySetInnerHTML={{ __html: task?.title || `Tâche ${index + 1}` }}
-                        />
-                        <Chip 
-                          icon={<Icon>{getScoreIcon(taskData.NoteExam)}</Icon>}
-                          label={taskData.NoteExam || 'Non évalué'}
-                          sx={{ 
-                            color: 'white',
-                            backgroundColor: getScoreColor(taskData.NoteExam),
-                            fontWeight: 'bold',
-                            fontSize: '0.9rem'
-                          }}
-                        />
+                  />
+                )}
+              </MDBox>
+              <MDBox 
+                display="flex" 
+                alignItems="center" 
+                sx={{ cursor: 'pointer', '&:hover': { transform: 'scale(1.05)' } }}
+                onClick={() => navigate('/tcf-simulator/oral')}
+              >
+                <Icon sx={{ fontSize: '1.2rem', mr: 0.5, color: '#FFD700' }}>trending_up</Icon>
+                <MDTypography variant="caption" color="white" fontWeight="medium">
+                  Passer un autre examen
+                </MDTypography>
+              </MDBox>
+            </MDBox>
+          </MDBox>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 0 }}>
+          <MDBox p={4}>
+            <MDTypography variant="body1" color="text" mb={4}>
+              Voici les résultats détaillés de votre examen d'expression orale TCF Canada
+            </MDTypography>
+            
+            {/* Résultats par tâche */}
+            {results && Array.isArray(results) && results.length > 0 ? (
+              results.map((taskResult, index) => {
+                const taskKey = Object.keys(taskResult.output)[0];
+                const taskData = taskResult.output[taskKey];
+                const task = subject?.tasks[index];
+                const corrections = Array.isArray(taskData.corrections_taches)
+                  ? taskData.corrections_taches.filter(Boolean)
+                  : (taskData.corrections_taches ? [taskData.corrections_taches] : []);
+                const pointsForts = taskData.pointsForts || [];
+                const pointsAmeliorer = taskData.pointsAmeliorer || [];
+
+                return (
+                  <Fade in timeout={500 + (index * 200)} key={index}>
+                    <Card 
+                      sx={{ 
+                        mb: 4, 
+                        overflow: 'hidden',
+                        borderRadius: 4,
+                        boxShadow: '0 15px 35px rgba(0,0,0,0.15)'
+                      }}
+                    >
+                      {/* En-tête de la tâche */}
+                      <MDBox
+                        sx={{
+                          background: task?.theme === 'immigration' 
+                            ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                            : task?.theme === 'travail'
+                            ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                            : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                          color: 'white',
+                          p: 3
+                        }}
+                      >
+                        <MDBox display="flex" justifyContent="space-between" alignItems="center">
+                          <MDBox>
+                              <MDTypography variant="h5" fontWeight="bold" color="white" mb={1} component="div">
+                                <div dangerouslySetInnerHTML={{ __html: task?.title || `Tâche ${index + 1}: Expression orale` }} />
+                              </MDTypography>
+                            <MDTypography variant="body2" color="white" opacity={0.9}>
+                              Thème: {task?.theme || 'Général'}
+                            </MDTypography>
+                          </MDBox>
+                          
+                          <MDBox display="flex" alignItems="center" gap={2}>
+                            {taskData.NoteExam && (
+                              <Tooltip title="Votre niveau actuel" placement="top" arrow>
+                                <MDBox
+                                  display="flex"
+                                  alignItems="center"
+                                  sx={{
+                                    background: 'linear-gradient(135deg, #4f46e5 0%, #667eea 100%)',
+                                    borderRadius: '12px',
+                                    padding: '6px 12px',
+                                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
+                                    border: '2px solid rgba(255,255,255,0.2)',
+                                  }}
+                                >
+                                  <Avatar
+                                    sx={{
+                                      width: 32,
+                                      height: 32,
+                                      backgroundColor: 'rgba(255,255,255,0.2)',
+                                      mr: 1
+                                    }}
+                                  >
+                                    <Icon sx={{ fontSize: '1.2rem', color: 'white' }}>school</Icon>
+                                  </Avatar>
+                                  <MDBox>
+                                    <MDTypography variant="caption" fontWeight="bold" color="white" sx={{ opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                      Niveau actuel
+                                    </MDTypography>
+                                    <MDTypography variant="h6" fontWeight="bold" color="white" lineHeight={1}>
+                                      {taskData.NoteExam}
+                                    </MDTypography>
+                                  </MDBox>
+                                </MDBox>
+                              </Tooltip>
+                            )}
+                            {taskData.NoteExamCorrection && (
+                              <Tooltip title="Note de l'examinateur pour cette tâche" arrow>
+                                <MDBox 
+                                  display="flex" 
+                                  alignItems="center"
+                                  sx={{
+                                    background: 'rgba(255,255,255,0.2)',
+                                    borderRadius: 3,
+                                    px: 2,
+                                    py: 1,
+                                    backdropFilter: 'blur(10px)'
+                                  }}
+                                >
+                                  <Avatar
+                                    sx={{
+                                      width: 32,
+                                      height: 32,
+                                      backgroundColor: 'rgba(255,255,255,0.2)',
+                                      mr: 1
+                                    }}
+                                  >
+                                    <Icon sx={{ fontSize: '1.2rem', color: 'white' }}>trending_up</Icon>
+                                  </Avatar>
+                                  <MDBox>
+                                    <MDTypography variant="caption" fontWeight="bold" color="white" sx={{ opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                      Potentiel
+                                    </MDTypography>
+                                    <MDTypography variant="h6" fontWeight="bold" color="white" lineHeight={1}>
+                                      {taskData.NoteExamCorrection}
+                                    </MDTypography>
+                                  </MDBox>
+                                </MDBox>
+                              </Tooltip>
+                            )}
+                          </MDBox>
+                        </MDBox>
                       </MDBox>
                       
-                      <MDButton
-                        variant="outlined"
-                        color="info"
-                        size="small"
-                        startIcon={<Icon>translate</Icon>}
-                        onClick={() => handleOpenTranslation(index)}
-                      >
-                        Traduire
-                      </MDButton>
-                    </MDBox>
-
-                    <Grid container spacing={3}>
-                      {/* Votre réponse */}
-                      <Grid item xs={12} md={6}>
-                        <Paper 
-                          elevation={2} 
-                          sx={{ 
-                            p: 3, 
-                            height: '100%',
-                            borderRadius: 3,
-                            background: 'linear-gradient(145deg, #f8f9fa, #e9ecef)'
-                          }}
-                        >
-                          <MDBox display="flex" alignItems="center" mb={2}>
-                            <Icon sx={{ mr: 1, color: 'primary.main' }}>person</Icon>
-                            <MDTypography variant="h6" fontWeight="bold" color="primary">
-                              Votre réponse
-                            </MDTypography>
-                          </MDBox>
-                          
-                          <MDBox 
-                            sx={{ 
-                              maxHeight: '200px', 
-                              overflowY: 'auto',
-                              p: 2,
-                              backgroundColor: 'white',
-                              borderRadius: 2,
-                              border: '1px solid #e0e0e0'
-                            }}
-                          >
-                            <MDTypography 
-                              variant="body2" 
-                              color="text" 
-                              sx={{ lineHeight: 1.6 }}
-                              dangerouslySetInnerHTML={{ __html: userResponse || 'Aucune réponse fournie' }}
-                            />
-                          </MDBox>
-                        </Paper>
-                      </Grid>
-
-                      {/* Correction */}
-                      <Grid item xs={12} md={6}>
-                        <Paper 
-                          elevation={2} 
-                          sx={{ 
-                            p: 3, 
-                            height: '100%',
-                            borderRadius: 3,
-                            background: 'linear-gradient(145deg, #e8f5e8, #c8e6c9)'
-                          }}
-                        >
-                          <MDBox display="flex" alignItems="center" mb={2}>
-                            <Icon sx={{ mr: 1, color: 'success.main' }}>smart_toy</Icon>
-                            <MDTypography variant="h6" fontWeight="bold" color="success">
-                              Correction
-                            </MDTypography>
-                          </MDBox>
-                          
-                          <MDBox 
-                            sx={{ 
-                              maxHeight: '200px', 
-                              overflowY: 'auto',
-                              p: 2,
-                              backgroundColor: 'white',
-                              borderRadius: 2,
-                              border: '1px solid #c8e6c9'
-                            }}
-                          >
-                            <MDTypography 
-                              variant="body2" 
-                              color="text" 
-                              sx={{ lineHeight: 1.6 }}
-                              dangerouslySetInnerHTML={{ __html: taskData.corrections_taches?.[0] || 'Aucune correction disponible' }}
-                            />
-                          </MDBox>
-                        </Paper>
-                      </Grid>
-
-                      {/* Points forts */}
-                      <Grid item xs={12} md={6}>
-                        <Paper 
-                          elevation={2} 
-                          sx={{ 
-                            p: 3,
-                            borderRadius: 3,
-                            background: 'linear-gradient(145deg, #e8f5e8, #c8e6c9)'
-                          }}
-                        >
-                          <MDBox display="flex" alignItems="center" mb={2}>
-                            <Icon sx={{ mr: 1, color: 'success.main' }}>thumb_up</Icon>
-                            <MDTypography variant="h6" fontWeight="bold" color="success">
-                              Points forts
-                            </MDTypography>
-                          </MDBox>
-                          
-                          <List dense>
-                            {displayPointsForts && displayPointsForts.length > 0 ? (
-                              displayPointsForts.map((point, pointIndex) => (
-                                <ListItem key={pointIndex} sx={{ px: 0 }}>
-                                  <ListItemIcon sx={{ minWidth: 32 }}>
-                                    <Icon sx={{ color: 'success.main', fontSize: 20 }}>check_circle</Icon>
-                                  </ListItemIcon>
-                                  <ListItemText 
-                                    primary={
-                                      <MDTypography 
-                                        variant="body2" 
-                                        color="text"
-                                        dangerouslySetInnerHTML={{ __html: point }}
-                                      />
-                                    }
-                                  />
-                                </ListItem>
-                              ))
-                            ) : (
-                              <MDTypography variant="body2" color="text" sx={{ fontStyle: 'italic' }}>
-                                Aucun point fort identifié
+                      <MDBox p={3}>
+                        {/* Section avec deux colonnes: Votre réponse et Corrections proposées */}
+                        <Grid container spacing={3}>
+                          {/* Votre réponse */}
+                          <Grid item xs={12} md={5}>
+                            <MDBox 
+                              p={3} 
+                              sx={{
+                                background: '#f8f9fa',
+                                borderRadius: 2,
+                                border: '1px solid #e9ecef',
+                                height: '100%',
+                                minHeight: '250px',
+                                overflow: 'auto'
+                              }}
+                            >
+                              <MDTypography variant="h6" fontWeight="bold" color="dark" mb={2}>
+                                Votre réponse:
                               </MDTypography>
-                            )}
-                          </List>
-                        </Paper>
-                      </Grid>
-
-                      {/* Points à améliorer */}
-                      <Grid item xs={12} md={6}>
-                        <Paper 
-                          elevation={2} 
-                          sx={{ 
-                            p: 3,
-                            borderRadius: 3,
-                            background: 'linear-gradient(145deg, #fff3e0, #ffcc02)'
-                          }}
-                        >
-                          <MDBox display="flex" alignItems="center" mb={2}>
-                            <Icon sx={{ mr: 1, color: 'warning.main' }}>trending_up</Icon>
-                            <MDTypography variant="h6" fontWeight="bold" color="warning">
-                              Points à améliorer
-                            </MDTypography>
-                          </MDBox>
-                          
-                          <List dense>
-                            {displayPointsAmeliorer && displayPointsAmeliorer.length > 0 ? (
-                              displayPointsAmeliorer.map((point, pointIndex) => (
-                                <ListItem key={pointIndex} sx={{ px: 0 }}>
-                                  <ListItemIcon sx={{ minWidth: 32 }}>
-                                    <Icon sx={{ color: 'warning.main', fontSize: 20 }}>lightbulb</Icon>
-                                  </ListItemIcon>
-                                  <ListItemText 
-                                    primary={
-                                      <MDTypography 
-                                        variant="body2" 
-                                        color="text"
-                                        dangerouslySetInnerHTML={{ __html: point }}
-                                      />
-                                    }
-                                  />
-                                </ListItem>
-                              ))
-                            ) : (
-                              <MDTypography variant="body2" color="text" sx={{ fontStyle: 'italic' }}>
-                                Aucun point d'amélioration identifié
+                              <MDTypography variant="body2" color="text" lineHeight={1.8} component="div">
+                                <div>
+                                  {responses[index] ? 
+                                    responses[index]
+                                      .split(' Candidat:')
+                                      .slice(1)
+                                      .map((response, responseIndex) => {
+                                        // Nettoyer la réponse en supprimant les parties Examinateur suivantes
+                                        const cleanResponse = response.split(' Examinateur:')[0].trim();
+                                        return cleanResponse ? (
+                                          <div key={responseIndex} style={{ marginBottom: '12px', padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '6px', borderLeft: '3px solid #007bff' }}>
+                                            <strong style={{ color: '#007bff' }}>Vous:</strong> {cleanResponse}
+                                          </div>
+                                        ) : null;
+                                      })
+                                      .filter(Boolean)
+                                    : 'Aucune réponse fournie'
+                                  }
+                                </div>
                               </MDTypography>
-                            )}
-                          </List>
-                        </Paper>
-                      </Grid>
-                    </Grid>
-                  </Card>
-                </Fade>
-              </Grid>
-            );
-          })}
-        </Grid>
+                            </MDBox>
+                          </Grid>
+                          
+                          {/* Corrections proposées */}
+                          <Grid item xs={12} md={7}>
+                            <MDBox 
+                              p={3} 
+                              sx={{
+                                background: '#f0f9ff',
+                                borderRadius: 2,
+                                border: '1px solid #cfe2ff',
+                                height: '100%',
+                                minHeight: '250px',
+                                overflow: 'auto'
+                              }}
+                            >
+                              <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
+                                {corrections.length > 1 ? 'Corrections proposées :' : 'Correction proposée :'}
+                              </MDTypography>
+                              
+                              {corrections.length > 0 ? (
+                                corrections.map((correction, correctionIndex) => (
+                                  <MDBox key={correctionIndex} mb={corrections.length > 1 ? 3 : 0}>
+                                    {corrections.length > 1 && (
+                                      <MDTypography variant="subtitle2" fontWeight="bold" color="primary" mb={1}>
+                                        Proposition {correctionIndex + 1}:
+                                      </MDTypography>
+                                    )}
+                                    <MDBox 
+                                      sx={{
+                                        '& p': { margin: '8px 0', fontSize: '0.875rem', lineHeight: 1.8 },
+                                        '& h1, & h2, & h3, & h4, & h5, & h6': { margin: '16px 0 8px 0', fontWeight: 'bold' },
+                                        '& ul, & ol': { margin: '8px 0', paddingLeft: '20px' },
+                                        '& li': { margin: '4px 0' },
+                                        '& strong': { fontWeight: 'bold' },
+                                        '& em': { fontStyle: 'italic' },
+                                        '& code': { 
+                                          backgroundColor: '#f5f5f5', 
+                                          padding: '2px 4px', 
+                                          borderRadius: '3px',
+                                          fontSize: '0.85em'
+                                        },
+                                        '& pre': {
+                                          backgroundColor: '#f5f5f5',
+                                          padding: '12px',
+                                          borderRadius: '6px',
+                                          overflow: 'auto',
+                                          margin: '12px 0'
+                                        },
+                                        '& blockquote': {
+                                          borderLeft: '4px solid #ddd',
+                                          paddingLeft: '16px',
+                                          margin: '12px 0',
+                                          fontStyle: 'italic'
+                                        }
+                                      }}
+                                    >
+                                      <ReactMarkdown>{correction}</ReactMarkdown>
+                                    </MDBox>
+                                  </MDBox>
+                                ))
+                              ) : (
+                                <MDTypography variant="body2" color="text" style={{ fontStyle: 'italic' }}>
+                                  Aucune correction disponible pour cette tâche.
+                                </MDTypography>
+                              )}
+                              
+                             
+                            </MDBox>
+                          </Grid>
+
+                          {/* Points forts et à améliorer pour cette tâche */}
+                          <Grid item xs={12}>
+                            <MDBox mt={3}>
+                              <Grid container spacing={3}>
+                                {/* Points forts */}
+                                <Grid item xs={12} md={6}>
+                                  <MDBox mb={2}>
+                                    <MDTypography variant="h6" fontWeight="bold" color="dark">
+                                      <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#10b981' }}>recommend</Icon>
+                                      Points forts
+                                    </MDTypography>
+                                  </MDBox>
+                                  
+                                  <Card 
+                                    sx={{ 
+                                      p: 3, 
+                                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                      borderRadius: 3,
+                                      background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                                      border: '1px solid rgba(16, 185, 129, 0.2)'
+                                    }}
+                                  >
+                                    <List>
+                                      {/* Afficher les points forts traduits s'ils existent, sinon afficher les originaux */}
+                                      {(taskData.pointsFortsTraduit && taskData.pointsFortsTraduit.length > 0 ? taskData.pointsFortsTraduit : pointsForts).map((point, pointIndex) => (
+                                        <Fade in timeout={800 + (pointIndex * 200)} key={pointIndex}>
+                                          <ListItem sx={{ px: 0 }}>
+                                            <ListItemIcon>
+                                              <Avatar 
+                                                sx={{ 
+                                                  width: 36, 
+                                                  height: 36, 
+                                                  backgroundColor: '#10b981'
+                                                }}
+                                              >
+                                                <Icon sx={{ fontSize: 20, color: 'white' }}>check</Icon>
+                                              </Avatar>
+                                            </ListItemIcon>
+                                            <ListItemText 
+                                              primary={point}
+                                              primaryTypographyProps={{
+                                                fontWeight: 500,
+                                                color: '#065f46'
+                                              }}
+                                            />
+                                          </ListItem>
+                                        </Fade>
+                                      )) || (
+                                        <MDTypography variant="body2" color="text" textAlign="center">
+                                          Aucun point fort identifié.
+                                        </MDTypography>
+                                      )}
+                                    </List>
+                                  </Card>
+                                </Grid>
+                                
+                                {/* Points à améliorer */}
+                                <Grid item xs={12} md={6}>
+                                  <MDBox mb={2} display="flex" justifyContent="space-between" alignItems="center">
+                                    <MDTypography variant="h6" fontWeight="bold" color="dark">
+                                      <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#f59e0b' }}>trending_up</Icon>
+                                      Points à améliorer
+                                    </MDTypography>
+                                    
+                                    {/* Bouton de traduction à droite du titre */}
+                                    {(pointsForts.length > 0 || pointsAmeliorer.length > 0) && (
+                                      <Tooltip title="Traduire les commentaires de cette tâche" arrow placement="top">
+                                        <MDButton
+                                          variant="outlined"
+                                          color="info"
+                                          size="small"
+                                          onClick={() => {
+                                            setCurrentTaskToTranslate(index);
+                                            setTranslationOpen(true);
+                                          }}
+                                          sx={{
+                                            borderRadius: 2,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            transition: 'all 0.2s ease',
+                                            '&:hover': {
+                                              transform: 'translateY(-2px)',
+                                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                            }
+                                          }}
+                                        >
+                                          <Icon>translate</Icon>
+                                          TRADUIRE
+                                        </MDButton>
+                                      </Tooltip>
+                                    )}
+                                  </MDBox>
+                                  
+                                  <Card 
+                                    sx={{ 
+                                      p: 3, 
+                                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                      borderRadius: 3,
+                                      background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                                      border: '1px solid rgba(245, 158, 11, 0.2)'
+                                    }}
+                                  >
+                                    <List>
+                                      {/* Afficher les points à améliorer traduits s'ils existent, sinon afficher les originaux */}
+                                      {(taskData.pointsAmeliorerTraduit && taskData.pointsAmeliorerTraduit.length > 0 ? taskData.pointsAmeliorerTraduit : pointsAmeliorer).map((point, pointIndex) => (
+                                        <Fade in timeout={1000 + (pointIndex * 200)} key={pointIndex}>
+                                          <ListItem sx={{ px: 0 }}>
+                                            <ListItemIcon>
+                                              <Avatar 
+                                                sx={{ 
+                                                  width: 36, 
+                                                  height: 36, 
+                                                  backgroundColor: '#f59e0b'
+                                                }}
+                                              >
+                                                <Icon sx={{ fontSize: 20, color: 'white' }}>trending_up</Icon>
+                                              </Avatar>
+                                            </ListItemIcon>
+                                            <ListItemText 
+                                              primary={point}
+                                              primaryTypographyProps={{
+                                                fontWeight: 500,
+                                                color: '#92400e'
+                                              }}
+                                            />
+                                          </ListItem>
+                                        </Fade>
+                                      )) || (
+                                        <MDTypography variant="body2" color="text" textAlign="center">
+                                          Aucun point d'amélioration identifié.
+                                        </MDTypography>
+                                      )}
+                                    </List>
+                                  </Card>
+                                </Grid>
+                              </Grid>
+                            </MDBox>
+                          </Grid>
+                        </Grid>
+                      </MDBox>
+                    </Card>
+                  </Fade>
+                );
+              })
+          ) : (
+            <MDTypography variant="body1" color="text" textAlign="center" py={4}>
+              Aucune correction disponible pour le moment.
+            </MDTypography>
+          )}
+        </MDBox>
 
         {/* Boutons d'action */}
         <Fade in timeout={2000}>
-          <MDBox textAlign="center" mt={4}>
+          <MDBox textAlign="center" mt={4} sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
             <MDButton 
               variant="contained" 
               color="primary" 
               size="large"
-              onClick={() => navigate('/dashboard')}
-              sx={{ mr: 2 }}
+              onClick={() => navigate('/tcf-simulator/oral')}
             >
               Retour au simulateur
             </MDButton>
+          
             <MDButton 
-              variant="outlined" 
-              color="secondary" 
+              variant="contained" 
+              color="info" 
               size="large"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => window.open('https://reussir-tcfcanada.com/expression-orale/', '_blank')}
+              startIcon={<Icon>record_voice_over</Icon>}
             >
-              Tableau de bord
+              Sujet d'actualité expression orale
             </MDButton>
           </MDBox>
         </Fade>
-      </MDBox>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de traduction */}
       <Dialog 

@@ -145,27 +145,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
         console.error('Erreur lors du chargement des packs:', error);
         setError('Impossible de charger les plans d\'abonnement. Veuillez réessayer.');
         
-        // Fallback avec les plans par défaut en cas d'erreur
-        setPlans([
-          {
-            id: 'standard',
-            name: 'Pack Écrit Standard',
-            price: '14',
-            priceInCents: 1499,
-            usages: 5,
-            color: 'standard',
-            isPopular: false,
-            stripeProductId: 'prod_SMeQcS5gdyO7Nh',
-            features: [
-              '5 examens réels basés sur les sujets d\'actualité 2025',
-              'Remarques personnalisées sur chaque production',
-              'Modèles corrigés pour chaque tâche',
-              'Accès complet au simulateur d\'expression écrite',
-              'Simulation en conditions réelles',
-              'Note estimée selon le CECR'
-            ]
-          }
-        ]);
+       
       } finally {
         setLoadingPlans(false);
       }
@@ -209,6 +189,12 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
         successUrl: `${window.location.origin}/authentication/payment-success?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
         cancelUrl: `${window.location.origin}/authentication/sign-up`
       };
+      
+      // Ajouter le code de coupon si le plan en a un
+      if (plan.hasCoupon && plan.couponCode) {
+        requestData.couponCode = plan.couponCode;
+        console.log(`Coupon appliqué: ${plan.couponCode}`);
+      }
       
       console.log('Données envoyées au backend:', requestData);
       

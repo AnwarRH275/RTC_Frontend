@@ -66,6 +66,7 @@ function TCFExamInterface() {
   const [showCharacterTable, setShowCharacterTable] = useState(true);
   const [showRetakeDialog, setShowRetakeDialog] = useState(false);
   const [attemptCount, setAttemptCount] = useState(0);
+  const [fullscreenDocument, setFullscreenDocument] = useState(null);
   
   // Caractères spéciaux disponibles
   const specialCharacters = [
@@ -309,13 +310,90 @@ function TCFExamInterface() {
 
 
 
-  // Compteur de mots
-  const getWordCount = () => {
-    const currentResponse = responses[currentTaskIndex] || '';
+  // Limites de mots par tâche
+  const getWordLimits = (taskIndex) => {
+    const limits = {
+      0: { min: 60, max: 120 },   // Tâche 1
+      1: { min: 120, max: 150 },  // Tâche 2
+      2: { min: 120, max: 180 }   // Tâche 3
+    };
+    return limits[taskIndex] || { min: 0, max: 999 };
+  };
+
+  // Compteur de mots amélioré
+  const getWordCount = (taskIndex = currentTaskIndex) => {
+    const currentResponse = responses[taskIndex] || '';
     // Supprimer les balises HTML et compter les mots
     const textOnly = currentResponse.replace(/<[^>]*>/g, '');
     const words = textOnly.split(/\s+/).filter(word => word.length > 0);
-    return words.length;
+    const wordCount = words.length;
+    const limits = getWordLimits(taskIndex);
+    
+    return {
+      count: wordCount,
+      min: limits.min,
+      max: limits.max,
+      isValid: wordCount >= limits.min && wordCount <= limits.max,
+      isUnderMin: wordCount < limits.min,
+      isOverMax: wordCount > limits.max
+    };
+  };
+
+  // Validation des contraintes de mots
+  const isWordCountValid = (taskIndex = currentTaskIndex) => {
+    return getWordCount(taskIndex).isValid;
+  };
+
+  // Validation globale des trois conditions pour la soumission
+  const validateAllConditions = () => {
+    const validationResult = {
+      isValid: true,
+      errors: []
+    };
+
+    // Condition 1: Vérifier que toutes les tâches ont une réponse (non vide)
+    for (let i = 0; i < subject.tasks.length; i++) {
+      const response = responses[i] || '';
+      const cleanResponse = response.replace(/<[^>]*>/g, '').trim();
+      
+      if (!cleanResponse || cleanResponse.length === 0) {
+        validationResult.isValid = false;
+        validationResult.errors.push(`Tâche ${i + 1}: Aucune réponse fournie`);
+      }
+    }
+
+    // Condition 2: Vérifier que toutes les tâches respectent les limites de mots
+    for (let i = 0; i < subject.tasks.length; i++) {
+      const wordCountData = getWordCount(i);
+      if (!wordCountData.isValid) {
+        validationResult.isValid = false;
+        if (wordCountData.isUnderMin) {
+          validationResult.errors.push(`Tâche ${i + 1}: Nombre de mots insuffisant (${wordCountData.count}/${wordCountData.min} minimum)`);
+        } else if (wordCountData.isOverMax) {
+          validationResult.errors.push(`Tâche ${i + 1}: Nombre de mots dépassé (${wordCountData.count}/${wordCountData.max} maximum)`);
+        }
+      }
+    }
+
+    // Condition 3: Vérifier que chaque réponse contient un contenu substantiel
+    for (let i = 0; i < subject.tasks.length; i++) {
+      const response = responses[i] || '';
+      const cleanResponse = response.replace(/<[^>]*>/g, '').trim();
+      const words = cleanResponse.split(/\s+/).filter(word => word.length > 0);
+      
+      // Vérifier qu'il y a au moins 3 mots significatifs
+      if (words.length > 0 && words.length < 3) {
+        validationResult.isValid = false;
+        validationResult.errors.push(`Tâche ${i + 1}: Contenu insuffisant (au moins 3 mots requis)`);
+      }
+    }
+
+    return validationResult;
+  };
+
+  // Vérifier si la soumission est possible
+  const canSubmitExam = () => {
+    return validateAllConditions().isValid;
   };
 
   // Insertion de caractères spéciaux
@@ -345,6 +423,15 @@ function TCFExamInterface() {
   // Basculer l'affichage du tableau de caractères
   const toggleCharacterTable = () => {
     setShowCharacterTable(!showCharacterTable);
+  };
+
+  // Gestion du mode plein écran pour les documents
+  const openFullscreenDocument = (docIndex, docContent) => {
+    setFullscreenDocument({ index: docIndex, content: docContent });
+  };
+
+  const closeFullscreenDocument = () => {
+    setFullscreenDocument(null);
   };
 
   if (!subject) {
@@ -632,9 +719,37 @@ function TCFExamInterface() {
                     mb: currentTaskIndex !== 2 ? 2 : 0,
                     backgroundColor: 'rgba(255, 255, 255, 0.7)',
                     borderRadius: '8px',
-                    p: 1.5
+                    p: 1.5,
+                    position: 'relative'
                   }}
                 >
+                  {/* Icône d'agrandissement en haut à droite */}
+                  <Tooltip title="Afficher en plein écran" placement="top">
+                    <Icon
+                      onClick={() => openFullscreenDocument(index, doc.content)}
+                      sx={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 20,
+                       
+                        fontSize: '34px',
+                        color: '#2C3E50',
+                        cursor: 'pointer',
+                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                        
+                       
+                        '&:hover': {
+                          backgroundColor: 'rgba(79, 204, 231, 0.1)',
+                          color: '#4FCCE7',
+                          transform: 'scale(1.1)'
+                        },
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      zoom_in
+                    </Icon>
+                  </Tooltip>
+                  
                   <MDTypography variant="subtitle2" color="#2C3E50" fontWeight="bold" mb={1}>
                     Document {index + 1}
                   </MDTypography>
@@ -670,62 +785,93 @@ function TCFExamInterface() {
           <MDTypography variant="h6" color="#2C3E50" mb={2} sx={{ textAlign: 'center' }}>
             Zone de réponse
           </MDTypography>
-          <textarea
-            ref={textareaRef}
-            value={responses[currentTaskIndex] || ''}
-            onChange={(e) => handleResponseChange(e.target.value)}
-            placeholder="Commencez à écrire votre réponse ici..."
-            style={{
-              flex: 1,
-              width: '100%',
-              fontSize: '14px',
-              lineHeight: '1.5',
-              padding: '16px',
-              border: 'none',
-              borderRadius: '8px',
-              backgroundColor: '#f8f9fa',
-              resize: 'none',
-              outline: 'none',
-              fontFamily: 'inherit',
-              minHeight: '50vh' // Ajout d'une hauteur minimale pour le textarea
-            }}
-          />
+          <MDBox sx={{ position: 'relative', flex: 1 }}>
+            <textarea
+              ref={textareaRef}
+              value={responses[currentTaskIndex] || ''}
+              onChange={(e) => handleResponseChange(e.target.value)}
+              placeholder="Commencez à écrire votre réponse ici..."
+              style={{
+                width: '100%',
+                height: '100%',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                padding: '16px',
+                paddingBottom: '40px', // Espace pour l'indicateur de mots
+                border: 'none',
+                borderRadius: '8px',
+                backgroundColor: '#f8f9fa',
+                resize: 'none',
+                outline: 'none',
+                fontFamily: 'inherit',
+                minHeight: '50vh'
+              }}
+            />
+            {/* Indicateur de mots en bas à droite */}
+            <MDBox
+              sx={{
+                position: 'absolute',
+                bottom: '8px',
+                right: '16px',
+                backgroundColor: getWordCount().isOverMax ? '#ffebee' : getWordCount().isUnderMin ? '#fff3e0' : '#e8f5e8',
+                color: getWordCount().isOverMax ? '#d32f2f' : getWordCount().isUnderMin ? '#f57c00' : '#2e7d32',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                border: `1px solid ${getWordCount().isOverMax ? '#ffcdd2' : getWordCount().isUnderMin ? '#ffcc02' : '#c8e6c9'}`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              {getWordCount().count}/{getWordCount().max}
+            </MDBox>
+          </MDBox>
           
           {/* Boutons d'action */}
           <MDBox sx={{ display: 'flex', justifyContent: currentTaskIndex === subject.tasks.length - 1 ? 'center' : 'space-between', mt: 2 }}>
             {/* Afficher le bouton Enregistrer seulement si ce n'est pas la dernière tâche */}
             {currentTaskIndex !== subject.tasks.length - 1 && (
               <MDButton
-                variant="contained"
-                onClick={handleSaveResponse}
-                style={{color: 'white',}}
-                sx={{
-                  backgroundColor: '#2ECC71',
-                  color: 'white',
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: '8px',
-                  '&:hover': {
-                    backgroundColor: '#27AE60'
-                  }
-                }}
-              >
-                ENREGISTRER
-              </MDButton>
-            )}
-            
-            <MDButton
               variant="contained"
-              onClick={handleSubmitExam}
-              style={{color: 'white',}}
+              onClick={handleSaveResponse}
+              disabled={!isWordCountValid()}
+              style={{color: 'white'}}
               sx={{
-                backgroundColor: '#FF4E4E',
+                backgroundColor: isWordCountValid() ? '#2ECC71' : '#bdbdbd',
                 color: 'white',
                 px: 3,
                 py: 1.5,
                 borderRadius: '8px',
                 '&:hover': {
-                  backgroundColor: '#E74C3C'
+                  backgroundColor: isWordCountValid() ? '#27AE60' : '#bdbdbd'
+                },
+                '&:disabled': {
+                  backgroundColor: '#bdbdbd',
+                  color: '#ffffff'
+                }
+              }}
+            >
+              ENREGISTRER
+            </MDButton>
+            )}
+            
+            <MDButton
+              variant="contained"
+              onClick={handleSubmitExam}
+              disabled={!canSubmitExam()}
+              style={{color: 'white'}}
+              sx={{
+                backgroundColor: canSubmitExam() ? '#FF4E4E' : '#bdbdbd',
+                color: 'white',
+                px: 3,
+                py: 1.5,
+                borderRadius: '8px',
+                '&:hover': {
+                  backgroundColor: canSubmitExam() ? '#E74C3C' : '#bdbdbd'
+                },
+                '&:disabled': {
+                  backgroundColor: '#bdbdbd',
+                  color: '#ffffff'
                 }
               }}
             >
@@ -804,8 +950,20 @@ function TCFExamInterface() {
           }}
         >
           <MDTypography variant="h6" color="#2C3E50" mb={1}>
-            Mots: {getWordCount()}
+            Mots: {getWordCount().count}
           </MDTypography>
+          <MDTypography 
+            variant="body2" 
+            color={getWordCount().isValid ? "#2e7d32" : "#d32f2f"}
+            fontWeight="bold"
+          >
+            Limite: {getWordCount().min}-{getWordCount().max} mots
+          </MDTypography>
+          {!getWordCount().isValid && (
+            <MDTypography variant="caption" color="#d32f2f" display="block" mt={0.5}>
+              {getWordCount().isUnderMin ? 'Nombre de mots insuffisant' : 'Nombre de mots dépassé'}
+            </MDTypography>
+          )}
         </MDBox>
 
         {/* Caractères spéciaux */}
@@ -927,6 +1085,29 @@ function TCFExamInterface() {
           <MDTypography variant="body2" color="text">
             Tâches complétées: {Object.values(responses).filter(r => r.trim().length > 0).length} sur {subject.tasks.length}
           </MDTypography>
+          
+          {/* Afficher les erreurs de validation s'il y en a */}
+          {(() => {
+            const validation = validateAllConditions();
+            if (!validation.isValid) {
+              return (
+                <MDBox mt={2} p={2} sx={{ backgroundColor: '#ffebee', borderRadius: '8px', border: '1px solid #f44336' }}>
+                  <MDTypography variant="h6" color="error" mb={1}>
+                    ⚠️ Conditions non respectées:
+                  </MDTypography>
+                  {validation.errors.map((error, index) => (
+                    <MDTypography key={index} variant="body2" color="error" sx={{ mb: 0.5 }}>
+                      • {error}
+                    </MDTypography>
+                  ))}
+                  <MDTypography variant="caption" color="text" mt={1} display="block">
+                    Veuillez corriger ces problèmes avant de soumettre.
+                  </MDTypography>
+                </MDBox>
+              );
+            }
+            return null;
+          })()}
         </DialogContent>
         <DialogActions>
           <MDButton
@@ -945,6 +1126,107 @@ function TCFExamInterface() {
           </MDButton>
           <MDButton
             onClick={confirmSubmitExam}
+            disabled={!canSubmitExam()}
+            color="primary"
+            variant="gradient"
+            sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
+              backgroundImage: canSubmitExam() 
+                ? linearGradient(gradients.primaryToSecondary.main, gradients.primaryToSecondary.state)
+                : 'linear-gradient(45deg, #bdbdbd, #9e9e9e)',
+              '&:hover': {
+                backgroundColor: canSubmitExam() ? 'rgba(79, 204, 231, 1)' : '#bdbdbd',
+                boxShadow: canSubmitExam() ? '0 4px 20px 0 rgba(79, 204, 231, 0.4)' : 'none',
+              },
+              '&:disabled': {
+                backgroundImage: 'linear-gradient(45deg, #bdbdbd, #9e9e9e)',
+                color: '#ffffff',
+                opacity: 0.6
+              }
+            })}
+          >
+            Soumettre définitivement
+          </MDButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de plein écran pour les documents */}
+      <Dialog 
+        open={!!fullscreenDocument} 
+        onClose={closeFullscreenDocument}
+        maxWidth={false}
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            width: '95vw',
+            height: '95vh',
+            maxWidth: 'none',
+            maxHeight: 'none',
+            margin: '2.5vh 2.5vw'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          backgroundColor: '#f5f5f5',
+          borderBottom: '1px solid #e0e0e0'
+        }}>
+          <MDTypography variant="h5" fontWeight="bold">
+            Document {fullscreenDocument?.index + 1} - Affichage plein écran
+          </MDTypography>
+          <Tooltip title="Fermer" placement="left">
+            <Icon
+              onClick={closeFullscreenDocument}
+              sx={{
+                fontSize: '24px',
+                color: '#666',
+                cursor: 'pointer',
+                
+                borderRadius: '50%',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  color: '#333'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              close
+            </Icon>
+          </Tooltip>
+        </DialogTitle>
+        <DialogContent sx={{ 
+          padding: '24px',
+          backgroundColor: '#fafafa',
+          overflow: 'auto'
+        }}>
+          <MDBox sx={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            minHeight: '70vh'
+          }}>
+            <MDTypography 
+              variant="body1" 
+              sx={{ 
+                whiteSpace: 'pre-wrap', 
+                lineHeight: 1.6, 
+                fontSize: '1.1rem',
+                color: '#333'
+              }}
+            >
+              <div dangerouslySetInnerHTML={{ __html: fullscreenDocument?.content }} />
+            </MDTypography>
+          </MDBox>
+        </DialogContent>
+        <DialogActions sx={{ 
+          backgroundColor: '#f5f5f5',
+          borderTop: '1px solid #e0e0e0',
+          padding: '16px 24px'
+        }}>
+          <MDButton
+            onClick={closeFullscreenDocument}
             color="primary"
             variant="gradient"
             sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
@@ -955,7 +1237,7 @@ function TCFExamInterface() {
               },
             })}
           >
-            Soumettre définitivement
+            Fermer
           </MDButton>
         </DialogActions>
       </Dialog>

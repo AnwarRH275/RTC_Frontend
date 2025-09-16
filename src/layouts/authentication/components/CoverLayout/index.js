@@ -27,7 +27,7 @@ function CoverLayout({ coverHeight, image, children }) {
         action={{
           type: "external",
           route: "#",
-          label: "Réussir TCF Canada",
+          label: "Expression TCF",
         }}
         transparent
         light
@@ -53,7 +53,7 @@ function CoverLayout({ coverHeight, image, children }) {
         }}
       />
       <MDBox px={1} width="100%" height="100vh" mx="auto" position="relative" zIndex={1}>
-        <Grid container spacing={1} justifyContent="center">
+        <Grid container spacing={1} justifyContent="center" alignItems="center" sx={{ minHeight: "100vh" }}>
           <Grid item xs={11} sm={10} md={8} lg={7} xl={6}>
             {children}
           </Grid>

@@ -51,12 +51,14 @@ import DataTable from "examples/Tables/DataTable";
 // React hooks
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from '../../services/config';
+import { useInfoUser } from "context";
 
 // Services
 import authService from "services/authService";
 import subscriptionPackService from "services/subscriptionPackService";
 
 function UserManagement() {
+  const { userInfo } = useInfoUser(); // Récupérer les infos de l'utilisateur connecté
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -114,9 +116,25 @@ function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/auth/users`);
+     const response = await fetch(`${API_BASE_URL}/auth/users`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    }
+  });   
       const data = await response.json();
-      setUsers(data);
+      
+      // Si l'utilisateur est modérateur, filtrer pour ne montrer que les utilisateurs qu'il peut gérer
+      if (userInfo?.role === 'moderator') {
+        const filteredUsers = data.filter(user => 
+          (user.role === 'client' && user.created_by === userInfo.username) ||
+          user.username === userInfo.username
+        );
+        setUsers(filteredUsers);
+      } else {
+        setUsers(data);
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
       showSnackbar('Erreur lors du chargement des utilisateurs', 'error');
@@ -167,6 +185,18 @@ function UserManagement() {
 
   const handleOpenDialog = (user = null) => {
     if (user) {
+      // Vérifier les permissions pour les modérateurs
+      if (userInfo?.role === 'moderator') {
+        if (user.role === 'admin' || (user.role === 'moderator' && user.username !== userInfo.username)) {
+          showSnackbar('Vous n\'avez pas l\'autorisation de modifier cet utilisateur', 'error');
+          return;
+        }
+        if (user.created_by !== userInfo.username && user.role !== 'client' && user.username !== userInfo.username) {
+          showSnackbar('Vous ne pouvez modifier que les utilisateurs que vous avez créés', 'error');
+          return;
+        }
+      }
+      
       setEditMode(true);
       setSelectedUser(user);
       setFormData({
@@ -207,6 +237,18 @@ function UserManagement() {
   };
 
   const handleOpenBalanceDialog = (user) => {
+    // Vérifier les permissions pour les modérateurs
+    if (userInfo?.role === 'moderator') {
+      if (user.role === 'admin' || (user.role === 'moderator' && user.username !== userInfo.username)) {
+        showSnackbar('Vous n\'avez pas l\'autorisation de modifier le solde de cet utilisateur', 'error');
+        return;
+      }
+      if (user.created_by !== userInfo.username && user.role !== 'client' && user.username !== userInfo.username) {
+        showSnackbar('Vous ne pouvez modifier que le solde des utilisateurs que vous avez créés', 'error');
+        return;
+      }
+    }
+    
     setSelectedUser(user);
     setNewBalanceValue(balanceType === "sold" ? user.sold || "0" : user.total_sold || "0");
     setOpenBalanceDialog(true);
@@ -275,6 +317,8 @@ function UserManagement() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+    
           },
           body: JSON.stringify({
             ...formData,
@@ -292,12 +336,24 @@ function UserManagement() {
         }
       } else {
         // Create new user
-        const response = await authService.signup({
-          ...formData,
-          tel: telWithCode,
-          plan: formData.subscription_plan
-        });
-        
+        try {
+      const response = await authService.signup({
+        ...formData,
+        tel: telWithCode,
+        plan: formData.subscription_plan,
+      }, {
+        method: 'POST', // ou 'PUT' selon ton besoin, mais signup est généralement POST
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      alert(`Bearer ${localStorage.getItem('token')}`)
+      // Gérer la réponse ici (ex: redirection, message de succès, etc.)
+      console.log('Inscription réussie', response);
+    } catch (error) {
+      console.error('Erreur lors de l\'inscription :', error);
+    }       
         showSnackbar('Utilisateur créé avec succès');
         fetchUsers();
         handleCloseDialog();
@@ -309,10 +365,21 @@ function UserManagement() {
   };
 
   const handleDeleteUser = async (username) => {
+    const userToDelete = users.find(u => u.username === username);
+    
+    // Seuls les administrateurs peuvent supprimer des utilisateurs
+    if (userInfo?.role !== 'admin') {
+      showSnackbar('Seuls les administrateurs peuvent supprimer des utilisateurs', 'error');
+      return;
+    }
+    
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
       try {
         const response = await fetch(`${API_BASE_URL}/auth/delete/${username}`, {
           method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
         });
         
         if (response.ok) {
@@ -413,56 +480,77 @@ function UserManagement() {
     ),
     actions: (
       <MDBox display="flex" justifyContent="center" gap={1}>
-        <Tooltip title="Modifier">
-          <IconButton
-          style={{color: "white"}}
-            size="small"
-            color="info"
-            onClick={() => handleOpenDialog(user)}
-            sx={{
-              background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
-              color: "white",
-              "&:hover": {
-                background: "linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))",
-              }
-            }}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Modifier le solde">
-          <IconButton
+        <Tooltip title={userInfo?.role === 'moderator' && (user.role === 'admin' || (user.role === 'moderator' && user.username !== userInfo.username)) ? "Non autorisé" : "Modifier"}>
+          <span>
+            <IconButton
             style={{color: "white"}}
-            size="small"
-            color="success"
-            onClick={() => handleOpenBalanceDialog(user)}
-            sx={{
-              background: "linear-gradient(135deg, #2ECC71, #27AE60)",
-              color: "white",
-              "&:hover": {
-                background: "linear-gradient(135deg, #27AE60, #229954)",
-              }
-            }}
-          >
-            <AccountBalanceWalletIcon fontSize="small" />
-          </IconButton>
+              size="small"
+              color="info"
+              onClick={() => handleOpenDialog(user)}
+              disabled={userInfo?.role === 'moderator' && (user.role === 'admin' || (user.role === 'moderator' && user.username !== userInfo.username)) && user.created_by !== userInfo.username}
+              sx={{
+                background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
+                color: "white",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))",
+                },
+                "&:disabled": {
+                  background: "rgba(0, 0, 0, 0.12)",
+                  color: "rgba(0, 0, 0, 0.26)"
+                }
+              }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </span>
         </Tooltip>
-        <Tooltip title="Supprimer">
-          <IconButton
-            style={{color: "white"}}
-            size="small"
-            color="error"
-            onClick={() => handleDeleteUser(user.username)}
-            sx={{
-              background: "linear-gradient(135deg, #FF512F, #DD2476)",
-              color: "white",
-              "&:hover": {
-                background: "linear-gradient(135deg, #DF412F, #BD1456)",
-              }
-            }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
+        <Tooltip title={userInfo?.role === 'moderator' && (user.role === 'admin' || (user.role === 'moderator' && user.username !== userInfo.username)) ? "Non autorisé" : "Modifier le solde"}>
+          <span>
+            <IconButton
+              style={{color: "white"}}
+              size="small"
+              color="success"
+              onClick={() => handleOpenBalanceDialog(user)}
+              disabled={userInfo?.role === 'moderator' && (user.role === 'admin' || (user.role === 'moderator' && user.username !== userInfo.username)) && user.created_by !== userInfo.username}
+              sx={{
+                background: "linear-gradient(135deg, #2ECC71, #27AE60)",
+                color: "white",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #27AE60, #229954)",
+                },
+                "&:disabled": {
+                  background: "rgba(0, 0, 0, 0.12)",
+                  color: "rgba(0, 0, 0, 0.26)"
+                }
+              }}
+            >
+              <AccountBalanceWalletIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={userInfo?.role !== 'admin' ? "Seuls les administrateurs peuvent supprimer" : "Supprimer"}>
+          <span>
+            <IconButton
+              style={{color: "white"}}
+              size="small"
+              color="error"
+              onClick={() => handleDeleteUser(user.username)}
+              disabled={userInfo?.role !== 'admin'}
+              sx={{
+                background: "linear-gradient(135deg, #FF512F, #DD2476)",
+                color: "white",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #DF412F, #BD1456)",
+                },
+                "&:disabled": {
+                  background: "rgba(0, 0, 0, 0.12)",
+                  color: "rgba(0, 0, 0, 0.26)"
+                }
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </span>
         </Tooltip>
       </MDBox>
     ),
@@ -681,8 +769,17 @@ function UserManagement() {
                   value={formData.role}
                   onChange={(e) => handleInputChange('role', e.target.value)}
                   label="Rôle"
+                  disabled={userInfo?.role === 'moderator' && (selectedUser?.role === 'admin' || selectedUser?.role === 'moderator')}
                 >
-                  {userRoles.map((role) => (
+                  {userRoles
+                    .filter(role => {
+                      // Les modérateurs ne peuvent pas assigner le rôle admin ou moderator
+                      if (userInfo?.role === 'moderator') {
+                        return role.value === 'client';
+                      }
+                      return true;
+                    })
+                    .map((role) => (
                     <MenuItem key={role.value} value={role.value}>
                       {role.label}
                     </MenuItem>
