@@ -530,7 +530,7 @@ const TCFOralExam = () => {
         };
       } else if (isInTask3Continuation && cumulativeTimeTask3 < 270 && task3ContinuationCount < 2) { // En continuation et pas encore 4m30 cumulées, max 2 questions
         return {
-          text: "Vous avez encore du temps, continuez à développer votre argumentation.",
+          text: "Prenez le temps d’approfondir vos idées, votre argumentation mérite d’être encore plus convaincante.",
           audioUrl: null, // Sera généré dynamiquement
           allowExtraTime: true
         };
@@ -2733,7 +2733,7 @@ const TCFOralExam = () => {
                   {currentInteraction < currentTask.interactions.length - 1 ? 
                     "Continuer" : 
                     currentTaskIndex < examData.tasks.length - 1 ? 
-                      "Tâche suivante" : "Terminer l'examen"}
+                    <span style={{ color: 'white' }}>Tâche suivante</span>   : <span style={{ color: 'white' }}>Terminer l'examen</span>}
                 </Button>
               )}
               

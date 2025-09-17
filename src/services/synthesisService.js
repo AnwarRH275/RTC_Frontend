@@ -3,9 +3,8 @@ import authService from './authService';
 
 // S'assurer que l'URL de base de l'API est toujours définie et se termine par un slash
 
-let API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/';
-
-// let API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.expressiontcf.com';
+//let API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/';
+let API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.expressiontcf.com';
 
 
 if (!API_BASE_URL.endsWith('/')) {
@@ -111,8 +110,8 @@ class SynthesisService {
       if (!API_BASE_URL) {
         console.error('API_BASE_URL n\'est pas défini');
         // Utiliser une URL par défaut si API_BASE_URL n'est pas défini
-       API_BASE_URL = 'http://localhost:5002/';
-       //API_BASE_URL = 'https://api.expressiontcf.com/';
+      // API_BASE_URL = 'http://localhost:5002/';
+       API_BASE_URL = 'https://api.expressiontcf.com/';
         
       }
       

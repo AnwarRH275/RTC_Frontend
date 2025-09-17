@@ -800,20 +800,7 @@ function TCFSimulatorOral() {
                       />
                     )}
                     
-                    {task.objective && (
-                      <MDBox mt={2}>
-                        <div 
-                          dangerouslySetInnerHTML={{ __html: task.objective }}
-                          style={{
-                            backgroundColor: 'rgba(102, 126, 234, 0.05)',
-                            borderRadius: '8px',
-                            padding: '8px',
-                            fontSize: '1rem',
-                            lineHeight: '1.5',
-                          }}
-                        />
-                      </MDBox>
-                    )}
+              
                   </MDBox>
                 ))}
               </MDBox>
