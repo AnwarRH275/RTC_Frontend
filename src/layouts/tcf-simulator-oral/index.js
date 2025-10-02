@@ -17,6 +17,9 @@ import Icon from "@mui/material/Icon";
 import Box from "@mui/material/Box";
 import Pagination from "@mui/material/Pagination";
 import Stack from "@mui/material/Stack";
+import Avatar from "@mui/material/Avatar";
+import Tooltip from "@mui/material/Tooltip";
+import Fade from "@mui/material/Fade";
 import { useNavigate } from "react-router-dom";
 
 // Simulateur TCF Canada React components
@@ -324,13 +327,15 @@ function TCFSimulatorOral() {
         console.log(userSubscriptionPlan);
         console.log('Examens utilisateur:', userExams);
         
-        // Créer un Set des IDs de sujets déjà passés par l'utilisateur
+        // Créer un Set des IDs de sujets déjà passés par l'utilisateur pour les examens oraux
         // Utiliser un Set pour éviter les doublons
         const completedSubjectIds = new Set();
         
-        // Ajouter chaque ID de sujet au Set
+        // Ajouter chaque ID de sujet au Set seulement pour les examens de type 'oral'
         userExams.forEach(exam => {
-          completedSubjectIds.add(exam.id_subject);
+          if (exam.type_exam === 'oral') {
+            completedSubjectIds.add(exam.id_subject);
+          }
         });
         
         console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
@@ -368,7 +373,7 @@ function TCFSimulatorOral() {
             tasks: subject.tasks || [],
             pack: subject.name + ' : ' + subject.combination,
             bgColor: "#f72585",
-            duration: subject.duration || 60,
+            duration:  12,
             status: status
           };
         });
@@ -505,7 +510,7 @@ function TCFSimulatorOral() {
                       }
                       pack={subject.pack}
                       bgColor={subject.bgColor}
-                      duration={subject.duration || 60}
+                      duration={ 12}
                       sx={{
                         borderRadius: '12px', // Rounded corners for cards
                         overflow: 'hidden', // Hide overflow for the top bar
@@ -536,7 +541,7 @@ function TCFSimulatorOral() {
                       }
                       pack={subject.pack}
                       bgColor={subject.bgColor}
-                      duration={subject.duration || 60}
+                      duration={ 12}
                       sx={{
                         borderRadius: '12px',
                         overflow: 'hidden',
@@ -567,7 +572,7 @@ function TCFSimulatorOral() {
                       }
                       pack={subject.pack}
                       bgColor={subject.bgColor}
-                      duration={subject.duration || 60}
+                      duration={ 12}
                       action={{
                         type: "function",
                         onClick: () => handleOpenRecap(subject),
@@ -638,7 +643,7 @@ function TCFSimulatorOral() {
                         '&.Mui-selected': {
                           background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
                           color: 'white',
-                          fontWeight: 600,
+                          fontWeight: 120,
                           boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)',
                           '&:hover': {
                             background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
@@ -728,7 +733,7 @@ function TCFSimulatorOral() {
                 }}
               >
                 <MDTypography variant="body1" color="text" fontWeight="medium">
-                  {selectedSubject?.duration || 60} minutes
+                  {selectedSubject?.duration || 12} minutes
                 </MDTypography>
               </MDBox>
             </MDBox>
@@ -976,247 +981,464 @@ function TCFSimulatorOral() {
       <Dialog
         open={openResults}
         onClose={handleCloseResults}
-        maxWidth="md"
+        maxWidth="1350px"
         fullWidth
-        sx={{
-          '& .MuiDialog-paper': {
-            borderRadius: '15px',
-            boxShadow: '0 8px 32px rgba(31, 38, 135, 0.37)',
-            maxHeight: '90vh',
-          },
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'hidden',
+          }
         }}
       >
-        <DialogTitle sx={{ 
-          background: 'linear-gradient(90deg, #0077b6 0%, #023e8a 100%)',
-          color: 'white',
-          borderTopLeftRadius: '15px',
-          borderTopRightRadius: '15px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <MDTypography variant="h5" fontWeight="medium" color="white">
-            Résultats de l'examen
-          </MDTypography>
-          <MDButton 
-            variant="text" 
-            color="white" 
-            onClick={handleCloseResults}
-            sx={{ minWidth: 'auto', p: 1 }}
-          >
-            <Icon>close</Icon>
-          </MDButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          {loadingResults ? (
-            <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-              <CircularProgress color="info" />
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
+            color: 'white',
+            textAlign: 'center',
+            py: 2,
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)',
+            }
+          }}
+        >
+          <MDBox display="flex" alignItems="center" justifyContent="space-between" px={2}>
+            {/* Section gauche avec icône et titre */}
+            <MDBox display="flex" alignItems="center" flexDirection="column">
+              <Icon sx={{ fontSize: '2rem', mb: 0.5, opacity: 0.9 }}>check_circle</Icon>
+              <MDTypography variant="h5" fontWeight="bold" color="white">
+                Résultats de votre évaluation
+              </MDTypography>
+              <MDTypography variant="body2" color="white" opacity={0.9} mt={0.5}>
+                {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+              </MDTypography>
             </MDBox>
-          ) : examResults ? (
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <MDBox 
-                  mb={3} 
-                  p={2} 
-                  sx={{ 
-                    backgroundColor: 'rgba(67, 97, 238, 0.05)',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(67, 97, 238, 0.2)',
-                    textAlign: 'center'
-                  }}
-                >
-                  <MDTypography variant="h6" fontWeight="bold" color="primary" mb={1}>
-                    Note globale
-                  </MDTypography>
-                  <MDTypography variant="h3" fontWeight="bold" color="info">
-                    {examResults.NoteExam}
+            
+            {/* Section droite avec note et icône attractive */}
+            <MDBox display="flex" alignItems="center" flexDirection="column">
+              {loadingResults ? (
+                <MDBox display="flex" alignItems="center" mb={2}>
+                  <CircularProgress size={24} sx={{ color: 'white', mr: 2 }} />
+                  <MDTypography variant="h6" color="white" fontWeight="medium">
+                    Calcul en cours...
                   </MDTypography>
                 </MDBox>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <MDBox 
-                  mb={3} 
-                  p={2} 
-                  sx={{ 
-                    backgroundColor: 'rgba(46, 196, 182, 0.05)',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(46, 196, 182, 0.2)',
-                    height: '100%'
-                  }}
-                >
-                  <MDTypography variant="h6" fontWeight="bold" color="success" mb={2}>
-                    <Icon sx={{ verticalAlign: 'middle', mr: 1 }}>thumb_up</Icon>
-                    Points forts
-                  </MDTypography>
-                  <MDBox component="ul" pl={2}>
-                    {examResults.pointsForts.map((point, index) => (
-                      <MDTypography 
-                        component="li" 
-                        variant="body2" 
-                        color="text" 
-                        key={`fort-${index}`}
-                        mb={1}
-                      >
-                        {point}
-                      </MDTypography>
-                    ))}
-                  </MDBox>
-                </MDBox>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <MDBox 
-                  mb={3} 
-                  p={2} 
-                  sx={{ 
-                    backgroundColor: 'rgba(239, 71, 111, 0.05)',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(239, 71, 111, 0.2)',
-                    height: '100%'
-                  }}
-                >
-                  <MDTypography variant="h6" fontWeight="bold" color="error" mb={2}>
-                    <Icon sx={{ verticalAlign: 'middle', mr: 1 }}>thumb_down</Icon>
-                    Points à améliorer
-                  </MDTypography>
-                  <MDBox component="ul" pl={2}>
-                    {examResults.pointsAmeliorer.map((point, index) => (
-                      <MDTypography 
-                        component="li" 
-                        variant="body2" 
-                        color="text" 
-                        key={`ameliorer-${index}`}
-                        mb={1}
-                      >
-                        {point}
-                      </MDTypography>
-                    ))}
-                  </MDBox>
-                </MDBox>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <MDBox mb={2}>
-                  <MDTypography variant="h6" fontWeight="bold" color="info">
-                    Détail par tâche
-                  </MDTypography>
-                </MDBox>
-                
-                {selectedSubject && selectedSubject.tasks && selectedSubject.tasks.map((task, index) => (
-                  <MDBox 
-                    key={task.id} 
-                    mb={3} 
-                    p={2} 
-                    sx={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                      borderRadius: '10px',
-                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+              ) : (
+                <Tooltip title="Votre niveau global" placement="top" arrow>
+                  <MDBox
+                    display="flex"
+                    alignItems="center"
+                    sx={{
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 100%)',
+                      borderRadius: '16px',
+                      padding: '12px 20px',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      backdropFilter: 'blur(10px)',
+                      mb: 2,
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'radial-gradient(circle at top right, rgba(255,255,255,0.3), transparent 70%)',
+                        zIndex: 0
+                      },
+                      '&:hover': {
+                        transform: 'scale(1.05)',
+                        transition: 'transform 0.3s ease'
+                      }
                     }}
                   >
-                    <MDBox display="flex" alignItems="center" mb={2}>
-                      <Chip 
-                      label={`Tâche ${index + 1}`} 
-                      color="primary" 
-                      size="small" 
-                      sx={{ mr: 1, backgroundColor: "#0083b0", color: "white" }}
-                    />
-                      <MDTypography variant="subtitle1" fontWeight="medium">
-                        {task.taskType === 'entretien' ? 'Entretien' : 
-                         task.taskType === 'questions' ? 'Jeu de rôle' : 
-                         task.taskType === 'expression' ? 'Expression d\'un point de vue' : 
-                         'Tâche orale'}
+                    <Avatar
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        mr: 2,
+                        zIndex: 1
+                      }}
+                    >
+                      <Icon sx={{ fontSize: '1.8rem', color: 'white' }}>emoji_events</Icon>
+                    </Avatar>
+                    <MDBox sx={{ zIndex: 1 }}>
+                      <MDTypography variant="caption" fontWeight="bold" color="white" sx={{ opacity: 0.9, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                        Note Globale
+                      </MDTypography>
+                      <MDTypography variant="h4" fontWeight="bold" color="white" lineHeight={1}>
+                        {examResults?.NoteExam || "B1"}
                       </MDTypography>
                     </MDBox>
-                    
-                    {examResults.taskResults && examResults.taskResults[index] && (
-                      <>
-                        <MDBox mb={2}>
-                          <MDTypography variant="body2" fontWeight="bold" color="text">
-                            Correction :
+                  </MDBox>
+                </Tooltip>
+              )}
+              <MDBox 
+                display="flex" 
+                alignItems="center" 
+                sx={{ 
+                  cursor: 'pointer', 
+                  '&:hover': { 
+                    transform: 'scale(1.05)',
+                    transition: 'transform 0.2s ease'
+                  } 
+                }}
+                onClick={handleCloseResults}
+              >
+                <Icon sx={{ fontSize: '1.2rem', mr: 0.5, color: 'rgba(255,255,255,0.9)' }}>refresh</Icon>
+                <MDTypography variant="caption" color="white" fontWeight="medium" sx={{ opacity: 0.9 }}>
+                  Passer un autre examen
+                </MDTypography>
+              </MDBox>
+            </MDBox>
+            
+            <MDButton 
+              variant="text" 
+              color="white" 
+              onClick={handleCloseResults}
+              sx={{ minWidth: 'auto', p: 1 }}
+            >
+              <Icon>close</Icon>
+            </MDButton>
+          </MDBox>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 0 }}>
+          <MDBox p={4}>
+            <MDTypography variant="body1" color="text" mb={4}>
+              Voici les résultats détaillés de votre examen d'expression orale TCF Canada
+            </MDTypography>
+            
+            {loadingResults ? (
+              <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+                <CircularProgress color="info" />
+              </MDBox>
+            ) : examResults ? (
+              /* Résultats par tâche */
+              selectedSubject && selectedSubject.tasks && selectedSubject.tasks.map((task, index) => (
+                <Fade in timeout={500 + (index * 200)} key={index}>
+                  <Card 
+                    sx={{ 
+                      mb: 4, 
+                      overflow: 'hidden',
+                      borderRadius: 4,
+                      boxShadow: '0 15px 35px rgba(0,0,0,0.15)'
+                    }}
+                  >
+                    {/* En-tête de la tâche */}
+                    <MDBox
+                      sx={{
+                        background: task?.theme === 'immigration' 
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : task?.theme === 'travail'
+                          ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                          : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                        color: 'white',
+                        p: 3
+                      }}
+                    >
+                      <MDBox display="flex" justifyContent="space-between" alignItems="center">
+                        <MDBox>
+                          <MDTypography variant="h5" fontWeight="bold" color="white" mb={1} component="div">
+                            <div dangerouslySetInnerHTML={{ __html: task?.title || `Tâche ${index + 1}: Expression orale` }} />
                           </MDTypography>
-                          <MDBox 
-                            mt={1} 
-                            p={2} 
-                            sx={{ 
-                              backgroundColor: 'rgba(67, 97, 238, 0.05)',
-                              borderRadius: '8px',
-                              border: '1px solid rgba(67, 97, 238, 0.1)',
-                            }}
-                          >
-                            <ReactMarkdown>
-                              {examResults.taskResults[index].correction}
-                            </ReactMarkdown>
-                          </MDBox>
+                          <MDTypography variant="body2" color="white" opacity={0.9}>
+                            Thème: {task?.theme || 'Général'}
+                          </MDTypography>
                         </MDBox>
                         
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} md={6}>
-                            <MDBox mb={1}>
-                              <MDTypography variant="body2" fontWeight="bold" color="success">
-                                Points forts :
-                              </MDTypography>
-                              <MDBox component="ul" pl={2} mt={1}>
-                                {examResults.taskResults[index].pointsForts.map((point, i) => (
-                                  <MDTypography 
-                                    component="li" 
-                                    variant="body2" 
-                                    color="text" 
-                                    key={`task-${index}-fort-${i}`}
-                                  >
-                                    {point}
+                        <MDBox display="flex" alignItems="center" gap={2}>
+                          {examResults.taskResults && examResults.taskResults[index] && (
+                            <Tooltip title="Votre niveau actuel" placement="top" arrow>
+                              <MDBox
+                                display="flex"
+                                alignItems="center"
+                                sx={{
+                                  background: 'linear-gradient(135deg, #4f46e5 0%, #667eea 100%)',
+                                  borderRadius: '12px',
+                                  padding: '6px 12px',
+                                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
+                                  border: '2px solid rgba(255,255,255,0.2)',
+                                  position: 'relative',
+                                  overflow: 'hidden',
+                                  '&::before': {
+                                    content: '""',
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    background: 'radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent 70%)',
+                                    zIndex: 0
+                                  }
+                                }}
+                              >
+                                <Avatar
+                                  sx={{
+                                    width: 32,
+                                    height: 32,
+                                    backgroundColor: 'rgba(255,255,255,0.2)',
+                                    mr: 1
+                                  }}
+                                >
+                                  <Icon sx={{ fontSize: '1.2rem', color: 'white' }}>school</Icon>
+                                </Avatar>
+                                <MDBox>
+                                  <MDTypography variant="caption" fontWeight="bold" color="white" sx={{ opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                    Niveau actuel
                                   </MDTypography>
-                                ))}
-                              </MDBox>
-                            </MDBox>
-                          </Grid>
-                          
-                          <Grid item xs={12} md={6}>
-                            <MDBox mb={1}>
-                              <MDTypography variant="body2" fontWeight="bold" color="error">
-                                Points à améliorer :
-                              </MDTypography>
-                              <MDBox component="ul" pl={2} mt={1}>
-                                {examResults.taskResults[index].pointsAmeliorer.map((point, i) => (
-                                  <MDTypography 
-                                    component="li" 
-                                    variant="body2" 
-                                    color="text" 
-                                    key={`task-${index}-ameliorer-${i}`}
-                                  >
-                                    {point}
+                                  <MDTypography variant="h6" fontWeight="bold" color="white" lineHeight={1}>
+                                    {examResults.taskResults[index].niveau || "B1"}
                                   </MDTypography>
-                                ))}
+                                </MDBox>
                               </MDBox>
-                            </MDBox>
-                          </Grid>
+                            </Tooltip>
+                          )}
+                        </MDBox>
+                      </MDBox>
+                    </MDBox>
+                    
+                    <MDBox p={3}>
+                      {/* Section avec deux colonnes: Votre réponse et Corrections proposées */}
+                      <Grid container spacing={3}>
+                        {/* Votre réponse */}
+                        <Grid item xs={12} md={5}>
+                          <MDBox 
+                            p={3} 
+                            sx={{
+                              background: '#f8f9fa',
+                              borderRadius: 2,
+                              border: '1px solid #e9ecef',
+                              height: '100%',
+                              minHeight: '250px',
+                              overflow: 'auto'
+                            }}
+                          >
+                            <MDTypography variant="h6" fontWeight="bold" color="dark" mb={2}>
+                              Votre réponse:
+                            </MDTypography>
+                            <MDTypography variant="body2" color="text" lineHeight={1.8} component="div">
+                              <div>
+                                {examResults.taskResults && examResults.taskResults[index] && examResults.taskResults[index].reponse ? 
+                                  examResults.taskResults[index].reponse
+                                    .split(' Candidat:')
+                                    .slice(1)
+                                    .map((response, responseIndex) => {
+                                      // Nettoyer la réponse en supprimant les parties Examinateur suivantes
+                                      const cleanResponse = response.split(' Examinateur:')[0].trim();
+                                      return cleanResponse ? (
+                                        <div key={responseIndex} style={{ marginBottom: '12px', padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '6px', borderLeft: '3px solid #007bff' }}>
+                                          <strong style={{ color: '#007bff' }}>Vous:</strong> {cleanResponse}
+                                        </div>
+                                      ) : null;
+                                    })
+                                    .filter(Boolean)
+                                  : 'Aucune réponse fournie'
+                                }
+                              </div>
+                            </MDTypography>
+                          </MDBox>
                         </Grid>
-                      </>
-                    )}
-                  </MDBox>
-                ))}
-              </Grid>
-              
-              <Grid item xs={12}>
-                <MDBox display="flex" justifyContent="flex-end" mt={2}>
-                  <MDButton 
-                    variant="gradient" 
-                    color="primary"
-                    onClick={() => handleRetakeExam(selectedSubject.id)}
-                    startIcon={<Icon>replay</Icon>}
-                  >
-                    Refaire l'examen
-                  </MDButton>
-                </MDBox>
-              </Grid>
-            </Grid>
-          ) : (
-            <MDBox mb={3} maxWidth="800px" mx="auto">
-              <MDAlert color="warning">
-                Aucun résultat disponible pour cet examen. Veuillez contacter le support si vous pensez qu'il s'agit d'une erreur.
-              </MDAlert>
-            </MDBox>
-          )}
+                        
+                        {/* Corrections proposées */}
+                        <Grid item xs={12} md={7}>
+                          <MDBox 
+                            p={3} 
+                            sx={{
+                              background: '#f0f9ff',
+                              borderRadius: 2,
+                              border: '1px solid #cfe2ff',
+                              height: '100%',
+                              minHeight: '250px',
+                              overflow: 'auto'
+                            }}
+                          >
+                            <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
+                              Correction proposée :
+                            </MDTypography>
+                            
+                            {examResults.taskResults && examResults.taskResults[index] && examResults.taskResults[index].correction ? (
+                              <MDBox 
+                                sx={{
+                                  '& p': { margin: '8px 0', fontSize: '0.875rem', lineHeight: 1.8 },
+                                  '& h1, & h2, & h3, & h4, & h5, & h6': { margin: '16px 0 8px 0', fontWeight: 'bold' },
+                                  '& ul, & ol': { margin: '8px 0', paddingLeft: '20px' },
+                                  '& li': { margin: '4px 0' },
+                                  '& strong': { fontWeight: 'bold' },
+                                  '& em': { fontStyle: 'italic' },
+                                  '& code': { 
+                                    backgroundColor: '#f5f5f5', 
+                                    padding: '2px 4px', 
+                                    borderRadius: '3px',
+                                    fontSize: '0.85em'
+                                  },
+                                  '& pre': {
+                                    backgroundColor: '#f5f5f5',
+                                    padding: '12px',
+                                    borderRadius: '6px',
+                                    overflow: 'auto',
+                                    margin: '12px 0'
+                                  },
+                                  '& blockquote': {
+                                    borderLeft: '4px solid #ddd',
+                                    paddingLeft: '16px',
+                                    margin: '12px 0',
+                                    fontStyle: 'italic'
+                                  }
+                                }}
+                              >
+                                <ReactMarkdown>{examResults.taskResults[index].correction}</ReactMarkdown>
+                              </MDBox>
+                            ) : (
+                              <MDTypography variant="body2" color="text" style={{ fontStyle: 'italic' }}>
+                                Aucune correction disponible pour cette tâche.
+                              </MDTypography>
+                            )}
+                          </MDBox>
+                        </Grid>
+
+                        {/* Points forts et à améliorer pour cette tâche */}
+                        <Grid item xs={12}>
+                          <MDBox mt={3}>
+                            <Grid container spacing={3}>
+                              {/* Points forts */}
+                              <Grid item xs={12} md={6}>
+                                <MDBox mb={2}>
+                                  <MDTypography variant="h6" fontWeight="bold" color="dark">
+                                    <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#10b981' }}>recommend</Icon>
+                                    Points forts
+                                  </MDTypography>
+                                </MDBox>
+                                
+                                <Card 
+                                  sx={{ 
+                                    p: 3, 
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                    borderRadius: 3,
+                                    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                                    border: '1px solid rgba(16, 185, 129, 0.2)'
+                                  }}
+                                >
+                                  {examResults.taskResults && examResults.taskResults[index] && examResults.taskResults[index].pointsForts && examResults.taskResults[index].pointsForts.length > 0 ? (
+                                    <MDBox component="ul" pl={2} mt={0} sx={{ listStyle: 'none', padding: 0 }}>
+                                      {examResults.taskResults[index].pointsForts.map((point, i) => (
+                                        <Fade in timeout={800 + (i * 200)} key={`task-${index}-fort-${i}`}>
+                                          <MDBox component="li" display="flex" alignItems="flex-start" mb={2}>
+                                            <Avatar 
+                                              sx={{ 
+                                                width: 36, 
+                                                height: 36, 
+                                                backgroundColor: '#10b981',
+                                                mr: 2,
+                                                mt: 0.5
+                                              }}
+                                            >
+                                              <Icon sx={{ fontSize: 20, color: 'white' }}>check</Icon>
+                                            </Avatar>
+                                            <MDTypography 
+                                              variant="body2" 
+                                              sx={{
+                                                fontWeight: 500,
+                                                color: '#065f46',
+                                                flex: 1
+                                              }}
+                                            >
+                                              {point}
+                                            </MDTypography>
+                                          </MDBox>
+                                        </Fade>
+                                      ))}
+                                    </MDBox>
+                                  ) : (
+                                    <MDTypography variant="body2" color="text" textAlign="center">
+                                      Aucun point fort identifié.
+                                    </MDTypography>
+                                  )}
+                                </Card>
+                              </Grid>
+                              
+                              {/* Points à améliorer */}
+                              <Grid item xs={12} md={6}>
+                                <MDBox mb={2}>
+                                  <MDTypography variant="h6" fontWeight="bold" color="dark">
+                                    <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#f59e0b' }}>trending_up</Icon>
+                                    Points à améliorer
+                                  </MDTypography>
+                                </MDBox>
+                                
+                                <Card 
+                                  sx={{ 
+                                    p: 3, 
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                    borderRadius: 3,
+                                    background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                                    border: '1px solid rgba(245, 158, 11, 0.2)'
+                                  }}
+                                >
+                                  {examResults.taskResults && examResults.taskResults[index] && examResults.taskResults[index].pointsAmeliorer && examResults.taskResults[index].pointsAmeliorer.length > 0 ? (
+                                    <MDBox component="ul" pl={2} mt={0} sx={{ listStyle: 'none', padding: 0 }}>
+                                      {examResults.taskResults[index].pointsAmeliorer.map((point, i) => (
+                                        <Fade in timeout={1000 + (i * 200)} key={`task-${index}-ameliorer-${i}`}>
+                                          <MDBox component="li" display="flex" alignItems="flex-start" mb={2}>
+                                            <Avatar 
+                                              sx={{ 
+                                                width: 36, 
+                                                height: 36, 
+                                                backgroundColor: '#f59e0b',
+                                                mr: 2,
+                                                mt: 0.5
+                                              }}
+                                            >
+                                              <Icon sx={{ fontSize: 20, color: 'white' }}>trending_up</Icon>
+                                            </Avatar>
+                                            <MDTypography 
+                                              variant="body2" 
+                                              sx={{
+                                                fontWeight: 500,
+                                                color: '#92400e',
+                                                flex: 1
+                                              }}
+                                            >
+                                              {point}
+                                            </MDTypography>
+                                          </MDBox>
+                                        </Fade>
+                                      ))}
+                                    </MDBox>
+                                  ) : (
+                                    <MDTypography variant="body2" color="text" textAlign="center">
+                                      Aucun point à améliorer identifié.
+                                    </MDTypography>
+                                  )}
+                                </Card>
+                              </Grid>
+                            </Grid>
+                          </MDBox>
+                        </Grid>
+                      </Grid>
+                    </MDBox>
+                  </Card>
+                </Fade>
+              ))
+            ) : (
+              <MDBox mb={3} maxWidth="800px" mx="auto">
+                <MDAlert color="warning">
+                  Aucun résultat disponible pour cet examen. Veuillez contacter le support si vous pensez qu'il s'agit d'une erreur.
+                </MDAlert>
+              </MDBox>
+            )}
+          </MDBox>
         </DialogContent>
       </Dialog>
 

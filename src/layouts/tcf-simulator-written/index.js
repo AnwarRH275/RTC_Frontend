@@ -314,13 +314,15 @@ function TCFSimulatorWritten() {
       console.log(userSubscriptionPlan);
       console.log('Examens utilisateur:', userExams);
       
-      // Créer un Set des IDs de sujets déjà passés par l'utilisateur
+      // Créer un Set des IDs de sujets déjà passés par l'utilisateur pour les examens écrits
       // Utiliser un Set pour éviter les doublons
       const completedSubjectIds = new Set();
       
-      // Ajouter chaque ID de sujet au Set
+      // Ajouter chaque ID de sujet au Set seulement pour les examens de type 'écrit'
       userExams.forEach(exam => {
-        completedSubjectIds.add(exam.id_subject);
+        if (exam.type_exam === 'écrit') {
+          completedSubjectIds.add(exam.id_subject);
+        }
       });
       
       console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
@@ -358,7 +360,7 @@ function TCFSimulatorWritten() {
           tasks: subject.tasks || [],
           pack: subject.name + ' : ' + subject.combination,
           bgColor: "#f72585",
-          duration: subject.duration || 60,
+          duration: 60,
           status: status
         };
       });
@@ -520,7 +522,7 @@ function TCFSimulatorWritten() {
                       }
                       pack={subject.pack}
                       bgColor={subject.bgColor}
-                      duration={subject.duration || 60}
+                      duration={ 60}
                       sx={{
                         borderRadius: '12px', // Rounded corners for cards
                         overflow: 'hidden', // Hide overflow for the top bar
@@ -551,7 +553,7 @@ function TCFSimulatorWritten() {
                       }
                       pack={subject.pack}
                       bgColor={subject.bgColor}
-                      duration={subject.duration || 60}
+                      duration={ 60}
                       sx={{
                         borderRadius: '12px', // Rounded corners for cards
                         overflow: 'hidden', // Hide overflow for the top bar
@@ -582,7 +584,7 @@ function TCFSimulatorWritten() {
                       }
                       pack={subject.pack}
                       bgColor={subject.bgColor}
-                      duration={subject.duration || 60}
+                      duration={ 60}
                       action={{
                         type: "function",
                         onClick: () => handleOpenRecap(subject),
@@ -746,7 +748,7 @@ function TCFSimulatorWritten() {
                 }}
               >
                 <MDTypography variant="body1" color="text" fontWeight="medium">
-                  {selectedSubject?.duration || 60} minutes
+                 60 minutes
                 </MDTypography>
               </MDBox>
             </MDBox>
@@ -805,7 +807,7 @@ function TCFSimulatorWritten() {
                       )}
                       {task.duration && (
                         <Chip
-                          label={`${task.duration} min`}
+                          label={`60 min`}
                           size="small"
                           variant="outlined"
                           sx={{

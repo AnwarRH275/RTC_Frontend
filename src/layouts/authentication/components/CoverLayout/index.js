@@ -26,8 +26,8 @@ function CoverLayout({ coverHeight, image, children }) {
       <DefaultNavbar
         action={{
           type: "external",
-          route: "#",
-          label: "Expression TCF",
+          route: "https://examens.preptcfcanada.com/iump-subscription-plan/",
+          label: "Packs Nabil",
         }}
         transparent
         light

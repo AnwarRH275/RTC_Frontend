@@ -749,39 +749,80 @@ function TCFResultsInterface() {
             
             {/* Section droite avec note et icône attractive */}
             <MDBox display="flex" alignItems="center" flexDirection="column">
-              <MDBox display="flex" alignItems="center" mb={1}>
-                <Icon sx={{ fontSize: '1.5rem', mr: 1, color: '#FFD700' }}>star</Icon>
-                {loadingNoteMoyenne ? (
-                  <MDBox display="flex" alignItems="center">
-                    <CircularProgress size={20} sx={{ color: 'white', mr: 1 }} />
-                    <MDTypography variant="body2" color="white">
-                      Calcul en cours...
-                    </MDTypography>
-                  </MDBox>
-                ) : (
-                  <Chip
-                    label={noteMoyenne || "Niveau B1"}
+              {loadingNoteMoyenne ? (
+                <MDBox display="flex" alignItems="center" mb={2}>
+                  <CircularProgress size={24} sx={{ color: 'white', mr: 2 }} />
+                  <MDTypography variant="h6" color="white" fontWeight="medium">
+                    Calcul en cours...
+                  </MDTypography>
+                </MDBox>
+              ) : (
+                <Tooltip title="Votre niveau global" placement="top" arrow>
+                  <MDBox
+                    display="flex"
+                    alignItems="center"
                     sx={{
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      borderRadius: '20px',
-                      fontSize: '0.9rem',
-                      px: 2,
-                      py: 0.5,
-                      border: '2px solid rgba(255,255,255,0.3)'
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 100%)',
+                      borderRadius: '16px',
+                      padding: '12px 20px',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      backdropFilter: 'blur(10px)',
+                      mb: 2,
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'radial-gradient(circle at top right, rgba(255,255,255,0.3), transparent 70%)',
+                        zIndex: 0
+                      },
+                      '&:hover': {
+                        transform: 'scale(1.05)',
+                        transition: 'transform 0.3s ease'
+                      }
                     }}
-                  />
-                )}
-              </MDBox>
+                  >
+                    <Avatar
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        mr: 2,
+                        zIndex: 1
+                      }}
+                    >
+                      <Icon sx={{ fontSize: '1.8rem', color: 'white' }}>emoji_events</Icon>
+                    </Avatar>
+                    <MDBox sx={{ zIndex: 1 }}>
+                      <MDTypography variant="caption" fontWeight="bold" color="white" sx={{ opacity: 0.9, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                        Note Globale
+                      </MDTypography>
+                      <MDTypography variant="h4" fontWeight="bold" color="white" lineHeight={1}>
+                        {noteMoyenne || "B1"}
+                      </MDTypography>
+                    </MDBox>
+                  </MDBox>
+                </Tooltip>
+              )}
               <MDBox 
                 display="flex" 
                 alignItems="center" 
-                sx={{ cursor: 'pointer', '&:hover': { transform: 'scale(1.05)' } }}
+                sx={{ 
+                  cursor: 'pointer', 
+                  '&:hover': { 
+                    transform: 'scale(1.05)',
+                    transition: 'transform 0.2s ease'
+                  } 
+                }}
                 onClick={() => navigate('/tcf-simulator/oral')}
               >
-                <Icon sx={{ fontSize: '1.2rem', mr: 0.5, color: '#FFD700' }}>trending_up</Icon>
-                <MDTypography variant="caption" color="white" fontWeight="medium">
+                <Icon sx={{ fontSize: '1.2rem', mr: 0.5, color: 'rgba(255,255,255,0.9)' }}>refresh</Icon>
+                <MDTypography variant="caption" color="white" fontWeight="medium" sx={{ opacity: 0.9 }}>
                   Passer un autre examen
                 </MDTypography>
               </MDBox>
@@ -851,6 +892,18 @@ function TCFResultsInterface() {
                                     padding: '6px 12px',
                                     boxShadow: '0 4px 12px rgba(102, 126, 234, 0.25)',
                                     border: '2px solid rgba(255,255,255,0.2)',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    '&::before': {
+                                      content: '""',
+                                      position: 'absolute',
+                                      top: 0,
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 0,
+                                      background: 'radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent 70%)',
+                                      zIndex: 0
+                                    }
                                   }}
                                 >
                                   <Avatar
@@ -880,11 +933,24 @@ function TCFResultsInterface() {
                                   display="flex" 
                                   alignItems="center"
                                   sx={{
-                                    background: 'rgba(255,255,255,0.2)',
-                                    borderRadius: 3,
-                                    px: 2,
-                                    py: 1,
-                                    backdropFilter: 'blur(10px)'
+                                    background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                                    borderRadius: '12px',
+                                    padding: '6px 12px',
+                                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                                    border: '2px solid rgba(255,255,255,0.2)',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    animation: `${pulseAnimation} 2s ease-in-out 1`,
+                                    '&::before': {
+                                      content: '""',
+                                      position: 'absolute',
+                                      top: 0,
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 0,
+                                      background: 'radial-gradient(circle at top right, rgba(255,255,255,0.2), transparent 70%)',
+                                      zIndex: 0
+                                    }
                                   }}
                                 >
                                   <Avatar
@@ -1182,16 +1248,34 @@ function TCFResultsInterface() {
               color="primary" 
               size="large"
               onClick={() => navigate('/tcf-simulator/oral')}
+              sx={{
+                background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                boxShadow: '0 4px 15px rgba(25, 118, 210, 0.4)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 20px rgba(25, 118, 210, 0.6)',
+                }
+              }}
             >
               Retour au simulateur
             </MDButton>
           
             <MDButton 
               variant="contained" 
-              color="info" 
+              color="success" 
               size="large"
               onClick={() => window.open('https://reussir-tcfcanada.com/expression-orale/', '_blank')}
               startIcon={<Icon>record_voice_over</Icon>}
+              sx={{
+                background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
+                boxShadow: '0 4px 15px rgba(46, 125, 50, 0.4)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #1b5e20 0%, #0d4f14 100%)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 20px rgba(46, 125, 50, 0.6)',
+                }
+              }}
             >
               Sujet d'actualité expression orale
             </MDButton>

@@ -17,6 +17,7 @@ import Grid from "@mui/material/Grid";
 import MuiLink from "@mui/material/Link";
 import Alert from "@mui/material/Alert";
 import Snackbar from "@mui/material/Snackbar";
+import Box from "@mui/material/Box";
 
 // @mui icons
 import FacebookIcon from "@mui/icons-material/Facebook";
@@ -38,6 +39,7 @@ import BasicLayout from "layouts/authentication/components/BasicLayout";
 
 // Images
 // import bgImage from "assets/images/bg-sign-in-modern.jpg";
+import logoTCF from "assets/logo-tfc-canada.png";
 const bgImage = "https://images.pexels.com/photos/207692/pexels-photo-207692.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"; //  URL de l'image de fond
 
 function Basic() {
@@ -91,46 +93,25 @@ function Basic() {
 
   return (
     <BasicLayout image={bgImage}>
-      <Card sx={{ borderRadius: 2, boxShadow: "0 8px 16px 0 rgba(0,0,0,0.2)" }}>
-        <MDBox
-          variant="gradient"
-          bgColor="primary"
-          borderRadius="lg"
-          coloredShadow="primary"
-          mx={2}
-          mt={-3}
-          p={2}
-          mb={1}
-          textAlign="center"
-          sx={{
-            background: "linear-gradient(to right, rgba(79, 204, 231, 1), #0083b0)"
-          }}
-        >
-          {/* <MDTypography variant="h3" fontWeight="medium" color="white" mt={1}>
-            Réussir TCF Canada
-          </MDTypography> */}
-          <MDTypography variant="body2" color="white" mb={1}>
-            Connectez-vous pour accéder à votre espace d'entraînement
-          </MDTypography>
-          <Grid container spacing={3} justifyContent="center" sx={{ mt: 1, mb: 2 }}>
-            <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
-                <FacebookIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-            <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
-                <GitHubIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-            <Grid item xs={2}>
-              <MDTypography component={MuiLink} href="#" variant="body1" color="white">
-                <GoogleIcon color="inherit" />
-              </MDTypography>
-            </Grid>
-          </Grid>
-        </MDBox>
+      <Card sx={{ 
+        borderRadius: 2, 
+        boxShadow: "0 8px 32px 0 rgba(0,0,0,0.3)",
+        background: 'rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(15px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        WebkitBackdropFilter: 'blur(15px)'
+      }}>
         <MDBox pt={4} pb={3} px={3}>
+          {/* Logo et titre intégrés directement dans le bloc principal */}
+          <MDBox textAlign="center" mb={4}>
+            <img src={logoTCF} alt="TCF Canada Logo" style={{ height: '110px', marginBottom: '16px' }} />
+            <MDTypography variant="h4" fontWeight="medium" color="white" sx={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+              Connexion à votre compte
+            </MDTypography>
+            <MDTypography variant="body2" color="white" mt={1} sx={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+              Accédez à votre préparation TCF Canada
+            </MDTypography>
+          </MDBox>
           <MDBox component="form" role="form" onSubmit={handleSignIn}>
             <MDBox mb={2}>
               <MDInput 
@@ -140,6 +121,24 @@ function Basic() {
                 value={usernameOrEmail}
                 onChange={(e) => setUsernameOrEmail(e.target.value)}
                 required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    backdropFilter: 'blur(10px)',
+                    borderColor: 'rgba(79, 204, 231, 0.5)',
+                    '&:hover': {
+                      borderColor: 'rgba(79, 204, 231, 0.8)',
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                    },
+                    '&.Mui-focused': {
+                      borderColor: 'rgba(79, 204, 231, 1)',
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: 'rgba(0, 0, 0, 0.6)',
+                  },
+                }}
               />
             </MDBox>
             <MDBox mb={2}>
@@ -150,16 +149,43 @@ function Basic() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    backdropFilter: 'blur(10px)',
+                    borderColor: 'rgba(79, 204, 231, 0.5)',
+                    '&:hover': {
+                      borderColor: 'rgba(79, 204, 231, 0.8)',
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                    },
+                    '&.Mui-focused': {
+                      borderColor: 'rgba(79, 204, 231, 1)',
+                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: 'rgba(0, 0, 0, 0.6)',
+                  },
+                }}
               />
             </MDBox>
             <MDBox display="flex" alignItems="center" ml={-1}>
-              <Switch checked={rememberMe} onChange={handleSetRememberMe} />
+              <Switch 
+                checked={rememberMe} 
+                onChange={handleSetRememberMe}
+                sx={{ 
+                  color: 'rgba(79, 204, 231, 1)',
+                  '&.Mui-checked': {
+                    color: 'rgba(79, 204, 231, 1)',
+                  },
+                }}
+              />
               <MDTypography
                 variant="button"
                 fontWeight="regular"
-                color="text"
+                color="white"
                 onClick={handleSetRememberMe}
-                sx={{ cursor: "pointer", userSelect: "none", ml: -1 }}
+                sx={{ cursor: "pointer", userSelect: "none", ml: -1, textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
               >
                 &nbsp;&nbsp;Se souvenir de moi
               </MDTypography>
@@ -187,8 +213,8 @@ function Basic() {
               </MDButton>
             </MDBox>
             <MDBox mt={3} mb={1} textAlign="center">
-              <MDTypography variant="button" color="text">
-                Vous n'avez pas de compte?{" "}
+              <MDTypography variant="button" color="white" sx={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                Pas encore de compte?{" "}
                 <MDTypography
                   component={Link}
                   to="/authentication/sign-up"
@@ -197,12 +223,14 @@ function Basic() {
                   fontWeight="medium"
                   textGradient
                   sx={{
-                    background: "linear-gradient(to right, rgba(79, 204, 231, 1), #0083b0)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent"
+                    color: 'rgb(255, 255, 255)',
+                    textShadow: '0 1px 2px rgba(138, 136, 136, 0.3)',
+                    '&:hover': {
+                      color: 'rgba(255, 255, 255, 0.8)',
+                    }
                   }}
                 >
-                  S'inscrire
+                  Créer un compte
                 </MDTypography>
               </MDTypography>
             </MDBox>
@@ -213,7 +241,13 @@ function Basic() {
                 variant="button"
                 color="primary"
                 fontWeight="regular"
-                sx={{ color: "#0083b0" }}
+                sx={{ 
+                  color: 'rgb(252, 252, 252)', 
+                  textShadow: '0 1px 2px rgba(255, 255, 255, 0.18)',
+                  '&:hover': {
+                    color: 'rgb(255, 255, 255)',
+                  }
+                }}
               >
                 Mot de passe oublié?
               </MDTypography>

@@ -32,7 +32,15 @@ import Footer from "layouts/authentication/components/Footer";
 function BasicLayout({ image, children }) {
   return (
     <PageLayout>
-
+      <DefaultNavbar
+        action={{
+          type: "external",
+          route: "https://examens.preptcfcanada.com/iump-subscription-plan/",
+          label: "Packs Nabil",
+        }}
+        transparent
+        light
+      />
       <MDBox
         position="absolute"
         width="100%"

@@ -148,6 +148,15 @@ function TCFExamInterface() {
     return () => clearInterval(interval);
   }, [isExamStarted, timeRemaining]);
 
+  // Nettoyer 'examStarted' lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      // Nettoyer 'examStarted' uniquement si on quitte vraiment la page d'examen
+      // et non pas lors d'un refresh ou d'une navigation interne
+      localStorage.removeItem('examStarted');
+    };
+  }, []);
+
   // Auto-sauvegarde des réponses dans localStorage
   useEffect(() => {
     if (isExamStarted && Object.keys(responses).length > 0) {
@@ -686,19 +695,25 @@ function TCFExamInterface() {
         >
           <MDTypography variant="h5" fontWeight="bold" mb={1} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Icon sx={{ color: '#2C3E50', transform: 'rotate(45deg)', fontSize:'22px !important' }}>push_pin</Icon>
-            Tâche {currentTaskIndex + 1}:
+            Tâche {currentTaskIndex + 1}: 
           </MDTypography>
+           <MDTypography   mb={2}  ml={3}>
+          <div style={{ display: 'inline',  marginBottom: '8px' }} dangerouslySetInnerHTML={{ __html: `<small><i>Consigne :     ${currentTask.instructions?.replace(/<p>/g, '<span>').replace(/<\/p>/g, '</span>').replace(/\n/g, ' </i></small>')}` }} />
+        </MDTypography>
           <MDTypography variant="h5" fontWeight="bold" mb={1}>
-            {currentTask.title && (
+            
+     {currentTask.title && (
               <div dangerouslySetInnerHTML={{ __html: currentTask.title }} />
-            )}
-          </MDTypography>
-          <MDTypography variant="body1" sx={{ lineHeight: 1.4, fontSize: '0.95rem' }}>
-            <div dangerouslySetInnerHTML={{ __html: currentTask.description }} />
+            )}     </MDTypography>
+          <MDTypography variant="body1" sx={{ 
+            lineHeight: 1.4, 
+            fontSize: '0.95rem'
+          }}>
+            <div style={{ marginLeft: '12px' }} dangerouslySetInnerHTML={{ __html: currentTask.description }} />
           </MDTypography>
           {currentTask.structure && (
             <MDBox mt={1}>
-              <div dangerouslySetInnerHTML={{ __html: currentTask.structure }} />
+              <div style={{ marginLeft: '12px' }} dangerouslySetInnerHTML={{ __html: currentTask.structure }} />
             </MDBox>
           )}
           {currentTask.documents && currentTask.documents.length > 0 && (

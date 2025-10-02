@@ -3,20 +3,16 @@ import authService from './authService';
 
 // S'assurer que l'URL de base de l'API est toujours définie et se termine par un slash
 
-//let API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/';
-let API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.expressiontcf.com';
+import { API_BASE_URL } from './config';
+//let API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.expressiontcf.com';
 
 
-if (!API_BASE_URL.endsWith('/')) {
-  API_BASE_URL += '/';
-}
 
-console.log('API_BASE_URL utilisée:', API_BASE_URL);
 
 class SynthesisService {
   constructor() {
     this.apiClient = axios.create({
-      baseURL: `${API_BASE_URL}synthesis`,
+      baseURL: `${API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`}synthesis`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -107,13 +103,7 @@ class SynthesisService {
     
     try {
       // S'assurer que API_BASE_URL est défini
-      if (!API_BASE_URL) {
-        console.error('API_BASE_URL n\'est pas défini');
-        // Utiliser une URL par défaut si API_BASE_URL n'est pas défini
-      // API_BASE_URL = 'http://localhost:5002/';
-       API_BASE_URL = 'https://api.expressiontcf.com/';
-        
-      }
+
       
       // S'assurer que API_BASE_URL se termine par un slash
       const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;

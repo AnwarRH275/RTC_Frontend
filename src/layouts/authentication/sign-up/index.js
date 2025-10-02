@@ -1,9 +1,3 @@
-/**
-=========================================================
-* Réussir TCF Canada - v1.0.0
-=========================================================
-*/
-
 // react-router-dom components
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
@@ -29,6 +23,7 @@ import SubscriptionPlans from "./SubscriptionPlans";
 import { API_BASE_URL } from '../../../services/config';
 
 // Images
+import logoTcfCanada from "assets/logo-tfc-canada.png";
 // import bgImage from "assets/images/tcf-canada-background.svg";
 const bgImage = "https://images.pexels.com/photos/207692/pexels-photo-207692.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"; //  URL de l'image de fond
 
@@ -136,85 +131,165 @@ function Cover() {
   return (
     <CoverLayout image={bgImage}>
         <Card sx={{
-        maxWidth: activeStep === 1 ? 1000 : 700,
-        width: "100%",
+        maxWidth: activeStep === 1 ? 900 : 600,
+        width: "95%",
         mx: "auto",
-        overflow: "visible",
-        transition: "max-width 0.3s ease-in-out",
+        transition: "all 0.3s ease-in-out",
         borderRadius: 3,
         boxShadow: "0 8px 40px -12px rgba(0,0,0,0.3)",
         position: "absolute",
         top: "50%",
         left: "50%",
-        transform: "translate(-50%, -50%)"
+        transform: "translate(-50%, -50%)",
+        background: "rgba(255, 255, 255, 0.15)",
+        backdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+        WebkitBackdropFilter: "blur(20px)", // Support Safari
+        '@media (max-width: 768px)': {
+          width: "95%",
+          maxWidth: "95%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
+        },
+        '@media (max-width: 480px)': {
+          width: "98%",
+          maxWidth: "98%",
+          borderRadius: 2,
+        }
       }}>
-        <MDBox
-          variant="gradient"
-          bgColor="info"
-          borderRadius="lg"
-          coloredShadow="success"
-          mx={2}
-          mt={-3}
-          p={2}
-          mb={1}
-          textAlign="center"
-          sx={{
-            background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
-            boxShadow: "0 12px 20px -10px rgba(0, 123, 255, 0.28), 0 4px 20px 0px rgba(0, 0, 0, 0.12), 0 7px 8px -5px rgba(0, 123, 255, 0.2)",
-          }}
-        >
-          {/* <MDTypography variant="h4" fontWeight="bold" color="white">
-            Réussir TCF Canada
-          </MDTypography> */}
-          <MDTypography display="block" variant="button" color="white" my={1} fontSize="1rem">
-            {activeStep === 0 ? "Créez votre compte pour commencer votre préparation" : "Choisissez votre plan d'abonnement"}
-          </MDTypography>
-          <Box sx={{ width: '100%', mt: 1 }}>
-            <Stepper 
-              activeStep={activeStep} 
-              alternativeLabel
-              sx={{
-                background: 'linear-gradient(135deg, #0083b0, rgba(12, 140, 169, 0.77)) !important',
-                borderRadius: '8px',
-                padding: '16px',
-                '& .MuiStepConnector-root': {
-                  '& .MuiStepConnector-line': {
-                    background: 'white !important',
-                    height: '3px !important',
-                    borderRadius: '2px',
-                    opacity: 1,
-                    border: 'none'
-                  }
+        <MDBox pt={1} pb={1} px={2} sx={{
+          '@media (max-width: 768px)': {
+            px: 1.5,
+            pt: 0.5,
+            pb: 0.5,
+          }
+        }}>
+          {/* Logo TCF Canada mis en évidence */}
+          <MDBox display="flex" justifyContent="center" mb={1.5} sx={{
+            position: 'relative',
+            '@media (max-width: 768px)': {
+              mb: 1,
+            },
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '80px',
+              height: '150px',
+              background: 'radial-gradient(circle, rgba(79, 204, 231, 0.3) 0%, rgba(79, 204, 231, 0.1) 50%, transparent 70%)',
+              borderRadius: '50%',
+              zIndex: 0,
+            }
+          }}>
+            <img 
+              src={logoTcfCanada} 
+              alt="TCF Canada Logo" 
+              style={{ 
+                height: '110px', 
+                width: 'auto',
+                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))',
+                position: 'relative',
+                zIndex: 1,
+                transition: 'all 0.3s ease-in-out'
+              }} 
+            />
+          </MDBox>
+          
+          {/* Titre et sous-titre optimisés */}
+          <MDBox textAlign="center" mb={1} sx={{
+            '@media (max-width: 768px)': {
+              mb: 0.5,
+            }
+          }}>
+            <MDBox display="flex" alignItems="center" justifyContent="center" mb={0.5} sx={{
+              '@media (max-width: 768px)': {
+                mb: 0.25,
+              }
+            }}>
+              <MDTypography variant="h5" fontWeight="bold" color="white" sx={{ 
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                '@media (max-width: 768px)': {
+                  variant: 'h6',
+                  fontSize: '1.1rem',
                 },
-                '& .MuiStepLabel-root': {
-                  color: 'white !important',
-                  fontWeight: 'bold',
-                },
-                '& .MuiStepIcon-root': {
-                  color: 'white',
-                  boxShadow: '0 2px 4px rgba(255, 255, 255, 0.5)',
-                  borderRadius: '50%'
-                },
-                '& .MuiStepIcon-text': {
-                  fill: '#0083b0',
-                  fontWeight: 'bold'
+                '@media (max-width: 480px)': {
+                  fontSize: '1rem',
                 }
-              }}
-            >
-              {steps.map((label) => (
-                <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-          </Box>
-        </MDBox>
-        <MDBox pt={2} pb={2} px={3}>
+              }}>
+                Votre Coach TCF : Expression Écrite & Orale
+              </MDTypography>
+            </MDBox>
+            <MDTypography display="block" variant="h6" color="white" my={0.5} fontSize="0.9rem" sx={{ 
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              '@media (max-width: 768px)': {
+                fontSize: '0.8rem',
+                my: 0.25,
+              }
+            }}>
+              {activeStep === 0 ? "Créer votre compte pour commencer votre préparation TCF" : "Choisissez votre plan d'abonnement"}
+            </MDTypography>
+            
+            {/* Stepper optimisé */}
+            <Box sx={{ width: '100%', mt: 0.5, mb: 1 }}>
+              <Stepper 
+                activeStep={activeStep} 
+                alternativeLabel
+                sx={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '6px',
+                  padding: '6px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  '@media (max-width: 768px)': {
+                    padding: '4px',
+                    borderRadius: '4px',
+                  },
+                  '& .MuiStepConnector-root': {
+                    '& .MuiStepConnector-line': {
+                      background: 'rgba(255, 255, 255, 0.8) !important',
+                      height: '3px !important',
+                      borderRadius: '2px',
+                      opacity: 1,
+                      border: 'none'
+                    }
+                  },
+                  '& .MuiStepLabel-root': {
+                    color: 'white !important',
+                    fontWeight: 'bold',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                  },
+                  '& .MuiStepIcon-root': {
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    backgroundColor: 'rgba(79, 204, 231, 0.8)',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255, 255, 255, 0.3)'
+                  },
+                  '& .MuiStepIcon-text': {
+                    fill: 'white',
+                    fontWeight: 'bold',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                  }
+                }}
+              >
+                {steps.map((label) => (
+                  <Step key={label}>
+                    <StepLabel>{label}</StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+            </Box>
+          </MDBox>
           {activeStep === 0 ? (
-            <MDBox component="form" role="form">
-              <Grid container spacing={2}>
+            <MDBox component="form" role="form" sx={{
+              px: { xs: 0.5, sm: 1 },
+              py: { xs: 0.25, sm: 0.5 }
+            }}>
+              <Grid container spacing={{ xs: 0.75, sm: 1 }}>
                 <Grid item xs={12} md={6}>
-                  <MDBox mb={1}>
+                  <MDBox mb={{ xs: 0.75, sm: 1 }}>
                     <MDInput 
                       type="text" 
                       label="Nom" 
@@ -225,16 +300,29 @@ function Cover() {
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
-                          '&:hover fieldset': {
-                            borderColor: '#0062E6',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          backdropFilter: 'blur(10px)',
+                          minHeight: { xs: '40px', sm: '44px' },
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
                           },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 0.8)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 1)',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(0, 0, 0, 0.6)',
+                          fontSize: { xs: '0.8rem', sm: '0.85rem' },
                         },
                       }}
                     />
                   </MDBox>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <MDBox mb={1}>
+                  <MDBox mb={{ xs: 0.75, sm: 1 }}>
                     <MDInput 
                       type="text" 
                       label="Prénom" 
@@ -245,16 +333,29 @@ function Cover() {
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
-                          '&:hover fieldset': {
-                            borderColor: '#0062E6',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          backdropFilter: 'blur(10px)',
+                          minHeight: { xs: '40px', sm: '44px' },
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
                           },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 0.8)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 1)',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(0, 0, 0, 0.6)',
+                          fontSize: { xs: '0.8rem', sm: '0.85rem' },
                         },
                       }}
                     />
                   </MDBox>
                 </Grid>
                 <Grid item xs={12}>
-                  <MDBox mb={1}>
+                  <MDBox mb={{ xs: 0.75, sm: 1 }}>
                     <MDInput 
                       type="text" 
                       label="Nom d'utilisateur" 
@@ -265,16 +366,29 @@ function Cover() {
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
-                          '&:hover fieldset': {
-                            borderColor: '#0062E6',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          backdropFilter: 'blur(10px)',
+                          minHeight: { xs: '40px', sm: '44px' },
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
                           },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 0.8)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 1)',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(0, 0, 0, 0.6)',
+                          fontSize: { xs: '0.8rem', sm: '0.85rem' },
                         },
                       }}
                     />
                   </MDBox>
                 </Grid>
                 <Grid item xs={12}>
-                  <MDBox mb={1}>
+                  <MDBox mb={{ xs: 0.75, sm: 1 }}>
                     <MDInput 
                       type="email" 
                       label="Email" 
@@ -285,16 +399,29 @@ function Cover() {
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
-                          '&:hover fieldset': {
-                            borderColor: '#0062E6',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          backdropFilter: 'blur(10px)',
+                          minHeight: { xs: '40px', sm: '44px' },
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
                           },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 0.8)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 1)',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(0, 0, 0, 0.6)',
+                          fontSize: { xs: '0.8rem', sm: '0.85rem' },
                         },
                       }}
                     />
                   </MDBox>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <MDBox mb={1}>
+                  <MDBox mb={{ xs: 0.75, sm: 1 }}>
                     <MDInput 
                       type={showPassword ? "text" : "password"}
                       label="Mot de passe" 
@@ -318,16 +445,29 @@ function Cover() {
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
-                          '&:hover fieldset': {
-                            borderColor: '#0062E6',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          backdropFilter: 'blur(10px)',
+                          minHeight: { xs: '40px', sm: '44px' },
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
                           },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 0.8)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 1)',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(0, 0, 0, 0.6)',
+                          fontSize: { xs: '0.8rem', sm: '0.85rem' },
                         },
                       }}
                     />
                   </MDBox>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <MDBox mb={1}>
+                  <MDBox mb={{ xs: 0.75, sm: 1 }}>
                     <MDInput 
                       type={showConfirmPassword ? "text" : "password"}
                       label="Confirmer le mot de passe" 
@@ -351,26 +491,49 @@ function Cover() {
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
-                          '&:hover fieldset': {
-                            borderColor: '#0062E6',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          backdropFilter: 'blur(10px)',
+                          minHeight: { xs: '40px', sm: '44px' },
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
                           },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 0.8)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 1)',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(0, 0, 0, 0.6)',
+                          fontSize: { xs: '0.8rem', sm: '0.85rem' },
                         },
                       }}
                     />
                   </MDBox>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <MDBox mb={1}>
+                  <MDBox mb={{ xs: 0.75, sm: 1 }}>
                     <FormControl fullWidth variant="outlined" sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 2,
-                        height: '45px',
+                        height: '40px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        backdropFilter: 'blur(10px)',
+                        '& fieldset': {
+                          borderColor: 'rgba(255, 255, 255, 0.3)',
+                        },
                         '&:hover fieldset': {
-                          borderColor: '#0062E6',
+                          borderColor: 'rgba(79, 204, 231, 0.8)',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'rgba(79, 204, 231, 1)',
                         },
                       },
                       '& .MuiInputLabel-root': {
-                        transform: 'translate(14px, 18px) scale(1)',
+                        transform: 'translate(14px, 14px) scale(1)',
+                        color: 'rgba(0, 0, 0, 0.6)',
+                        fontSize: { xs: '0.8rem', sm: '0.85rem' },
                       },
                       '& .MuiInputLabel-shrink': {
                         transform: 'translate(14px, -9px) scale(0.75)',
@@ -394,7 +557,7 @@ function Cover() {
                   </MDBox>
                 </Grid>
                 <Grid item xs={12} md={8}>
-                  <MDBox mb={1}>
+                  <MDBox mb={{ xs: 0.75, sm: 1 }}>
                     <MDInput 
                       type="tel" 
                       label="Téléphone" 
@@ -405,46 +568,68 @@ function Cover() {
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
-                          '&:hover fieldset': {
-                            borderColor: '#0062E6',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          backdropFilter: 'blur(10px)',
+                          minHeight: { xs: '40px', sm: '44px' },
+                          '& fieldset': {
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
                           },
+                          '&:hover fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 0.8)',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'rgba(79, 204, 231, 1)',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'rgba(0, 0, 0, 0.6)',
+                          fontSize: { xs: '0.8rem', sm: '0.85rem' },
                         },
                       }}
                     />
                   </MDBox>
                 </Grid>
               </Grid>
-              <MDBox display="flex" alignItems="center" ml={-1} mt={2}>
+              <MDBox display="flex" alignItems="center" ml={-1} mt={{ xs: 1.5, sm: 2 }} sx={{
+                '@media (max-width: 768px)': {
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  ml: 0,
+                }
+              }}>
                 <Checkbox 
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
                   sx={{ 
-                    color: '#0062E6',
+                    color: 'rgba(79, 204, 231, 1)',
                     '&.Mui-checked': {
-                      color: '#0062E6',
+                      color: 'rgba(79, 204, 231, 1)',
                     },
+                    '@media (max-width: 768px)': {
+                      padding: '4px',
+                    }
                   }}
                 />
                 <MDTypography
                   variant="button"
                   fontWeight="regular"
-                  color="text"
-                  sx={{ cursor: "pointer", userSelect: "none", ml: -1 }}
+                  sx={{
+                    color:"white", 
+                    cursor: "pointer", 
+                    userSelect: "none", 
+                    ml: -1, 
+                    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                    '@media (max-width: 768px)': {
+                      fontSize: '0.8rem',
+                      ml: 0,
+                      mt: 0.5,
+                    }
+                  }}
                 >
-                  &nbsp;&nbsp;J'accepte les&nbsp;
-                </MDTypography>
-                <MDTypography
-                  component="a"
-                  href="#"
-                  variant="button"
-                  fontWeight="bold"
-                  color="info"
-                  textGradient
-                >
-                  Conditions d'utilisation
+                  &nbsp;&nbsp;<span style={{color:"white"}}>J'accepte les&nbsp;  <a  href="#" style={{color:"white",fontWeight:"bold"}}>Conditions d'utilisation</a></span>
                 </MDTypography>
               </MDBox>
-              <MDBox mt={4} mb={1}>
+              <MDBox mt={{ xs: 2, sm: 2.5 }} mb={1}>
                 <MDButton 
                   variant="contained" 
                   color="info" 
@@ -454,8 +639,9 @@ function Cover() {
                     background: 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
                     borderRadius: '30px',
                     boxShadow: '0 4px 20px 0 rgba(0,123,255,.25)',
-                    height: '3rem',
-                    fontSize: '1rem',
+                    height: { xs: '44px', sm: '48px' },
+                    fontSize: { xs: '0.85rem', sm: '0.9rem' },
+                    fontWeight: 'bold',
                     '&:hover': {
                       background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
                       boxShadow: '0 6px 25px 0 rgba(0,123,255,.3)',
@@ -464,28 +650,26 @@ function Cover() {
                     transition: 'all .2s ease-in-out',
                   }}
                 >
-                  Continuer
+                  Créer mon compte
                 </MDButton>
               </MDBox>
-              <MDBox mt={3} mb={1} textAlign="center">
-                <MDTypography variant="button" color="text">
-                  Vous avez déjà un compte?{" "}
-                  <MDTypography
-                    component={Link}
-                    to="/authentication/sign-in"
-                    variant="button"
-                    color="info"
-                    fontWeight="medium"
-                    textGradient
-                  >
-                    Connectez-vous
-                  </MDTypography>
+              <MDBox mt={{ xs: 1.5, sm: 2 }} mb={1} textAlign="center">
+                <MDTypography variant="button" color="white" sx={{ 
+                  textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                  '@media (max-width: 768px)': {
+                    fontSize: '0.8rem',
+                  }
+                }}>
+                 <span> Vous avez déjà un compte?{" "} <Link to="/authentication/sign-in"
+                 style={{color:"white",fontWeight:"bold"}}
+                 >Connectez-vous</Link>  </span>
+            
                 </MDTypography>
               </MDBox>
             </MDBox>
           ) : (
             <MDBox>
-              <MDTypography variant="h5" fontWeight="medium" textAlign="center" mb={3}>
+              <MDTypography variant="h5" fontWeight="medium" textAlign="center" mb={3} color="white" sx={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                 Choisissez votre plan pour commencer votre préparation au TCF Canada
               </MDTypography>
               <SubscriptionPlans 
@@ -567,11 +751,14 @@ function Cover() {
                   onClick={handleBack}
                   sx={{ 
                     borderRadius: '30px',
-                    borderColor: '#0062E6',
-                    color: '#0062E6',
+                    borderColor: 'rgba(79, 204, 231, 0.8)',
+                    color: 'white',
+                    backgroundColor: 'rgba(79, 204, 231, 0.2)',
+                    backdropFilter: 'blur(10px)',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
                     '&:hover': {
-                      borderColor: '#0062E6',
-                      backgroundColor: 'rgba(0, 98, 230, 0.08)',
+                      borderColor: 'rgba(79, 204, 231, 1)',
+                      backgroundColor: 'rgba(79, 204, 231, 0.3)',
                     },
                   }}
                 >

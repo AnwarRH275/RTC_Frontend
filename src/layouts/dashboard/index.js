@@ -22,7 +22,13 @@ import Tooltip from "@mui/material/Tooltip";
 import LinearProgress from "@mui/material/LinearProgress";
 import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
-
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Paper from "@mui/material/Paper";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
@@ -30,7 +36,7 @@ import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 
 // Simulateur TCF Canada React example components
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Simulateur TCF Canada React example components
@@ -39,14 +45,6 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
 import ReportsBarChart from "examples/Charts/BarCharts/ReportsBarChart";
 import ReportsLineChart from "examples/Charts/LineCharts/ReportsLineChart";
-import MixedChart from "examples/Charts/MixedChart";
-import ComplexStatisticsCard from "examples/Cards/StatisticsCards/ComplexStatisticsCard";
-
-// Data - Toutes les données sont maintenant dynamiques basées sur l'utilisateur connecté
-
-// Dashboard components
-import Projects from "layouts/dashboard/components/Projects";
-import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
 
 // Services
 import { 
@@ -61,10 +59,27 @@ import {
   getCompleteDashboardData
 } from "services/dashboardService";
 
-
-
 function Dashboard() {
   const navigate = useNavigate();
+  const chartOralRef = useRef(null);
+  const chartEcritRef = useRef(null);
+  const chartPrioritesRef = useRef(null);
+  const chartDonutRef = useRef(null);
+  
+  // Références pour stocker les instances des graphiques
+  const chartOralInstance = useRef(null);
+  const chartEcritInstance = useRef(null);
+  const chartPrioritesInstance = useRef(null);
+
+  // Données du barème NCLC
+  const nclcBareme = [
+    { nclc: '4-5', score: '4 - 6 pts', equivalence: 'A2', interpretation: 'Niveau faible ' },
+    { nclc: '6', score: '7 - 9 pts', equivalence: 'B1', interpretation: 'Niveau intermédiaire ' },
+    { nclc: '7', score: '10 - 11 pts', equivalence: 'B2 (seuil)', interpretation: 'Objectif atteint (seuil immigration) ' },
+    { nclc: '8', score: '12 - 13 pts', equivalence: 'B2+ / début C1', interpretation: 'Haut niveau ' },
+    { nclc: '9', score: '14 - 15 pts', equivalence: 'C1', interpretation: 'Haut niveau ' },
+    { nclc: '10+', score: '16 - 20 pts', equivalence: 'C1+ / C2', interpretation: 'Niveau supérieur ' }
+  ];
 
   const [dashboardData, setDashboardData] = useState({
     userInfo: null,
@@ -73,6 +88,27 @@ function Dashboard() {
     loading: true
   });
 
+  // Variables pour les examens avec moyennes et scores moyens
+  const [oralExamsWithAverages, setOralExamsWithAverages] = useState([]);
+  const [writtenExamsWithAverages, setWrittenExamsWithAverages] = useState([]);
+  const [scoreMoyenOral, setScoreMoyenOral] = useState(5);
+  const [scoreMoyenEcrit, setScoreMoyenEcrit] = useState(5);
+  const [oralPct, setOralPct] = useState(50);
+  const [ecritPct, setEcritPct] = useState(50);
+  
+  // Fonction pour convertir un score sur 20 en niveau CECRL (A1, A2, B1, B2, C1, C2)
+  const convertScoreToCECRL = (score) => {
+    const numScore = parseFloat(score);
+    if (isNaN(numScore)) return 'N/A';
+    
+    if (numScore < 4) return 'A1';
+    if (numScore < 7) return 'A2';
+    if (numScore < 10) return 'B1';
+    if (numScore < 14) return 'B2';
+    if (numScore < 17) return 'C1';
+    return 'C2';
+  };
+  
   // Composant de carte de statistique moderne
   const ModernStatCard = ({ title, value, subtitle, icon, color, trend, onClick, isClickable = false }) => (
     <Card 
@@ -100,11 +136,11 @@ function Dashboard() {
             <MDBox display="flex" alignItems="center" mb={1}>
               <Icon 
                 sx={{ 
-                  fontSize: '2.5rem !important', 
+                  fontSize: '2.4rem !important', 
                   color: color,
                   background: `${color}15`,
                   borderRadius: 2,
-                  p: 1,
+                  
 
                 }}
               >
@@ -231,30 +267,7 @@ function Dashboard() {
       </MDBox>
     </Card>
   );
-
-  // Charger les données du dashboard
-  const loadDashboardData = useCallback(async () => {
-    try {
-      setDashboardData(prev => ({ ...prev, loading: true }));
-      
-      // Utiliser la nouvelle fonction qui intègre les vraies données d'examens
-      const completeDashboardData = await getCompleteDashboardData();
-      
-      setDashboardData({
-        loading: false,
-        ...completeDashboardData
-      });
-      
-    } catch (error) {
-      console.error('Erreur lors du chargement des données:', error);
-      setDashboardData(prev => ({ ...prev, loading: false }));
-    }
-  }, []);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
-
+  
   // Fonction pour obtenir les données des widgets selon le rôle
   const getWidgetData = () => {
     const { userInfo, stats } = dashboardData;
@@ -359,755 +372,795 @@ function Dashboard() {
 
   const widgetData = getWidgetData();
 
-  // Fonction pour générer les données du graphique des examens basées sur les vraies données
-  const getExamChartData = () => {
-    const { stats, userInfo, userExams } = dashboardData;
-    
-    if (dashboardData.loading || !stats) {
-      return {
-        labels: ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun"],
-        datasets: {
-          label: "Examens",
-          data: [0, 0, 0, 0, 0, 0]
-        }
-      };
-    }
-    
-    // Utiliser les données réelles d'examens pour générer le graphique
-    const role = userInfo?.role;
-    if (role === 'Client') {
-      // Générer les données mensuelles basées sur les vrais examens
-      const monthlyData = generateMonthlyExamData(userExams);
-      return {
-        labels: ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun"],
-        datasets: {
-          label: "Mes Examens",
-          data: monthlyData
-        }
-      };
-    } else {
-      const baseValue = stats.totalExams || 0;
-      return {
-        labels: ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun"],
-        datasets: {
-          label: "Examens Totaux",
-          data: [
-            Math.max(0, Math.floor(baseValue * 0.6)),
-            Math.max(0, Math.floor(baseValue * 0.7)),
-            Math.max(0, Math.floor(baseValue * 0.8)),
-            Math.max(0, Math.floor(baseValue * 0.9)),
-            baseValue,
-            baseValue + Math.floor(baseValue * 0.1)
-          ]
-        }
-      };
-    }
-  };
 
-  // Fonction pour générer les données mensuelles d'examens
-  const generateMonthlyExamData = (exams) => {
-    if (!exams || exams.length === 0) {
-      return [0, 0, 0, 0, 0, 0];
-    }
 
-    const currentYear = new Date().getFullYear();
-    const monthlyCount = new Array(6).fill(0);
-    const currentMonth = new Date().getMonth();
-    
-    exams.forEach(exam => {
-      const examDate = new Date(exam.date_passage || exam.created_at);
-      if (examDate.getFullYear() === currentYear) {
-        const monthIndex = examDate.getMonth();
-        // Mapper les mois aux 6 derniers mois
-        const relativeMonth = monthIndex - (currentMonth - 5);
-        if (relativeMonth >= 0 && relativeMonth < 6) {
-          monthlyCount[relativeMonth]++;
-        }
+
+
+  // Charger les données du dashboard
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setDashboardData(prev => ({ ...prev, loading: true }));
+      const completeDashboardData = await getCompleteDashboardData();
+      setDashboardData({
+        loading: false,
+        ...completeDashboardData
+      });
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+      setDashboardData(prev => ({ ...prev, loading: false }));
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  // Initialiser Chart.js après le chargement des données
+  useEffect(() => {
+    if (!dashboardData.loading && window.Chart) {
+      initializeCharts();
+    }
+  }, [dashboardData.loading]);
+
+  // Charger Chart.js dynamiquement
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    script.onload = () => {
+      if (!dashboardData.loading) {
+        initializeCharts();
       }
-    });
-    
-    return monthlyCount;
-  };
+    };
+    document.head.appendChild(script);
 
-  // Fonction pour générer les données du graphique des scores basées sur les vraies données
-  const getScoreChartData = () => {
-    const { stats, userInfo, userExams } = dashboardData;
-    
-    if (dashboardData.loading || !stats) {
-      return {
-        labels: ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun"],
-        datasets: {
-          label: "Scores",
-          data: [0, 0, 0, 0, 0, 0]
-        }
-      };
-    }
-    
-    const role = userInfo?.role;
-    if (role === 'Client') {
-      // Générer les données de scores mensuelles basées sur les vrais examens
-      const monthlyScores = generateMonthlyScoreData(userExams);
-      
-      return {
-        labels: ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun"],
-        datasets: {
-          label: "Niveau Moyen (sur 100)",
-          data: monthlyScores
-        }
-      };
-    } else {
-      // Pour les admins, afficher une progression générale
-      return {
-        labels: ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun"],
-        datasets: {
-          label: "Performance Générale",
-          data: [65, 68, 70, 72, 75, 78]
-        }
-      };
-    }
-  };
-
-  // Fonction pour générer les données de scores mensuelles
-  const generateMonthlyScoreData = (exams) => {
-    if (!exams || exams.length === 0) {
-      return [0, 0, 0, 0, 0, 0];
-    }
-
-    const currentYear = new Date().getFullYear();
-    const monthlyScores = new Array(6).fill([]);
-    const currentMonth = new Date().getMonth();
-    
-    // Initialiser les tableaux pour chaque mois
-    for (let i = 0; i < 6; i++) {
-      monthlyScores[i] = [];
-    }
-    
-    exams.forEach(exam => {
-      const examDate = new Date(exam.date_passage || exam.created_at);
-      const numericScore = convertCECRToNumeric(exam.score);
-      
-      if (examDate.getFullYear() === currentYear && numericScore > 0) {
-        const monthIndex = examDate.getMonth();
-        const relativeMonth = monthIndex - (currentMonth - 5);
-        if (relativeMonth >= 0 && relativeMonth < 6) {
-          monthlyScores[relativeMonth].push(numericScore);
-        }
+    return () => {
+      // Nettoyer les graphiques lors du démontage
+      if (chartOralInstance.current) {
+        chartOralInstance.current.destroy();
       }
-    });
-    
-    // Calculer la moyenne pour chaque mois
-    return monthlyScores.map(scores => {
-      if (scores.length === 0) return 0;
-      const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-      return Math.round(average); // Arrondir à l'entier le plus proche
-    });
-  };
+      if (chartEcritInstance.current) {
+        chartEcritInstance.current.destroy();
+      }
+      if (chartPrioritesInstance.current) {
+        chartPrioritesInstance.current.destroy();
+      }
+      document.head.removeChild(script);
+    };
+  }, []);
 
-  // Fonction pour convertir les niveaux CECR en valeurs numériques (pour les graphiques)
-  const convertCECRToNumeric = (score) => {
-    if (!score) return 0;
-    
-    const scoreUpper = score.toString().toUpperCase();
-    
-    // Gestion des niveaux CECR
-    if (scoreUpper.includes('C2')) return 95;
-    if (scoreUpper.includes('C1')) return 85;
-    if (scoreUpper.includes('B2')) return 75;
-    if (scoreUpper.includes('B1')) return 65;
-    if (scoreUpper.includes('A2')) return 55;
-    if (scoreUpper.includes('A1')) return 45;
-    
-    // Gestion des niveaux numériques (1-6)
-    if (scoreUpper.includes('6')) return 95;
-    if (scoreUpper.includes('5')) return 85;
-    if (scoreUpper.includes('4')) return 75;
-    if (scoreUpper.includes('3')) return 65;
-    if (scoreUpper.includes('2')) return 55;
-    if (scoreUpper.includes('1')) return 45;
-    
-    // Gestion des niveaux mixtes
-    if (scoreUpper.includes('B1+') || scoreUpper.includes('B1/B2')) return 70;
-    if (scoreUpper.includes('A2-B1') || scoreUpper.includes('A1-A2')) return 50;
-    
-    return 50; // Score par défaut
-  };
+  const initializeCharts = () => {
+    if (!window.Chart) return;
 
-  // Fonction pour compter les niveaux CECR avec includes()
-  const countLevelsByIncludes = (exams, level) => {
-    if (!exams || exams.length === 0) return 0;
-    
-    return exams.filter(exam => {
-      if (!exam.score) return false;
-      const scoreStr = exam.score.toString().toUpperCase();
-      return scoreStr.includes(level);
-    }).length;
-  };
-
-  // Fonction pour générer les données du graphique en barres d'expression orale
-  const getOralExpressionBarChartData = () => {
-    const { stats, userInfo, userExams } = dashboardData;
-    
-    if (dashboardData.loading || !stats) {
-      return {
-        labels: ["A1", "A2", "B1", "B2", "C1", "C2"],
-        datasets: {
-          label: "Expression Orale",
-          data: [0, 0, 0, 0, 0, 0]
-        }
-      };
+    // Détruire les graphiques existants avant d'en créer de nouveaux
+    if (chartOralInstance.current) {
+      chartOralInstance.current.destroy();
+      chartOralInstance.current = null;
     }
-    
-    const role = userInfo?.role;
-    if (role === 'Client') {
-      // Filtrer les examens d'expression orale (type_exam = 'oral')
-      const oralExams = userExams?.filter(exam => 
-        exam.type_exam === 'oral'
-      ) || [];
-      
-      // Compter les niveaux avec includes()
-      const levelCounts = [
-        countLevelsByIncludes(oralExams, 'A1'),
-        countLevelsByIncludes(oralExams, 'A2'),
-        countLevelsByIncludes(oralExams, 'B1'),
-        countLevelsByIncludes(oralExams, 'B2'),
-        countLevelsByIncludes(oralExams, 'C1'),
-        countLevelsByIncludes(oralExams, 'C2')
-      ];
-      
-      return {
-        labels: ["A1", "A2", "B1", "B2", "C1", "C2"],
-        datasets: {
-          label: "Nombre d'examens par niveau",
-          data: levelCounts
-        }
-      };
-    } else {
-      // Pour les admins, calculer sur tous les examens oraux
-      const oralExams = userExams?.filter(exam => exam.type_exam === 'oral') || [];
-      
-      const levelCounts = [
-        countLevelsByIncludes(oralExams, 'A1'),
-        countLevelsByIncludes(oralExams, 'A2'),
-        countLevelsByIncludes(oralExams, 'B1'),
-        countLevelsByIncludes(oralExams, 'B2'),
-        countLevelsByIncludes(oralExams, 'C1'),
-        countLevelsByIncludes(oralExams, 'C2')
-      ];
-      
-      return {
-        labels: ["A1", "A2", "B1", "B2", "C1", "C2"],
-        datasets: {
-          label: "Distribution des niveaux - Oral",
-          data: levelCounts
-        }
-      };
+    if (chartEcritInstance.current) {
+      chartEcritInstance.current.destroy();
+      chartEcritInstance.current = null;
     }
-  };
-
-
-
-
-
-  // Fonction pour générer les données du graphique en barres d'expression écrite
-  const getWrittenExpressionBarChartData = () => {
-    const { stats, userInfo, userExams } = dashboardData;
-    
-    if (dashboardData.loading || !stats) {
-      return {
-        labels: ["A1", "A2", "B1", "B2", "C1", "C2"],
-        datasets: {
-          label: "Expression Écrite",
-          data: [0, 0, 0, 0, 0, 0]
-        }
-      };
+    if (chartPrioritesInstance.current) {
+      chartPrioritesInstance.current.destroy();
+      chartPrioritesInstance.current = null;
     }
-    
-    const role = userInfo?.role;
-    if (role === 'Client') {
-      // Filtrer les examens d'expression écrite (type_exam = 'écrit')
-      const writtenExams = userExams?.filter(exam => 
-        exam.type_exam === 'écrit'
-      ) || [];
-      
-      // Compter les niveaux avec includes()
-      const levelCounts = [
-        countLevelsByIncludes(writtenExams, 'A1'),
-        countLevelsByIncludes(writtenExams, 'A2'),
-        countLevelsByIncludes(writtenExams, 'B1'),
-        countLevelsByIncludes(writtenExams, 'B2'),
-        countLevelsByIncludes(writtenExams, 'C1'),
-        countLevelsByIncludes(writtenExams, 'C2')
-      ];
-      
-      return {
-        labels: ["A1", "A2", "B1", "B2", "C1", "C2"],
-        datasets: {
-          label: "Nombre d'examens par niveau",
-          data: levelCounts
-        }
-      };
-    } else {
-      // Pour les admins, calculer sur tous les examens écrits
-      const writtenExams = userExams?.filter(exam => exam.type_exam === 'écrit') || [];
-      
-      const levelCounts = [
-        countLevelsByIncludes(writtenExams, 'A1'),
-        countLevelsByIncludes(writtenExams, 'A2'),
-        countLevelsByIncludes(writtenExams, 'B1'),
-        countLevelsByIncludes(writtenExams, 'B2'),
-        countLevelsByIncludes(writtenExams, 'C1'),
-        countLevelsByIncludes(writtenExams, 'C2')
-      ];
-      
-      return {
-        labels: ["A1", "A2", "B1", "B2", "C1", "C2"],
-        datasets: {
-          label: "Distribution des niveaux - Écrit",
-          data: levelCounts
-        }
-      };
-    }
-  };
 
-  // Fonction pour générer les données du graphique combiné (Oral + Écrit)
-  const getCombinedExpressionBarChartData = () => {
-    const { stats, userInfo, userExams } = dashboardData;
+    const { userExams = [] } = dashboardData;
     
-    if (dashboardData.loading || !stats) {
-      return {
-        labels: ["A1", "A2", "B1", "B2", "C1", "C2"],
-        datasets: [
-          {
-            label: "Expression Orale",
-            data: [0, 0, 0, 0, 0, 0],
-            backgroundColor: '#4f46e5',
-            borderColor: '#4f46e5',
-            borderWidth: 1
-          },
-          {
-            label: "Expression Écrite",
-            data: [0, 0, 0, 0, 0, 0],
-            backgroundColor: '#10b981',
-            borderColor: '#10b981',
-            borderWidth: 1
-          }
-        ]
-      };
-    }
-    
-    const role = userInfo?.role;
+    // Données pour les graphiques basées sur les vrais examens
+    const niveaux = ["A1", "A2", "B1", "B2", "C1", "C2"];
     
     // Filtrer les examens par type
-    const oralExams = userExams?.filter(exam => exam.type_exam === 'oral') || [];
-    const writtenExams = userExams?.filter(exam => exam.type_exam === 'écrit') || [];
+    const oralExams = userExams.filter(exam => exam.type_exam === 'oral');
+    const writtenExams = userExams.filter(exam => exam.type_exam === 'écrit');
     
     // Compter les niveaux pour chaque type d'examen
-    const oralLevelCounts = [
-      countLevelsByIncludes(oralExams, 'A1'),
-      countLevelsByIncludes(oralExams, 'A2'),
-      countLevelsByIncludes(oralExams, 'B1'),
-      countLevelsByIncludes(oralExams, 'B2'),
-      countLevelsByIncludes(oralExams, 'C1'),
-      countLevelsByIncludes(oralExams, 'C2')
-    ];
-    
-    const writtenLevelCounts = [
-      countLevelsByIncludes(writtenExams, 'A1'),
-      countLevelsByIncludes(writtenExams, 'A2'),
-      countLevelsByIncludes(writtenExams, 'B1'),
-      countLevelsByIncludes(writtenExams, 'B2'),
-      countLevelsByIncludes(writtenExams, 'C1'),
-      countLevelsByIncludes(writtenExams, 'C2')
-    ];
-    
-    return {
-      labels: ["A1", "A2", "B1", "B2", "C1", "C2"],
-      datasets: [
-        {
-          label: "Expression Orale",
-          data: oralLevelCounts,
-          backgroundColor: 'rgba(79, 70, 229, 0.8)',
-          borderColor: '#4f46e5',
-          borderWidth: 2
-        },
-        {
-          label: "Expression Écrite",
-          data: writtenLevelCounts,
-          backgroundColor: 'rgba(16, 185, 129, 0.8)',
-          borderColor: '#10b981',
-          borderWidth: 2
-        }
-      ]
-    };
-  };
-
-
-
-  // Fonction pour générer les données de la timeline
-  const getTimelineData = () => {
-    if (dashboardData.loading || !dashboardData.recentActivity) {
-      return [
-        {
-          color: "info",
-          icon: "notifications",
-          title: "Chargement...",
-          dateTime: "",
-        }
-      ];
-    }
-
-    if (dashboardData.recentActivity.length === 0) {
-      return [
-        {
-          color: "secondary",
-          icon: "info",
-          title: "Aucune activité récente",
-          dateTime: "Commencez votre premier examen",
-        }
-      ];
-    }
-
-    return dashboardData.recentActivity.map((activity, index) => {
-      const date = new Date(activity.date);
-      const timeAgo = getTimeAgo(date);
+    // Chaque "exam" dans le tableau représente une tâche individuelle
+    // Un vrai examen = 3 tâches consécutives
+    const countLevels = (tasks) => {
+      const counts = { A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0 };
       
-      return {
-        color: index === 0 ? "success" : "info",
-        icon: activity.type === 'exam' ? "quiz" : "assignment",
-        title: activity.title,
-        dateTime: timeAgo,
-        description: activity.description
-      };
-    });
-  };
+      // Traiter les tâches par groupes de 3 pour former des examens complets
+      for (let i = 0; i < tasks.length; i += 3) {
+        const examTasks = tasks.slice(i, i + 3); // Prendre 3 tâches consécutives
+        
+        // S'assurer qu'on a bien 3 tâches pour former un examen complet
+        if (examTasks.length === 3) {
+          // Convertir chaque score de tâche en valeur numérique
+          const taskScores = examTasks.map(task => {
+            if (!task.score) return 5; // Score par défaut si manquant
+            
+            const scoreStr = task.score.toString().toUpperCase();
+            
+            // Vérifier d'abord si c'est un score numérique
+            const numericScore = parseInt(scoreStr);
+            if (!isNaN(numericScore)) {
+              return numericScore;
+            }
+            
+            // Sinon, convertir le niveau textuel en valeur numérique
+            if (scoreStr.includes('C2')) return 18; // C2 = 18 pts
+            if (scoreStr.includes('C1')) return 15; // C1 = 15 pts  
+            if (scoreStr.includes('B2')) return 12; // B2 = 12 pts
+            if (scoreStr.includes('B1')) return 8;  // B1 = 8 pts
+            if (scoreStr.includes('A2')) return 5;  // A2 = 5 pts
+            if (scoreStr.includes('A1')) return 2;  // A1 = 2 pts
+            return 5; // Par défaut A2 = 5 pts
+          });
+          
+          // Calculer la moyenne des 3 tâches pour obtenir le niveau de l'examen
+          const averageScore = taskScores.reduce((sum, score) => sum + score, 0) / taskScores.length;
+          
+          // Convertir la moyenne en niveau CECRL
+          let examLevel;
+          if (averageScore >= 16) examLevel = 'C2';
+          else if (averageScore >= 14) examLevel = 'C1';
+          else if (averageScore >= 12) examLevel = 'B2';
+          else if (averageScore >= 10) examLevel = 'B2';
+          else if (averageScore >= 7) examLevel = 'B1';
+          else if (averageScore >= 4) examLevel = 'A2';
+          else examLevel = 'A1';
+          
+          // Incrémenter le compteur pour ce niveau d'examen
+          counts[examLevel]++;
+        }
+      }
+      
+      return counts;
+    };
 
-  // Fonction utilitaire pour calculer le temps écoulé
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const diffInMs = now - date;
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    // Fonction pour calculer la moyenne individuelle de chaque examen (3 tâches)
+    const calculateIndividualExamAverage = (tasks, startIndex) => {
+      // Prendre 3 tâches consécutives à partir de startIndex
+      const examTasks = tasks.slice(startIndex, startIndex + 3);
+      
+      if (examTasks.length !== 3) {
+        return null; // Pas assez de tâches pour former un examen complet
+      }
+      
+      // Convertir chaque score de tâche en valeur numérique
+      const taskScores = examTasks.map(task => {
+        if (!task.score) return 5; // Score par défaut si manquant
+        
+        const scoreStr = task.score.toString().toUpperCase();
+        
+        // Vérifier d'abord si c'est un score numérique
+        const numericScore = parseInt(scoreStr);
+        if (!isNaN(numericScore)) {
+          return numericScore;
+        }
+        
+        // Sinon, convertir le niveau textuel en valeur numérique
+        if (scoreStr.includes('C2')) return 18; // C2 = 18 pts
+        if (scoreStr.includes('C1')) return 15; // C1 = 15 pts  
+        if (scoreStr.includes('B2')) return 12; // B2 = 12 pts
+        if (scoreStr.includes('B1')) return 8;  // B1 = 8 pts
+        if (scoreStr.includes('A2')) return 5;  // A2 = 5 pts
+        if (scoreStr.includes('A1')) return 2;  // A1 = 2 pts
+        return 5; // Par défaut A2 = 5 pts
+      });
+      
+      // Retourner la moyenne des 3 tâches de cet examen
+      const average = taskScores.reduce((sum, score) => sum + score, 0) / taskScores.length;
+      return Math.round(average * 10) / 10; // Arrondir à 1 décimale
+    };
 
-    if (diffInMinutes < 60) {
-      return `il y a ${diffInMinutes} min`;
-    } else if (diffInHours < 24) {
-      return `il y a ${diffInHours}h`;
-    } else {
-      return `il y a ${diffInDays} jour${diffInDays > 1 ? 's' : ''}`;
+    // Calculer les moyennes individuelles pour chaque examen
+    // Créer les examens avec moyennes individuelles
+    const oralExamsWithAveragesData = [];
+    for (let i = 0; i < oralExams.length; i += 3) {
+      const examAverage = calculateIndividualExamAverage(oralExams, i);
+      if (examAverage !== null) {
+        oralExamsWithAveragesData.push({
+          type_exam: 'oral',
+          averageScore: examAverage
+        });
+      }
+    }
+    
+    const writtenExamsWithAveragesData = [];
+    for (let i = 0; i < writtenExams.length; i += 3) {
+      const examAverage = calculateIndividualExamAverage(writtenExams, i);
+      if (examAverage !== null) {
+        writtenExamsWithAveragesData.push({
+          type_exam: 'écrit',
+          averageScore: examAverage
+        });
+      }
+    }
+
+    // Mettre à jour les états
+    setOralExamsWithAverages(oralExamsWithAveragesData);
+    setWrittenExamsWithAverages(writtenExamsWithAveragesData);
+
+    const dataOral = countLevels(oralExams);
+    const dataEcrit = countLevels(writtenExams);
+    
+    // Calculer les scores moyens globaux (moyenne des moyennes individuelles)
+    const calculateAverageScore = (examsWithAverages) => {
+      if (examsWithAverages.length === 0) return 5; // Score par défaut A2 (4-6 pts)
+      
+      // Utiliser directement les moyennes calculées pour chaque examen
+      const averageScores = examsWithAverages.map(exam => exam.averageScore);
+      const globalAverage = averageScores.reduce((sum, score) => sum + score, 0) / averageScores.length;
+      
+      return Math.round(globalAverage * 10) / 10; // Arrondir à 1 décimale
+    };
+
+    const scoreMoyenOralData = calculateAverageScore(oralExamsWithAveragesData);
+    const scoreMoyenEcritData = calculateAverageScore(writtenExamsWithAveragesData);
+
+    // Mettre à jour les scores moyens
+      setScoreMoyenOral(scoreMoyenOralData);
+      setScoreMoyenEcrit(scoreMoyenEcritData);
+
+      // Calculer les pourcentages pour les priorités d'entraînement
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      
+      let ecritPctData = 50; // Par défaut 50/50
+      let oralPctData = 50;
+      
+      if (scoreMoyenOralData > 0 && scoreMoyenEcritData > 0) {
+        // Calculer la différence entre les moyennes
+        const delta = scoreMoyenEcritData - scoreMoyenOralData;
+        
+        // Si l'écrit est plus faible, augmenter le pourcentage d'entraînement écrit
+        // Si l'oral est plus faible, augmenter le pourcentage d'entraînement oral
+        ecritPctData = clamp(Math.round(50 + (delta * -12.5)), 20, 80);
+        oralPctData = 100 - ecritPctData;
+      } else if (scoreMoyenEcritData > 0 && scoreMoyenOralData === 0) {
+        // Seulement des examens écrits, recommander plus d'oral
+        ecritPctData = 30;
+        oralPctData = 70;
+      } else if (scoreMoyenOralData > 0 && scoreMoyenEcritData === 0) {
+        // Seulement des examens oraux, recommander plus d'écrit
+        ecritPctData = 70;
+        oralPctData = 30;
+      }
+
+      // Mettre à jour les pourcentages
+      setEcritPct(ecritPctData);
+      setOralPct(oralPctData);
+
+    const toArray = (obj) => niveaux.map(n => obj[n] ?? 0);
+
+    const blue = 'rgba(37, 99, 235, 0.9)';
+    const green = 'rgba(22, 163, 74, 0.9)';
+
+    const baseOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.parsed.y} examen(s) au niveau ${ctx.label}`
+          }
+        }
+      }
+    };
+
+    // Graphique Expression Orale
+    if (chartOralRef.current) {
+      const ctx = chartOralRef.current.getContext('2d');
+      chartOralInstance.current = new window.Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: niveaux,
+          datasets: [{
+            data: toArray(dataOral),
+            backgroundColor: blue,
+            borderColor: blue,
+            borderWidth: 2,
+            borderRadius: 8,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          ...baseOptions,
+          plugins: {
+          ...baseOptions.plugins,
+          tooltip: {
+            callbacks: {
+              label: (context) => `${context.parsed.y} examen${context.parsed.y > 1 ? 's' : ''} au niveau ${context.label}`
+            }
+          }
+        }
+        }
+      });
+    }
+
+    // Graphique Expression Écrite
+    if (chartEcritRef.current) {
+      const ctx = chartEcritRef.current.getContext('2d');
+      chartEcritInstance.current = new window.Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: niveaux,
+          datasets: [{
+            data: toArray(dataEcrit),
+            backgroundColor: green,
+            borderColor: green,
+            borderWidth: 2,
+            borderRadius: 8,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          ...baseOptions,
+          plugins: {
+            ...baseOptions.plugins,
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.parsed.y} examen${context.parsed.y > 1 ? 's' : ''} au niveau ${context.label}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Donut Priorités
+    if (chartPrioritesRef.current) {
+      const ctx = chartPrioritesRef.current.getContext('2d');
+      chartPrioritesInstance.current = new window.Chart(ctx, {
+        type: 'doughnut',
+        data: { 
+          labels: ['Écrit', 'Oral'], 
+          datasets: [{ 
+            data: [ecritPctData, oralPctData], 
+            backgroundColor: [green, blue], 
+            hoverOffset: 6 
+          }] 
+        },
+        options: { 
+          responsive: true, 
+          plugins: { legend: { position: 'bottom' } }, 
+          cutout: '65%' 
+        }
+      });
+
+      // Mettre à jour le message de priorités
+      const prioritesMsg = document.getElementById('prioritesMsg');
+      if (prioritesMsg) {
+        prioritesMsg.innerHTML = `Conseil : consacrez <strong>${ecritPctData}%</strong> du temps à l'écrit et <strong>${oralPctData}%</strong> à l'oral cette semaine.`;
+      }
     }
   };
 
   return (
     <DashboardLayout>
       <DashboardNavbar />
-      <MDBox py={4} sx={{ overflowX: 'hidden', width: '100%' }}>
-        {/* Section d'accueil motivante */}
-        <MDBox mb={6}>
-          <MDBox textAlign="center" mb={4}>
-            <MDTypography variant="h2" fontWeight="bold" color="dark" mb={2}>
-              Bonjour {(() => {
-                try {
-                  const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
-                  return userInfo.prenom || 'Candidat';
-                } catch (error) {
-                  return 'Candidat';
-                }
-              })()} ! 👋
-            </MDTypography>
-            <MDTypography variant="h5" color="text" fontWeight="regular">
-              Prêt à améliorer votre score TCF Canada aujourd'hui ?
-            </MDTypography>
-          </MDBox>
-        </MDBox>
-
-        {/* Accès rapides aux coachs */}
-        <MDBox mb={6}>
-          <MDTypography variant="h4" fontWeight="bold" color="dark" mb={3}>
-            🚀 Commencez votre entraînement
-          </MDTypography>
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              <SimulatorQuickAccess
-                title="Coach Expression Ecrits"
-                description="Entraînez-vous aux épreuves de compréhension écrite et expression écrite"
-                icon="edit_note"
-                color="linear-gradient(135deg, rgba(191, 219, 254, 0.8) 0%, rgba(240, 248, 255, 0.9) 30%, rgba(219, 234, 254, 0.85) 70%, rgba(191, 219, 254, 0.8) 100%)"
-                path="/simulateur-tcf-canada/expression-ecrits"
-                stats={{
-                  progress: Math.min(100, Math.round((dashboardData.stats?.totalExams || 0) / (dashboardData.stats?.totalCredits || 1) * 100))
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <SimulatorQuickAccess
-                title="Coach Expression Oral"
-                description="Perfectionnez votre expression orale avec des exercices interactifs"
-                icon="record_voice_over"
-                color="linear-gradient(135deg, rgba(191, 219, 254, 0.8) 0%, rgba(240, 248, 255, 0.9) 30%, rgba(219, 234, 254, 0.85) 70%, rgba(191, 219, 254, 0.8) 100%)"
-                path="/tcf-simulator/oral"
-                stats={{
-                  progress: Math.min(100, Math.round((dashboardData.stats?.averageScore || 0) / 20 * 100))
-                }}
-              />
-            </Grid>
-          </Grid>
-        </MDBox>
-
-        {/* Statistiques modernes */}
-        <MDBox mb={6}>
-          <MDTypography variant="h4" fontWeight="bold" color="dark" mb={3}>
-            📊 Vos performances
-          </MDTypography>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6} lg={3}>
-              <ModernStatCard
-                title="Examens Réalisés"
-                value={dashboardData.loading ? "..." : (dashboardData.stats?.totalExams || 0)}
-                subtitle="Total depuis le début"
-                icon="quiz"
-                color="#4f46e5"
-                trend={dashboardData.stats?.weeklyExams ? `+${dashboardData.stats.weeklyExams}` : null}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
-              <ModernStatCard
-                title="Niveau Moyen"
-                value={dashboardData.loading ? "..." : (dashboardData.stats?.averageScore || 'Aucun')}
-                subtitle={`Meilleur niveau: ${dashboardData.stats?.bestScore || 'Aucun'}`}
-                icon="trending_up"
-                color="#10b981"
-                trend={dashboardData.stats?.averageScore === 'C1' || dashboardData.stats?.averageScore === 'C2' ? '+Excellent' : dashboardData.stats?.averageScore === 'B2' || dashboardData.stats?.averageScore === 'B1' ? 'Bien' : 'À améliorer'}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
-              <ModernStatCard
-                title="Série d'Étude"
-                value={dashboardData.loading ? "..." : `${dashboardData.stats?.studyStreak || 0} jours`}
-                subtitle="Jours consécutifs d'entraînement"
-                icon="local_fire_department"
-                color="#f59e0b"
-                trend={dashboardData.stats?.studyStreak > 7 ? '+Excellent' : dashboardData.stats?.studyStreak > 3 ? 'Bien' : null}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
-              <ModernStatCard
-                title="Crédits Restants"
-                value={dashboardData.loading ? "..." : (dashboardData.stats?.remainingCredits || 0)}
-                subtitle={`Total: ${dashboardData.stats?.totalCredits || 0} crédits`}
-                icon="account_balance_wallet"
-                color="#8b5cf6"
-                trend={dashboardData.stats?.remainingCredits > 10 ? 'Suffisant' : dashboardData.stats?.remainingCredits > 5 ? 'Moyen' : 'Faible'}
-              />
-            </Grid>
-          </Grid>
-        </MDBox>
-
-
-
-
-        {/* Graphiques Expression Orale et Écrite en Barres */}
-        <MDBox mb={6}>
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              <Card sx={{
-                borderRadius: 4,
-                background: 'linear-gradient(135deg, #4f46e515 0%, #4f46e505 100%)',
-                border: '1px solid #4f46e520',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: '0 15px 35px #4f46e520'
-                }
-              }}>
-                <MDBox p={3}>
-                  <MDBox display="flex" alignItems="center" mb={2}>
-                    <Icon sx={{ color: '#4f46e5', fontSize: '1.5rem', mr: 1 }}>record_voice_over</Icon>
-                    <MDTypography variant="h6" fontWeight="bold" color="dark">
-                      Expression Orale - Distribution par Niveau
-                    </MDTypography>
-                  </MDBox>
-                  <ReportsBarChart
-                    color="info"
-                    title=""
-                    description="Nombre d'examens par niveau CECR"
-                    date={dashboardData.loading ? "Chargement..." : "basé sur vos examens"}
-                    chart={getOralExpressionBarChartData()}
-                  />
-                </MDBox>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card sx={{
-                borderRadius: 4,
-                background: 'linear-gradient(135deg, #10b98115 0%, #10b98105 100%)',
-                border: '1px solid #10b98120',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: '0 15px 35px #10b98120'
-                }
-              }}>
-                <MDBox p={3}>
-                  <MDBox display="flex" alignItems="center" mb={2}>
-                    <Icon sx={{ color: '#10b981', fontSize: '1.5rem', mr: 1 }}>edit</Icon>
-                    <MDTypography variant="h6" fontWeight="bold" color="dark">
-                      Expression Écrite - Distribution par Niveau
-                    </MDTypography>
-                  </MDBox>
-                  <ReportsBarChart
-                    color="success"
-                    title=""
-                    description="Nombre d'examens par niveau CECR"
-                    date={dashboardData.loading ? "Chargement..." : "basé sur vos examens"}
-                    chart={getWrittenExpressionBarChartData()}
-                  />
-                </MDBox>
-              </Card>
-            </Grid>
-          </Grid>
-        </MDBox>
-
-        {/* Graphique Combiné Expression Orale et Écrite */}
+      <MDBox py={4} sx={{ 
+        overflowX: 'hidden', 
+        width: '100%',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+        minHeight: '100vh'
+      }}>
+        {/* Header avec gradient comme dans le template */}
         <MDBox mb={6}>
           <Card sx={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)',
+            color: 'white',
             borderRadius: 4,
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-            border: '1px solid #e2e8f0',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.1)'
-            }
+            boxShadow: '0 20px 40px rgba(59, 130, 246, 0.3)'
           }}>
-            <MDBox p={3}>
-              <MDBox display="flex" alignItems="center" mb={2}>
-                <Icon sx={{ color: '#6366f1', fontSize: '1.5rem', mr: 1 }}>bar_chart</Icon>
-                <MDTypography variant="h6" fontWeight="bold" color="dark">
-                  Comparaison Expression Orale vs Écrite
-                </MDTypography>
+            <MDBox p={6}>
+              <MDBox display="flex" justifyContent="space-between" alignItems="center">
+                <MDBox>
+                  <MDTypography variant="h2" fontWeight="bold" mb={2}
+                    style={{color:'#fff'}}
+                  >
+                    Bonjour {(() => {
+                      try {
+                        const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+                        return userInfo.prenom || 'Candidat';
+                      } catch (error) {
+                        return 'Candidat';
+                      }
+                    })()} 👋
+                  </MDTypography>
+                  <MDTypography variant="h5" sx={{ opacity: 0.9, mb: 1 }}
+                  style={{color:'#fff'}}
+                  >
+                    Prêt à booster ton score TCF Canada aujourd'hui ? 🎯
+                  </MDTypography>
+                  <MDTypography variant="body1" sx={{ opacity: 0.8, fontStyle: 'italic' }}
+                  style={{color:'#fff'}}
+                  >
+                    Objectif : Niveau B2+
+                  </MDTypography>
+                </MDBox>
+                
               </MDBox>
-              <MixedChart
-                icon={{ color: "info", component: "bar_chart" }}
-                title=""
-                description="Distribution comparative des niveaux CECR"
-                height="20rem"
-                chart={getCombinedExpressionBarChartData()}
-              />
             </MDBox>
           </Card>
         </MDBox>
 
-        {/* Légende des niveaux CECR améliorée */}
-        {dashboardData.userInfo?.role === 'Client' && (
-          <MDBox mb={4}>
-            <Card sx={{
-              borderRadius: 4,
-              background: 'linear-gradient(135deg, #f5f5f515 0%, #f5f5f505 100%)',
-              border: '1px solid #e0e0e020'
-            }}>
-              <MDBox p={3}>
-                <MDBox display="flex" alignItems="center" mb={2}>
-                  <Icon sx={{ color: '#4f46e5', fontSize: '1.5rem', mr: 1 }}>school</Icon>
-                  <MDTypography variant="h6" fontWeight="bold" color="dark">
-                    📊 Guide des Niveaux CECR - Analyse Dynamique
-                  </MDTypography>
-                </MDBox>
-                <Grid container spacing={2}>
-                  <Grid item xs={6} sm={4} md={2}>
-                    <MDBox textAlign="center" p={2} sx={{ backgroundColor: '#ddd6fe', borderRadius: 2, border: '2px solid #8b5cf6' }}>
-                      <MDTypography variant="h6" fontWeight="bold" sx={{ color: '#8b5cf6' }}>A1</MDTypography>
-                      <MDTypography variant="caption" color="text">Débutant</MDTypography>
-                      <MDTypography variant="body2" sx={{ fontSize: '0.7rem', mt: 0.5 }}>45 pts</MDTypography>
-                    </MDBox>
-                  </Grid>
-                  <Grid item xs={6} sm={4} md={2}>
-                    <MDBox textAlign="center" p={2} sx={{ backgroundColor: '#dcfce7', borderRadius: 2, border: '2px solid #10b981' }}>
-                      <MDTypography variant="h6" fontWeight="bold" sx={{ color: '#10b981' }}>A2</MDTypography>
-                      <MDTypography variant="caption" color="text">Élémentaire</MDTypography>
-                      <MDTypography variant="body2" sx={{ fontSize: '0.7rem', mt: 0.5 }}>55 pts</MDTypography>
-                    </MDBox>
-                  </Grid>
-                  <Grid item xs={6} sm={4} md={2}>
-                    <MDBox textAlign="center" p={2} sx={{ backgroundColor: '#fef3c7', borderRadius: 2, border: '2px solid #f59e0b' }}>
-                      <MDTypography variant="h6" fontWeight="bold" sx={{ color: '#f59e0b' }}>B1</MDTypography>
-                      <MDTypography variant="caption" color="text">Intermédiaire</MDTypography>
-                      <MDTypography variant="body2" sx={{ fontSize: '0.7rem', mt: 0.5 }}>65 pts</MDTypography>
-                    </MDBox>
-                  </Grid>
-                  <Grid item xs={6} sm={4} md={2}>
-                    <MDBox textAlign="center" p={2} sx={{ backgroundColor: '#fce7f3', borderRadius: 2, border: '2px solid #ec4899' }}>
-                      <MDTypography variant="h6" fontWeight="bold" sx={{ color: '#ec4899' }}>B2</MDTypography>
-                      <MDTypography variant="caption" color="text">Avancé</MDTypography>
-                      <MDTypography variant="body2" sx={{ fontSize: '0.7rem', mt: 0.5 }}>75 pts</MDTypography>
-                    </MDBox>
-                  </Grid>
-                  <Grid item xs={6} sm={4} md={2}>
-                    <MDBox textAlign="center" p={2} sx={{ backgroundColor: '#e0e7ff', borderRadius: 2, border: '2px solid #4f46e5' }}>
-                      <MDTypography variant="h6" fontWeight="bold" sx={{ color: '#4f46e5' }}>C1</MDTypography>
-                      <MDTypography variant="caption" color="text">Autonome</MDTypography>
-                      <MDTypography variant="body2" sx={{ fontSize: '0.7rem', mt: 0.5 }}>85 pts</MDTypography>
-                    </MDBox>
-                  </Grid>
-                  <Grid item xs={6} sm={4} md={2}>
-                    <MDBox textAlign="center" p={2} sx={{ backgroundColor: '#f1f5f9', borderRadius: 2, border: '2px solid #64748b' }}>
-                      <MDTypography variant="h6" fontWeight="bold" sx={{ color: '#64748b' }}>C2</MDTypography>
-                      <MDTypography variant="caption" color="text">Maîtrise</MDTypography>
-                      <MDTypography variant="body2" sx={{ fontSize: '0.7rem', mt: 0.5 }}>95 pts</MDTypography>
-                    </MDBox>
-                  </Grid>
-                </Grid>
-                <MDBox mt={2}>
-                  <MDTypography variant="body2" color="text" sx={{ opacity: 0.8 }}>
-                    💡 Les graphiques ci-dessus utilisent des données dynamiques basées sur vos vrais examens et performances
-                  </MDTypography>
-                </MDBox>
-              </MDBox>
-            </Card>
-          </MDBox>
-        )}
-
-        {/* Section de motivation finale */}
-        <MDBox mb={4}>
-           <Card sx={{
-             borderRadius: 4,
-             background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-             color: 'white',
-             textAlign: 'center',
-
-           }}>
-             <MDBox p={4}>
-               <Icon sx={{ fontSize: '3rem !important', mb: 2, opacity: 0.9 }}>emoji_events</Icon>
-               <MDTypography variant="h4" fontWeight="bold" mb={2}>
-                 Continuez sur cette lancée !
-               </MDTypography>
-               <MDTypography variant="body1" sx={{ opacity: 0.9, mb: 3 }}>
-                 Chaque examen vous rapproche de votre objectif TCF Canada.
-                 Restez motivé et atteignez l'excellence !
-               </MDTypography>
-               <MDBox display="flex" justifyContent="center" gap={2}>
-                 <MDButton 
-                   variant="contained" 
-                   color="white" 
-                   size="large"
-                   onClick={() => navigate('/simulateur-tcf-canada/expression-ecrits')}
-                   sx={{ borderRadius: 3, px: 4 }}
-                 >
-                   Coach Écrit
-                 </MDButton>
-                 <MDButton 
-                   variant="outlined" 
-                   color="white" 
-                   size="large"
-                   onClick={() => navigate('/tcf-simulator/oral')}
-                   sx={{ borderRadius: 3, px: 4, borderColor: 'white', color: 'white' }}
-                 >
-                   Coach Oral
-                 </MDButton>
-               </MDBox>
-             </MDBox>
-           </Card>
+        {/* Statistiques modernes */}
+         <MDBox mb={6}> 
+           <MDTypography variant="h4" fontWeight="bold" color="dark" mb={3}> 
+             📊 Vos performances 
+           </MDTypography> 
+           <Grid container spacing={3}> 
+             <Grid item xs={12} sm={6} lg={3}> 
+               <ModernStatCard 
+                 title="Examens Réalisés" 
+                 value={dashboardData.loading ? "..." : (dashboardData.stats?.totalExams/3 || 0)} 
+                 subtitle="Total depuis le début" 
+                 icon="quiz" 
+                 color="#4f46e5" 
+                 trend={dashboardData.stats?.weeklyExams ? `+${dashboardData.stats.weeklyExams}` : null} 
+               /> 
+             </Grid> 
+             <Grid item xs={12} sm={6} lg={3}> 
+               <ModernStatCard 
+                 title="Niveau Moyen" 
+                 value={dashboardData.loading ? "..." : (dashboardData.stats?.averageScore || 'Aucun')} 
+                 subtitle={`Meilleur niveau: ${dashboardData.stats?.bestScore || 'Aucun'}`} 
+                 icon="trending_up" 
+                 color="#10b981" 
+                 trend={dashboardData.stats?.averageScore === 'C1' || dashboardData.stats?.averageScore === 'C2' ? '+Excellent' : dashboardData.stats?.averageScore === 'B2' || dashboardData.stats?.averageScore === 'B1' ? 'Bien' : 'À améliorer'} 
+               /> 
+             </Grid> 
+             <Grid item xs={12} sm={6} lg={3}> 
+               <ModernStatCard 
+                 title="Série d'Étude" 
+                 value={dashboardData.loading ? "..." : `${dashboardData.stats?.studyStreak || 0} jours`} 
+                 subtitle="Jours consécutifs d'entraînement" 
+                 icon="local_fire_department"
+                 color="#f59e0b"
+                 trend={dashboardData.stats?.studyStreak > 5 ? 'En feu! 🔥' : 'Continuez! 💪'}
+               />
+             </Grid>
+             <Grid item xs={12} sm={6} lg={3}>
+               <ModernStatCard
+                 title="Crédits Restants"
+                 value={dashboardData.loading ? "..." : (dashboardData.stats?.remainingCredits || 0)}
+                 subtitle="Pour passer des examens"
+                 icon="paid"
+                 color="#6366f1"
+                 trend={dashboardData.stats?.remainingCredits > 10 ? 'Suffisant' : 'Pensez à recharger'}
+               />
+             </Grid>
+           </Grid>
          </MDBox>
+
+        {/* Vue par compétence - Comme dans le template */}
+        <MDBox mb={6}>
+          <Grid container spacing={6}>
+            {/* Expression Orale */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ borderRadius: 4, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}>
+                <MDBox p={3}>
+                  <MDBox display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                    <MDTypography variant="h5" fontWeight="bold" sx={{ color: '#3b82f6' }}>
+                      🎤 Expression Orale
+                    </MDTypography>
+                    <Chip 
+                      label={oralExamsWithAverages.length > 0 ? 
+                        `Dernier : ${convertScoreToCECRL(oralExamsWithAverages[oralExamsWithAverages.length - 1].averageScore)} - ${(scoreMoyenOral)}/20` :
+                        'Aucun examen'
+                      }
+                      size="small"
+                      sx={{ 
+                        background: '#dbeafe', 
+                        color: '#3b82f6',
+                        fontSize: '0.75rem'
+                      }}
+                    />
+                  </MDBox>
+                  <MDBox display="flex" alignItems="center" gap={3} mb={3}>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={oralPct} 
+                      sx={{
+                        flex: 1,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: '#dbeafe',
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: '#3b82f6',
+                          borderRadius: 4,
+                        }
+                      }}
+                    />
+                    <MDTypography variant="body2" fontWeight="bold" sx={{ color: '#3b82f6' }}>
+                      {oralPct}%
+                    </MDTypography>
+                  </MDBox>
+                  <MDBox mb={4} sx={{ height: 200 }}>
+                    <canvas ref={chartOralRef} style={{ maxHeight: '200px' }}></canvas>
+                  </MDBox>
+                  <MDBox display="flex" gap={2}>
+                    <MDButton 
+                      variant="contained" 
+                      sx={{ 
+                        background: '#3b82f6',
+                        borderRadius: 3,
+                        px: 3,
+                        '&:hover': { background: '#2563eb', transform: 'scale(1.02)' }
+                      }}
+                      onClick={() => navigate('/tcf-simulator/oral')}
+                      style={{color:'#fff'}}
+                    >
+                      S'entraîner à l'oral
+                    </MDButton>
+                    <MDButton 
+                      variant="outlined" 
+                      sx={{ 
+                        borderColor: '#e5e7eb',
+                        color: '#6b7280',
+                        borderRadius: 3,
+                        px: 3
+                      }}
+                    >
+                      Voir mes erreurs
+                    </MDButton>
+                  </MDBox>
+                </MDBox>
+              </Card>
+            </Grid>
+
+            {/* Expression Écrite */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ borderRadius: 4, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}>
+                <MDBox p={3}>
+                  <MDBox display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                    <MDTypography variant="h5" fontWeight="bold" sx={{ color: '#10b981' }}>
+                      ✍️ Expression Écrite
+                    </MDTypography>
+                    <Chip 
+                      label={writtenExamsWithAverages.length > 0 ? 
+                        `Dernier : ${convertScoreToCECRL(writtenExamsWithAverages[writtenExamsWithAverages.length - 1].averageScore)} - ${scoreMoyenEcrit}/20)` :
+                        'Aucun examen'
+                      }
+                      size="small"
+                      sx={{ 
+                        background: '#dcfce7', 
+                        color: '#10b981',
+                        fontSize: '0.75rem'
+                      }}
+                    />
+                  </MDBox>
+                  <MDBox display="flex" alignItems="center" gap={3} mb={3}>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={ecritPct} 
+                      sx={{
+                        flex: 1,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: '#dcfce7',
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: '#10b981',
+                          borderRadius: 4,
+                        }
+                      }}
+                    />
+                    <MDTypography variant="body2" fontWeight="bold" sx={{ color: '#10b981' }}>
+                      {ecritPct}%
+                    </MDTypography>
+                  </MDBox>
+                  <MDBox mb={4} sx={{ height: 200 }}>
+                    <canvas ref={chartEcritRef} style={{ maxHeight: '200px' }}></canvas>
+                  </MDBox>
+                  <MDBox display="flex" gap={2}>
+                    <MDButton 
+                      variant="contained" 
+                      sx={{ 
+                        background: '#10b981',
+                        borderRadius: 3,
+                        px: 3,
+                        '&:hover': { background: '#059669', transform: 'scale(1.02)' }
+                      }}
+                      onClick={() => navigate('/simulateur-tcf-canada/expression-ecrits')}
+                      style={{color:'#fff'}}
+                    >
+                      S'entraîner à l'écrit
+                    </MDButton>
+                    <MDButton 
+                      variant="outlined" 
+                      sx={{ 
+                        borderColor: '#e5e7eb',
+                        color: '#6b7280',
+                        borderRadius: 3,
+                        px: 3
+                      }}
+                    >
+                      Voir mes erreurs
+                    </MDButton>
+                  </MDBox>
+                </MDBox>
+              </Card>
+            </Grid>
+          </Grid>
+        </MDBox>
+
+        {/* Barème NCLC - Nouveau tableau */}
+        <MDBox mb={6}>
+          <Card sx={{ borderRadius: 4, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}>
+            <MDBox p={3}>
+              <MDTypography variant="h5" fontWeight="bold" color="dark" mb={3}>
+                📊 Barème NCLC – Expression Orale & Écrite
+              </MDTypography>
+              <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 'none', border: '1px solid #e5e7eb', overflow: 'auto' }}>
+                <Table sx={{ width: '100%', tableLayout: 'fixed' }} aria-label="Barème NCLC">
+                  <TableHead sx={{ display: "table-header-group" }}>
+                    <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: '0.875rem', py: 2, width: '15%' }}>
+                        NCLC
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: '0.875rem', py: 2, width: '25%' }}>
+                        Score (Écrit/Oral)
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: '0.875rem', py: 2, width: '25%' }}>
+                        Équivalence CECRL
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: '0.875rem', py: 2, width: '35%' }}>
+                        Interprétation
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {nclcBareme.map((row, index) => (
+                      <TableRow 
+                        key={index}
+                        sx={{ 
+                          '&:nth-of-type(odd)': { backgroundColor: '#fafafa' },
+                          '&:hover': { backgroundColor: '#f3f4f6' },
+                          transition: 'background-color 0.2s ease'
+                        }}
+                      >
+                        <TableCell sx={{ py: 2, fontSize: '0.875rem', fontWeight: '600', color: '#1f2937' }}>
+                          {row.nclc}
+                        </TableCell>
+                        <TableCell sx={{ py: 2, fontSize: '0.875rem', color: '#4b5563' }}>
+                          {row.score}
+                        </TableCell>
+                        <TableCell sx={{ py: 2, fontSize: '0.875rem' }}>
+                          <Chip 
+                            label={row.equivalence}
+                            size="small"
+                            sx={{
+                              backgroundColor: row.equivalence.includes('C2') ? '#8B5CF6' :
+                                             row.equivalence.includes('C1') ? '#0080ff' :
+                                             row.equivalence.includes('B2') ? '#34D399' :
+                                             row.equivalence.includes('B1') ? '#FBBF24' :
+                                             row.equivalence.includes('A2') ? '#F87171' : '#AAAAAA',
+                              color: '#ffffff',
+                              fontWeight: '600',
+                              fontSize: '0.75rem'
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ py: 2, fontSize: '0.875rem', color: '#6b7280', fontStyle: 'italic' }}>
+                          {row.interpretation}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </MDBox>
+          </Card>
+        </MDBox>
+
+        {/* Priorités d'entraînement - Sans radar */}
+        <MDBox mb={6}>
+          <Card sx={{ borderRadius: 4, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}>
+            <MDBox p={3}>
+              <MDTypography variant="h5" fontWeight="bold" color="dark" mb={4}>
+                🎯 Vos priorités d'entraînement
+              </MDTypography>
+              <Grid container spacing={3} justifyContent="center">
+                <Grid item xs={12} md={8}>
+                  <MDBox sx={{ height: 300 }}>
+                    <canvas ref={chartPrioritesRef} style={{ maxHeight: '300px' }}></canvas>
+                  </MDBox>
+                  <MDTypography 
+                    id="prioritesMsg"
+                    variant="body2" 
+                    color="text" 
+                    sx={{ mt: 2, textAlign: 'center' }}
+                  >
+                    Conseil : consacrez 60% du temps à l'écrit et 40% à l'oral cette semaine.
+                  </MDTypography>
+                </Grid>
+              </Grid>
+            </MDBox>
+          </Card>
+        </MDBox>
+
+
+
+        {/* Coaching - Comme dans le template */}
+        <MDBox mb={6}>
+          <Grid container spacing={6}>
+            <Grid item xs={12} md={6}>
+              <Card sx={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                borderRadius: 4,
+                boxShadow: '0 15px 35px rgba(16, 185, 129, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 40px rgba(16, 185, 129, 0.4)' }
+              }}>
+                <MDBox p={4}>
+                  <MDTypography variant="h5" fontWeight="bold" mb={1} sx={{ color: 'white' }}
+                  style={{color:'#fff'}}
+                  >
+                    Coach Écrit
+                  </MDTypography>
+                  <MDTypography variant="body2" sx={{ opacity: 0.9, mb: 3, color: 'white' }}
+                   style={{color:'#fff'}}
+                  >
+                    Entraînements guidés + corrections types
+                  </MDTypography>
+                  <MDButton 
+                    variant="contained" 
+                    sx={{ 
+                      background: 'white',
+                      color: '#10b981',
+                      borderRadius: 3,
+                      px: 3,
+                      '&:hover': { background: '#f9fafb', transform: 'translateY(-2px)' }
+                    }}
+                    onClick={() => navigate('/simulateur-tcf-canada/expression-ecrits')}
+                   
+                 >
+                    Commencer
+                  </MDButton>
+                </MDBox>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card sx={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                color: 'white',
+                borderRadius: 4,
+                boxShadow: '0 15px 35px rgba(59, 130, 246, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' }
+              }}>
+                <MDBox p={4}>
+                  <MDTypography variant="h5" fontWeight="bold" mb={1} sx={{ color: 'white' }}
+                   style={{color:'#fff'}}
+                  >
+                    Coach Oral
+                  </MDTypography>
+                  <MDTypography variant="body2" sx={{ opacity: 0.9, mb: 3, color: 'white' }}
+                   style={{color:'#fff'}}
+                  >
+                    Simulations + feedback personnalisé
+                  </MDTypography>
+                  <MDButton 
+                    variant="contained" 
+                    sx={{ 
+                      background: 'white',
+                      color: '#3b82f6',
+                      borderRadius: 3,
+                      px: 3,
+                      '&:hover': { background: '#f9fafb', transform: 'translateY(-2px)' }
+                    }}
+                    onClick={() => navigate('/tcf-simulator/oral')}
+                  >
+                    Commencer
+                  </MDButton>
+                </MDBox>
+              </Card>
+            </Grid>
+          </Grid>
+        </MDBox>
+
+
+ 
       </MDBox>
       <Footer />
     </DashboardLayout>

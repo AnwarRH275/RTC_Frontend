@@ -38,22 +38,22 @@ const PlanHeader = styled(Box)(({ theme, headerGradient }) => ({
   background: headerGradient 
     ? `linear-gradient(135deg, ${headerGradient.start}, ${headerGradient.end})`
     : 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
-  padding: theme.spacing(0.5),
+  padding: theme.spacing(1),
   color: 'white',
   textAlign: 'center',
 }));
 
 const PlanPrice = styled(Box)(({ theme }) => ({
-  fontSize: '2.5rem',
+  fontSize: '2rem',
   fontWeight: 700,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'baseline',
-  marginBottom: theme.spacing(1),
+  marginBottom: theme.spacing(0.5),
 }));
 
 const PlanContent = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2),
+  padding: theme.spacing(1.5),
   flexGrow: 1,
   display: 'flex',
   flexDirection: 'column',
@@ -62,16 +62,16 @@ const PlanContent = styled(Box)(({ theme }) => ({
 const FeatureItem = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'flex-start',
-  marginBottom: theme.spacing(0.75),
-  fontSize: '0.85rem',
+  marginBottom: theme.spacing(0.5),
+  fontSize: '0.8rem',
 }));
 
 const ActionButton = styled(Button)(({ theme, buttonGradient, buttonHoverGradient }) => ({
   borderRadius: 20,
-  padding: '10px 16px',
+  padding: '8px 12px',
   fontWeight: 700,
   textTransform: 'none',
-  fontSize: '1rem',
+  fontSize: '0.9rem',
   marginTop: 'auto',
   boxShadow: '0 4px 10px rgba(0, 0, 0, 0.25)',
   background: buttonGradient 
@@ -372,46 +372,46 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
     <Box sx={{ 
       display: 'flex', 
       flexDirection: { xs: 'column', md: 'row' }, 
-      gap: 2, 
+      gap: 1.5, 
       width: '100%',
       maxWidth: '1200px',
       height: 'auto',
-      maxHeight: '65vh',
+      maxHeight: '55vh',
       overflow: 'auto',
-      my: 2,
+      my: 1,
       px: 1,
       mx: 'auto'
     }}>
       {plans.map((plan) => (
-        <Box key={plan.id} sx={{ flex: 1, minWidth: { xs: '100%', md: '220px' } }}>
+        <Box key={plan.id} sx={{ flex: 1, minWidth: { xs: '100%', md: '200px' } }}>
           <PlanCard isPopular={plan.isPopular}>
             {plan.isPopular && <PopularBadge label="POPULAIRE" />}
             <PlanHeader headerGradient={plan.headerGradient}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: plan.isPopular ? 2 : 'auto', position: 'relative' }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: plan.isPopular ? 2 : 'auto', position: 'relative', fontSize: '1rem' }}>
                 {plan.name}
               </Typography>
               <PlanPrice>
-                <Typography component="span" sx={{ fontSize: '1.2rem', alignSelf: 'flex-start', mt: 1 }}>
+                <Typography component="span" sx={{ fontSize: '1rem', alignSelf: 'flex-start', mt: 1 }}>
                   $
                 </Typography>
                 {plan.price}
-                <Typography component="span" sx={{ fontSize: '1.2rem', ml: 0.5 }}>
+                <Typography component="span" sx={{ fontSize: '1rem', ml: 0.5 }}>
                   .99
                 </Typography>
               </PlanPrice>
-              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '0.8rem' }}>
                 {plan.usages} Usages
               </Typography>
             </PlanHeader>
             <PlanContent>
               {plan.features.map((feature, index) => (
                 <FeatureItem key={index}>
-                  <CheckIcon sx={{ color: '#4CAF50', mr: 1, fontSize: '1.2rem' }} />
-                  <Typography variant="body2">{feature}</Typography>
+                  <CheckIcon sx={{ color: '#4CAF50', mr: 1, fontSize: '1rem' }} />
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>{feature}</Typography>
                 </FeatureItem>
               ))}
-              <Box sx={{ flexGrow: 1, minHeight: 15 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Box sx={{ flexGrow: 1, minHeight: 10 }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               
                 <ActionButton 
                   variant="contained" 
@@ -435,8 +435,8 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                   }}
                   disabled={loadingPlanId === plan.id}
                   sx={{ 
-                    fontSize: '1.1rem',
-                    py: 1.5,
+                    fontSize: '0.9rem',
+                    py: 1,
                     boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
                   }}
                 >

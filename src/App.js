@@ -28,7 +28,6 @@ import MDBox from "components/MDBox";
 
 // Simulateur TCF Canada React example components
 import Sidenav from "examples/Sidenav";
-import Configurator from "examples/Configurator";
 
 // Simulateur TCF Canada React themes
 import theme from "assets/theme";
@@ -47,7 +46,7 @@ import createCache from "@emotion/cache";
 import routes, { getFilteredRoutes } from "routes";
 
 // Simulateur TCF Canada React contexts
-import { useMaterialUIController, setMiniSidenav, setOpenConfigurator, InfoUserProvider, useInfoUser } from "context";
+import { useMaterialUIController, setMiniSidenav, InfoUserProvider, useInfoUser } from "context";
 
 // Images
 import brandWhite from "assets/images/logo-ct.png";
@@ -162,9 +161,6 @@ function AppContent() {
     }
   };
 
-  // Change the openConfigurator state
-  const handleConfiguratorOpen = () => setOpenConfigurator(dispatch, !openConfigurator);
-
   // Setting the dir attribute for the body element
   useEffect(() => {
     document.body.setAttribute("dir", direction);
@@ -174,6 +170,16 @@ function AppContent() {
   useEffect(() => {
     document.documentElement.scrollTop = 0;
     document.scrollingElement.scrollTop = 0;
+    
+    // Nettoyer 'examStarted' si on n'est pas sur une page d'examen
+    const isExamRoute = pathname.includes('/exam') && 
+                       (pathname.includes('/simulateur-tcf-canada/expression-ecrits/') || 
+                        pathname.includes('/tcf-simulator/oral/'));
+    
+    if (!isExamRoute) {
+      localStorage.removeItem('examStarted');
+      setIsExamStarted(false);
+    }
   }, [pathname]);
 
   const getRoutes = (allRoutes) =>
@@ -188,30 +194,6 @@ function AppContent() {
 
       return null;
     });
-
-  const configsButton = (
-    <MDBox
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      width="3.25rem"
-      height="3.25rem"
-      bgColor="white"
-      shadow="sm"
-      borderRadius="50%"
-      position="fixed"
-      right="2rem"
-      bottom="2rem"
-      zIndex={99}
-      color="dark"
-      sx={{ cursor: "pointer" }}
-      onClick={handleConfiguratorOpen}
-    >
-      <Icon fontSize="small" color="inherit">
-        settings
-      </Icon>
-    </MDBox>
-  );
 
   return (
     <>
@@ -230,11 +212,10 @@ function AppContent() {
               onMouseLeave={handleOnMouseLeave}
             />
               
-                <Configurator />
-                {configsButton}
+                
               </>
             )}
-            {layout === "vr" && <Configurator />}
+            {layout === "vr" && null}
             <Routes>
               {getRoutes(filteredRoutes)}
               <Route path="/" element={<ConditionalRedirect />} />
@@ -256,11 +237,10 @@ function AppContent() {
                 onMouseEnter={handleOnMouseEnter}
                 onMouseLeave={handleOnMouseLeave}
               />
-              {configsButton}
-              <Configurator />
+              
             </>
           )}
-          {layout === "vr" && <Configurator />}
+          {layout === "vr" && null}
           <Routes>
               {getRoutes(filteredRoutes)}
               <Route path="/" element={<ConditionalRedirect />} />

@@ -2,8 +2,8 @@ import axios from 'axios';
 import authService from './authService';
 import { v4 as uuidv4 } from 'uuid';
 
-//const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.expressiontcf.com';
+import { API_BASE_URL } from './config';
+//const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.expressiontcf.com';
 class Task2AgentService {
   constructor() {
     this.apiClient = axios.create({

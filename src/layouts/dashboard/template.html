@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tableau de Bord TCF Canada</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .card{ @apply bg-white rounded-2xl shadow p-6; }
+    .kpi{ @apply bg-white rounded-2xl shadow p-4 text-center; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-b-2xl shadow-lg">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Bonjour TOTO 👋</h1>
+        <p class="text-lg mt-2">Prêt à booster ton score TCF Canada aujourd’hui ? 🎯</p>
+        <p class="text-sm italic opacity-90">Objectif : Niveau B2+</p>
+      </div>
+      <div class="hidden md:flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
+        <span class="text-sm">Prochain examen blanc :</span>
+        <span class="font-semibold">Samedi 14:00</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="p-6 space-y-8">
+    <!-- Vue par compétence -->
+    <section class="grid md:grid-cols-2 gap-6">
+      <!-- Expression Orale -->
+      <div class="card">
+        <div class="flex items-start justify-between">
+          <h2 class="text-xl font-semibold text-blue-600">🎤 Expression Orale</h2>
+          <span class="text-xs px-2 py-1 rounded bg-blue-50 text-blue-600">Dernier : <strong>B1 – 310/699</strong></span>
+        </div>
+        <div class="mt-3 text-sm flex items-center gap-3">
+          <div class="w-full h-2 bg-blue-100 rounded-xl overflow-hidden">
+            <div class="h-full bg-blue-500" style="width: 62%"></div>
+          </div>
+          <span class="text-blue-600 font-medium">62%</span>
+        </div>
+        <div class="mt-4">
+          <canvas id="chartOral" height="130"></canvas>
+        </div>
+        <div class="mt-4 flex gap-3">
+          <button class="px-4 py-2 bg-blue-500 text-white rounded-xl shadow hover:scale-[1.01]">S’entraîner à l’oral</button>
+          <button class="px-4 py-2 bg-gray-100 rounded-xl">Voir mes erreurs</button>
+        </div>
+      </div>
+
+      <!-- Expression Écrite -->
+      <div class="card">
+        <div class="flex items-start justify-between">
+          <h2 class="text-xl font-semibold text-green-600">✍️ Expression Écrite</h2>
+          <span class="text-xs px-2 py-1 rounded bg-green-50 text-green-600">Dernier : <strong>A2 – 245/699</strong></span>
+        </div>
+        <div class="mt-3 text-sm flex items-center gap-3">
+          <div class="w-full h-2 bg-green-100 rounded-xl overflow-hidden">
+            <div class="h-full bg-green-500" style="width: 38%"></div>
+          </div>
+          <span class="text-green-600 font-medium">38%</span>
+        </div>
+        <div class="mt-4">
+          <canvas id="chartEcrit" height="130"></canvas>
+        </div>
+        <div class="mt-4 flex gap-3">
+          <button class="px-4 py-2 bg-green-500 text-white rounded-xl shadow hover:scale-[1.01]">S’entraîner à l’écrit</button>
+          <button class="px-4 py-2 bg-gray-100 rounded-xl">Voir mes erreurs</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Priorités & Radar -->
+    <section class="card">
+      <h2 class="text-xl font-semibold mb-4">🎯 Vos priorités d’entraînement</h2>
+      <div class="grid md:grid-cols-2 gap-6 items-start">
+        <div>
+          <canvas id="chartPriorites" height="180"></canvas>
+          <p id="prioritesMsg" class="mt-4 text-sm"></p>
+        </div>
+        <div>
+          <canvas id="chartRadar" height="180"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Statistiques -->
+    <section class="grid md:grid-cols-4 gap-6">
+      <div class="kpi">
+        <p class="text-2xl font-bold">9</p>
+        <p class="text-sm">Examens Réalisés</p>
+      </div>
+      <div class="kpi">
+        <p class="text-2xl font-bold">B1</p>
+        <p class="text-sm">Niveau Moyen</p>
+      </div>
+      <div class="kpi">
+        <p class="text-2xl font-bold">1</p>
+        <p class="text-sm">Jour d’étude consécutif</p>
+      </div>
+      <div class="kpi">
+        <p class="text-2xl font-bold">19</p>
+        <p class="text-sm">Crédits Restants</p>
+      </div>
+    </section>
+
+    <!-- Coaching -->
+    <section class="grid md:grid-cols-2 gap-6">
+      <div class="bg-gradient-to-r from-green-400 to-green-500 text-white rounded-2xl shadow p-6">
+        <h2 class="text-lg font-semibold">Coach Écrit</h2>
+        <p class="text-sm">Entraînements guidés + corrections types</p>
+        <button class="mt-4 px-4 py-2 bg-white text-green-600 rounded-xl shadow">Commencer</button>
+      </div>
+      <div class="bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-2xl shadow p-6">
+        <h2 class="text-lg font-semibold">Coach Oral</h2>
+        <p class="text-sm">Simulations + feedback personnalisé</p>
+        <button class="mt-4 px-4 py-2 bg-white text-blue-600 rounded-xl shadow">Commencer</button>
+      </div>
+    </section>
+
+    <!-- Motivation -->
+    <section class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-xl">
+      <p class="text-yellow-700 font-semibold">💡 Conseil du jour :</p>
+      <p class="text-sm mt-2">Vous faites trop d’erreurs de conjugaison. Révisez le passé composé et le futur proche.</p>
+    </section>
+
+    <!-- Plan d’action -->
+    <section class="card">
+      <h2 class="text-xl font-semibold mb-4">📅 Plan d’action</h2>
+      <p class="text-sm">Objectif : Atteindre B2 à l’écrit en 4 semaines.</p>
+      <div class="h-32 bg-gray-100 rounded mt-4 flex items-center justify-center text-gray-400 italic">Mini calendrier d’étude</div>
+    </section>
+  </main>
+
+  <!-- ===================== SCRIPTS GRAPHIQUES ===================== -->
+  <script>
+    const niveaux = ["A1","A2","B1","B2","C1","C2"];
+    const dataOral = { A1: 1, A2: 1, B1: 7, B2: 2, C1: 1, C2: 0 };
+    const dataEcrit = { A1: 1, A2: 2, B1: 0, B2: 1, C1: 0, C2: 0 };
+    const scoreMoyenOral = 410;
+    const scoreMoyenEcrit = 305;
+
+    const toArray = (obj) => niveaux.map(n => obj[n] ?? 0);
+
+    const blue = 'rgba(37, 99, 235, 0.9)';
+    const green = 'rgba(22, 163, 74, 0.9)';
+
+    const baseOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.parsed.y} examen(s) au niveau ${ctx.label}`
+          }
+        }
+      }
+    };
+
+    new Chart(document.getElementById('chartOral').getContext('2d'), {
+      type: 'bar',
+      data: { labels: niveaux, datasets: [{ label: 'Oral', data: toArray(dataOral), backgroundColor: blue, borderRadius: 10 }] },
+      options: baseOptions
+    });
+
+    new Chart(document.getElementById('chartEcrit').getContext('2d'), {
+      type: 'bar',
+      data: { labels: niveaux, datasets: [{ label: 'Écrit', data: toArray(dataEcrit), backgroundColor: green, borderRadius: 10 }] },
+      options: baseOptions
+    });
+
+    // Donut Priorités
+    const clamp = (v,min,max) => Math.max(min, Math.min(max, v));
+    const delta = scoreMoyenOral - scoreMoyenEcrit;
+    const ecritPct = clamp(Math.round(50 + (delta/4)), 20, 80);
+    const oralPct  = 100 - ecritPct;
+    document.getElementById('prioritesMsg').innerHTML = `Conseil : consacrez <strong>${ecritPct}%</strong> du temps à l’écrit et <strong>${oralPct}%</strong> à l’oral cette semaine.`;
+    new Chart(document.getElementById('chartPriorites').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: ['Écrit','Oral'], datasets: [{ data: [ecritPct, oralPct], backgroundColor: [green, blue], hoverOffset: 6 }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+    });
+
+    // Radar compétences
+    new Chart(document.getElementById('chartRadar').getContext('2d'), {
+      type: 'radar',
+      data: {
+        labels: ['Grammaire','Lexique','Cohérence','Prononciation','Richesse'],
+        datasets: [
+          { label: 'Oral', data: [65, 70, 60, 75, 68], backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: blue, pointBackgroundColor: blue },
+          { label: 'Écrit', data: [50, 55, 48, 0, 52], backgroundColor: 'rgba(22, 163, 74, 0.2)', borderColor: green, pointBackgroundColor: green }
+        ]
+      },
+      options: { responsive: true, scales: { r: { beginAtZero: true, max: 100 } } }
+    });
+  </script>
+</body>
+</html>
