@@ -69,16 +69,16 @@ function Projects({ title }) {
     <Card sx={{ 
       borderRadius: "12px", 
       boxShadow: "0 8px 16px 0 rgba(0, 0, 0, 0.05)",
-      overflow: "hidden",
+      overflow: "visible",
       transition: "transform 0.3s, box-shadow 0.3s",
       "&:hover": {
         transform: "translateY(-5px)",
         boxShadow: "0 12px 20px 0 rgba(0, 0, 0, 0.1)"
       }
     }}>
-      <MDBox display="flex" justifyContent="space-between" alignItems="center" p={3}>
+      <MDBox display="flex" justifyContent="space-between" alignItems="center" sx={{ p: { xs: 2, sm: 3 } }}>
         <MDBox>
-          <MDTypography variant="h6" gutterBottom fontWeight="bold">
+          <MDTypography variant="h6" gutterBottom fontWeight="bold" sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }}>
             {title}
           </MDTypography>
           <MDBox display="flex" alignItems="center" lineHeight={0}>
@@ -91,8 +91,8 @@ function Projects({ title }) {
             >
               done
             </Icon>
-            <MDTypography variant="button" fontWeight="regular" color="text" sx={{ opacity: 0.8 }}>
-              &nbsp;<strong>30 done</strong> this month
+            <MDTypography variant="button" fontWeight="regular" color="text" sx={{ opacity: 0.85, fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
+              &nbsp;<strong>30 réalisés</strong> ce mois‑ci
             </MDTypography>
           </MDBox>
         </MDBox>
@@ -103,7 +103,7 @@ function Projects({ title }) {
         </MDBox>
         {renderMenu}
       </MDBox>
-      <MDBox>
+      <MDBox sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 }, overflowX: 'auto' }}>
         <DataTable
           table={{ columns, rows }}
           showTotalEntries={false}
@@ -111,6 +111,11 @@ function Projects({ title }) {
           noEndBorder
           entriesPerPage={false}
           sx={{ 
+            minWidth: { xs: 560, sm: 'auto' },
+            "& .MuiTableCell-root": {
+              padding: { xs: '8px', sm: '12px' },
+              fontSize: { xs: '0.85rem', sm: '0.9rem' }
+            },
             "& .MuiTableRow-root:hover": {
               backgroundColor: "rgba(0, 0, 0, 0.02)"
             } 

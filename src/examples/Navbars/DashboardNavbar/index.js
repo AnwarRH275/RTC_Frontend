@@ -200,7 +200,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
         </MDBox>
       </MDBox>
       <Divider />
-      <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profile'); }}>
+      <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profil-utilisateur-tcf'); }}>
         <ListItemIcon>
           <Icon fontSize="small">person</Icon>
         </ListItemIcon>
@@ -208,7 +208,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
           <MDTypography variant="button">Mon Profil</MDTypography>
         </ListItemText>
       </MenuItem>
-      <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/billing'); }}>
+      <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/facturation-tcf'); }}>
         <ListItemIcon>
           <Icon fontSize="small">settings</Icon>
         </ListItemIcon>

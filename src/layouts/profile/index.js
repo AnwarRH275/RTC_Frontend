@@ -552,7 +552,7 @@ function Overview() {
                     }
                   }}
                   onClick={() => {
-                    navigate('/simulateur-tcf-canada/expression-ecrits/results/:subjectId');
+                    navigate('/simulateur-tcf-expression-ecrite');
                     setOpenCreditsDialog(false);
                   }}
                 >
@@ -588,7 +588,7 @@ function Overview() {
                     }
                   }}
                   onClick={() => {
-                    navigate('/tcf-simulator/oral');
+                    navigate('/simulateur-tcf-expression-orale');
                     setOpenCreditsDialog(false);
                   }}
                 >

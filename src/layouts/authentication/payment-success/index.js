@@ -19,7 +19,7 @@ import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 
 // Authentication layout components
-import CoverLayout from "layouts/authentication/components/CoverLayout";
+import BasicLayout from "layouts/authentication/components/BasicLayout";
 
 // Services
 import authService from "services/authService";
@@ -179,42 +179,23 @@ function PaymentSuccess() {
 
   const handleGoToDashboard = () => {
 
-    navigate("/dashboard");
+    navigate("/mon-espace-tcf");
   };
 
   return (
-    <CoverLayout image={bgImage}>
+    <BasicLayout image={bgImage}>
       <Card sx={{
-        maxWidth: 500,
         width: "100%",
+        maxWidth: 500,
         mx: "auto",
-        overflow: "visible",
-        borderRadius: 3,
-        boxShadow: "0 8px 40px -12px rgba(0,0,0,0.3)",
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)"
+        borderRadius: 2,
+        boxShadow: "0 8px 32px 0 rgba(0,0,0,0.3)",
+        background: "rgba(255, 255, 255, 0.7)",
+        backdropFilter: "blur(15px)",
+        border: "1px solid rgba(255, 255, 255, 0.3)",
+        WebkitBackdropFilter: "blur(15px)"
       }}>
-        <MDBox
-          variant="gradient"
-          bgColor="info"
-          borderRadius="lg"
-          coloredShadow="success"
-          mx={2}
-          mt={-3}
-          p={2}
-          mb={1}
-          textAlign="center"
-          sx={{
-            background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
-            boxShadow: "0 12px 20px -10px rgba(0, 123, 255, 0.28), 0 4px 20px 0px rgba(0, 0, 0, 0.12), 0 7px 8px -5px rgba(0, 123, 255, 0.2)",
-          }}
-        >
-          {/* <MDTypography variant="h4" fontWeight="bold" color="white">
-            Réussir TCF Canada
-          </MDTypography> */}
-        </MDBox>
+        
         <MDBox pt={4} pb={3} px={3} textAlign="center">
           {loading ? (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
@@ -234,7 +215,7 @@ function PaymentSuccess() {
               <MDButton 
                 variant="contained" 
                 color="info" 
-                onClick={() => navigate("/authentication/sign-up")}
+                onClick={() => navigate("/inscription-tcf")}
                 sx={{ 
                   background: 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
                   borderRadius: '30px',
@@ -293,7 +274,7 @@ function PaymentSuccess() {
           )}
         </MDBox>
       </Card>
-    </CoverLayout>
+    </BasicLayout>
   );
 }
 

@@ -4,43 +4,43 @@
 =========================================================
 */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-// react-router-dom components
 import { Link } from "react-router-dom";
 
 // @mui material components
-import Card from "@mui/material/Card";
-import Switch from "@mui/material/Switch";
-import Grid from "@mui/material/Grid";
-import MuiLink from "@mui/material/Link";
-import Alert from "@mui/material/Alert";
-import Snackbar from "@mui/material/Snackbar";
-import Box from "@mui/material/Box";
+import { 
+  Box, 
+  Container, 
+  TextField, 
+  Button, 
+  Checkbox, 
+  FormControlLabel, 
+  Typography,
+  Alert,
+  Snackbar,
+  Card
+} from "@mui/material";
 
-// @mui icons
-import FacebookIcon from "@mui/icons-material/Facebook";
-import GitHubIcon from "@mui/icons-material/GitHub";
-import GoogleIcon from "@mui/icons-material/Google";
-import LoginIcon from "@mui/icons-material/Login";
+// Custom components
+import OfficialHeader from "components/OfficialHeader";
+import OfficialFooter from "components/OfficialFooter";
+import logoTCF from "assets/logo-tfc-canada.png";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
-import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
-import MDButton from "components/MDButton";
 
+// Services
 import authService from "services/authService";
 import { useInfoUser } from "context/InfoUserContext";
 
-// Authentication layout components
-import BasicLayout from "layouts/authentication/components/BasicLayout";
-
-// Images
-// import bgImage from "assets/images/bg-sign-in-modern.jpg";
-import logoTCF from "assets/logo-tfc-canada.png";
-const bgImage = "https://images.pexels.com/photos/207692/pexels-photo-207692.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"; //  URL de l'image de fond
+// Background images
+const bgImages = [
+  "/img_bg1.jpeg",
+"/img_bg2.jpeg",
+"/img_bg3.jpg"
+];
 
 function Basic() {
   const navigate = useNavigate();
@@ -51,8 +51,18 @@ function Basic() {
   const [error, setError] = useState("");
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const handleSetRememberMe = () => setRememberMe(!rememberMe);
+  // Animation pour changer l'image d'arrière-plan
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => 
+        prevIndex === bgImages.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 5000); // Change d'image toutes les 5 secondes
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -63,7 +73,7 @@ function Basic() {
       return;
     }
 
-    setLoading(true); // Début du chargement
+    setLoading(true);
     
     try {
       const response = await authService.login({
@@ -72,8 +82,8 @@ function Basic() {
       });
       
       if (response.data.access_token) {
-        await loadUserInfo(true); // Forcer le refresh depuis l'API après une connexion réussie
-        navigate("/dashboard");
+        await loadUserInfo(true);
+        navigate("/mon-espace-tcf");
       } else {
         setError(response.data.message || "Échec de la connexion. Veuillez vérifier vos identifiants.");
         setOpenSnackbar(true);
@@ -83,7 +93,7 @@ function Basic() {
       setOpenSnackbar(true);
       console.error("Erreur de connexion:", error);
     } finally {
-      setLoading(false); // Fin du chargement
+      setLoading(false);
     }
   };
 
@@ -92,175 +102,240 @@ function Basic() {
   };
 
   return (
-    <BasicLayout image={bgImage}>
-      <Card sx={{ 
-        borderRadius: 2, 
-        boxShadow: "0 8px 32px 0 rgba(0,0,0,0.3)",
-        background: 'rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(15px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        WebkitBackdropFilter: 'blur(15px)'
-      }}>
-        <MDBox pt={4} pb={3} px={3}>
-          {/* Logo et titre intégrés directement dans le bloc principal */}
-          <MDBox textAlign="center" mb={4}>
-            <img src={logoTCF} alt="TCF Canada Logo" style={{ height: '110px', marginBottom: '16px' }} />
-            <MDTypography variant="h4" fontWeight="medium" color="white" sx={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-              Connexion à votre compte
-            </MDTypography>
-            <MDTypography variant="body2" color="white" mt={1} sx={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-              Accédez à votre préparation TCF Canada
-            </MDTypography>
-          </MDBox>
-          <MDBox component="form" role="form" onSubmit={handleSignIn}>
-            <MDBox mb={2}>
-              <MDInput 
-                type="text" 
-                label="Nom d'utilisateur ou Email" 
-                fullWidth 
+    <Box
+      sx={{
+        minHeight: "100vh",
+        backgroundImage: `url(${bgImages[currentImageIndex]})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        transition: "background-image 1s ease-in-out",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.4)",
+          zIndex: 1
+        }
+      }}
+    >
+      {/* Header officiel */}
+      <Box sx={{ position: "relative", zIndex: 2 }}>
+        <OfficialHeader />
+      </Box>
+      
+      {/* Contenu principal centré */}
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          px: 2,
+          py: 4,
+          position: "relative",
+          zIndex: 2
+        }}
+      >
+        <Card
+          sx={{
+            maxWidth: "480px",
+            width: "100%",
+            backgroundColor: "rgba(255, 255, 255, 0.62)",
+            backdropFilter: "blur(15px)",
+            borderRadius: { xs: 12, sm: 16 },
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
+            p: { xs: 2, sm: 4 },
+            textAlign: "center",
+            border: "1px solid rgba(255, 255, 255, 0.2)"
+          }}
+        >
+          {/* Logo et titre */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", mb: 2 }}>
+              <Box
+                component="img"
+                src={logoTCF}
+                alt="TCF Canada"
+                sx={{ height: { xs: 90, sm: 120 }, width: 'auto', mr: 1 }}
+              />
+            </Box>
+          </Box>
+
+          {/* Formulaire */}
+          <Box component="form" onSubmit={handleSignIn} sx={{ textAlign: "left" }}>
+            <MDBox sx={{ mb: 2 }}>
+              <MDInput
+                fullWidth
+                variant="outlined"
+                placeholder="Nom d'utilisateur ou email"
                 value={usernameOrEmail}
                 onChange={(e) => setUsernameOrEmail(e.target.value)}
                 required
                 sx={{
                   '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
                     backgroundColor: 'rgba(255, 255, 255, 0.9)',
                     backdropFilter: 'blur(10px)',
-                    borderColor: 'rgba(79, 204, 231, 0.5)',
-                    '&:hover': {
-                      borderColor: 'rgba(79, 204, 231, 0.8)',
-                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                    minHeight: { xs: '40px', sm: '44px' },
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
                     },
-                    '&.Mui-focused': {
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(79, 204, 231, 0.8)',
+                    },
+                    '&.Mui-focused fieldset': {
                       borderColor: 'rgba(79, 204, 231, 1)',
-                      backgroundColor: 'rgba(255, 255, 255, 1)',
                     },
                   },
                   '& .MuiInputLabel-root': {
                     color: 'rgba(0, 0, 0, 0.6)',
+                    fontSize: { xs: '0.8rem', sm: '0.85rem' },
                   },
                 }}
               />
             </MDBox>
-            <MDBox mb={2}>
-              <MDInput 
-                type="password" 
-                label="Mot de passe" 
-                fullWidth 
+
+            <MDBox sx={{ mb: 2 }}>
+              <MDInput
+                fullWidth
+                type="password"
+                variant="outlined"
+                placeholder="Mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 sx={{
                   '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
                     backgroundColor: 'rgba(255, 255, 255, 0.9)',
                     backdropFilter: 'blur(10px)',
-                    borderColor: 'rgba(79, 204, 231, 0.5)',
-                    '&:hover': {
-                      borderColor: 'rgba(79, 204, 231, 0.8)',
-                      backgroundColor: 'rgba(255, 255, 255, 1)',
+                    minHeight: { xs: '40px', sm: '44px' },
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
                     },
-                    '&.Mui-focused': {
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(79, 204, 231, 0.8)',
+                    },
+                    '&.Mui-focused fieldset': {
                       borderColor: 'rgba(79, 204, 231, 1)',
-                      backgroundColor: 'rgba(255, 255, 255, 1)',
                     },
                   },
                   '& .MuiInputLabel-root': {
                     color: 'rgba(0, 0, 0, 0.6)',
+                    fontSize: { xs: '0.8rem', sm: '0.85rem' },
                   },
                 }}
               />
             </MDBox>
-            <MDBox display="flex" alignItems="center" ml={-1}>
-              <Switch 
-                checked={rememberMe} 
-                onChange={handleSetRememberMe}
-                sx={{ 
-                  color: 'rgba(79, 204, 231, 1)',
-                  '&.Mui-checked': {
-                    color: 'rgba(79, 204, 231, 1)',
-                  },
-                }}
-              />
-              <MDTypography
-                variant="button"
-                fontWeight="regular"
-                color="white"
-                onClick={handleSetRememberMe}
-                sx={{ cursor: "pointer", userSelect: "none", ml: -1, textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
-              >
-                &nbsp;&nbsp;Se souvenir de moi
-              </MDTypography>
-            </MDBox>
-            <MDBox mt={4} mb={1}>
-              <MDButton 
-                variant="gradient" 
-                color="primary" 
-                fullWidth 
-                type="submit"
-                startIcon={<LoginIcon />}
-                disabled={loading} // Désactiver le bouton pendant le chargement
-                sx={{ 
-                  py: 1.5, 
-                  transition: "all 0.3s",
-                  background: "linear-gradient(to right, rgba(79, 204, 231, 1), #0083b0)",
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 5px 10px rgba(0,0,0,0.2)',
-                    background: "#0083b0"
-                  } 
-                }}
-              >
-                {loading ? "Connexion en cours..." : "Connexion"} 
-              </MDButton>
-            </MDBox>
-            <MDBox mt={3} mb={1} textAlign="center">
-              <MDTypography variant="button" color="white" sx={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                Pas encore de compte?{" "}
-                <MDTypography
-                  component={Link}
-                  to="/authentication/sign-up"
-                  variant="button"
-                  color="primary"
-                  fontWeight="medium"
-                  textGradient
+
+            {/* Checkbox et lien (unique) */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, fontSize: "0.9rem" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Checkbox
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  size="small"
                   sx={{
-                    color: 'rgb(255, 255, 255)',
-                    textShadow: '0 1px 2px rgba(138, 136, 136, 0.3)',
-                    '&:hover': {
-                      color: 'rgba(255, 255, 255, 0.8)',
-                    }
+                    color: "#4fccE7",
+                    '&.Mui-checked': {
+                      color: "#4fccE7",
+                    },
+                    p: 0
                   }}
-                >
-                  Créer un compte
-                </MDTypography>
-              </MDTypography>
-            </MDBox>
-            <MDBox mt={2} textAlign="center">
-              <MDTypography
-                component={Link}
-                to="/authentication/reset-password/cover"
-                variant="button"
-                color="primary"
-                fontWeight="regular"
-                sx={{ 
-                  color: 'rgb(252, 252, 252)', 
-                  textShadow: '0 1px 2px rgba(255, 255, 255, 0.18)',
-                  '&:hover': {
-                    color: 'rgb(255, 255, 255)',
+                />
+                <Typography variant="body2" sx={{ color: "#000000", fontSize: "0.875rem", lineHeight: 1 }}>
+                  Se souvenir de moi
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Bouton de connexion */}
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={loading}
+              sx={{
+                background: "#4fccE7",
+                  color: "#000000",
+                  py: 1.5,
+                  fontSize: { xs: '0.95rem', sm: '1rem' },
+                  fontWeight: "bold",
+                  borderRadius: "999px",
+                  textTransform: "uppercase",
+                  mb: 3,
+                  boxShadow: "0 6px 20px rgba(79, 204, 231, 0.35)",
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    background: "#3C3C3C",
+                    color: "#ffffff",
+                    transform: "translateY(-1px)",
+                    boxShadow: "0 8px 24px rgba(60, 60, 60, 0.45)"
+                  },
+                  "&:active": {
+                    transform: "translateY(0)"
+                  },
+                  "&:disabled": {
+                    background: "#ccc",
+                    boxShadow: "none"
                   }
-                }}
-              >
-                Mot de passe oublié?
-              </MDTypography>
-            </MDBox>
-          </MDBox>
-        </MDBox>
-      </Card>
+              }}
+            >
+              {loading ? "Connexion en cours..." : "SE CONNECTER"}
+            </Button>
+
+            {/* Liens bas: à gauche reset, à droite inscription */}
+            <Box sx={{ display: "flex", justifyContent: { xs: "center", sm: "space-between" }, alignItems: "center", flexDirection: { xs: "column", sm: "row" }, gap: { xs: 1, sm: 0 }, fontSize: "0.9rem" }}>
+              <Typography component={Link} to="/reset-password" variant="body2" sx={{ 
+                color: "#000000", 
+                textDecoration: "none", 
+                fontSize: "0.9rem", 
+                fontWeight: "500",
+                textShadow: "0 1px 2px rgba(255, 255, 255, 0.3)",
+                "&:hover": { 
+                  textDecoration: "underline",
+                  color: "#ffffff"
+                } 
+              }}>
+                Mot de passe oublié ?
+              </Typography>
+              <Typography component={Link} to="/inscription-tcf" variant="body2" sx={{ 
+                color: "#000000", 
+                textDecoration: "none", 
+                fontSize: "0.9rem", 
+                fontWeight: "500",
+                textShadow: "0 1px 2px rgba(255, 255, 255, 0.3)",
+                "&:hover": { 
+                  textDecoration: "underline",
+                  color: "#ffffff"
+                } 
+              }}>
+                Vous n'avez pas de compte ? S'inscrire
+              </Typography>
+            </Box>
+          </Box>
+        </Card>
+      </Box>
+
+      {/* Footer officiel */}
+      <Box sx={{ position: "relative", zIndex: 2 }}>
+        <OfficialFooter />
+      </Box>
+
+      {/* Snackbar pour les erreurs */}
       <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
         <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
           {error}
         </Alert>
       </Snackbar>
-    </BasicLayout>
+    </Box>
   );
 }
 

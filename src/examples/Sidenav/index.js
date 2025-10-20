@@ -60,8 +60,8 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
 
   // Fonction pour gérer le clic sur le bouton UPGRADE TO PRO
   const handleUpgradeClick = () => {
-    // Naviguer vers la page des plans d'abonnement
-    navigate('/subscription-plans');
+    // Naviguer vers la nouvelle page des packs
+    navigate('/packs-tcf-canada');
   };
 
   let textColor = "black";

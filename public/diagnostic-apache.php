@@ -85,7 +85,7 @@ header('Content-Type: text/html; charset=utf-8');
         <p>Assurez-vous que le build React est dans le bon répertoire</p>
         
         <h3>Test de routage:</h3>
-        <p>Essayez d'accéder à: <a href="/dashboard">/dashboard</a> (devrait rediriger vers index.html)</p>
+        <p>Essayez d'accéder à: <a href="/mon-espace-tcf">/mon-espace-tcf</a> (devrait rediriger vers index.html)</p>
     </div>
     
     <p><em>Supprimez ce fichier après diagnostic pour des raisons de sécurité.</em></p>

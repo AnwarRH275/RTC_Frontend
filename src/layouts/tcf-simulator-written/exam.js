@@ -120,7 +120,7 @@ function TCFExamInterface() {
   
       } catch (error) {
         console.error('Erreur lors du chargement du sujet:', error);
-        navigate('/tcf-simulator/written');
+        navigate('/simulateur-tcf-expression-ecrite');
       }
     };
 
@@ -314,7 +314,7 @@ function TCFExamInterface() {
     localStorage.removeItem('examStarted');
     
     // Rediriger vers la page de résultats
-    navigate(`/simulateur-tcf-canada/expression-ecrits/results/${subjectId}`);
+    navigate(`/simulateur-tcf-expression-ecrite/results/${subjectId}`);
   };
 
 

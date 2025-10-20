@@ -246,7 +246,7 @@ function TCFSimulatorWritten() {
 
   const handleStartExam = () => {
     if (selectedSubject) {
-      navigate(`/simulateur-tcf-canada/expression-ecrits/${selectedSubject.id}/exam`);
+      navigate(`/simulateur-tcf-expression-ecrite/${selectedSubject.id}/exam`);
     }
     handleCloseRecap();
   };
@@ -287,7 +287,7 @@ function TCFSimulatorWritten() {
       setRetakeSubjectId(null);
       
       // Rediriger vers l'examen
-      navigate(`/simulateur-tcf-canada/expression-ecrits/${retakeSubjectId}/exam?isRetake=true`);
+      navigate(`/simulateur-tcf-expression-ecrite/${retakeSubjectId}/exam?isRetake=true`);
     } catch (error) {
       console.error('Erreur lors de l\'incrémentation des tentatives:', error);
       // Afficher une erreur dans la modal

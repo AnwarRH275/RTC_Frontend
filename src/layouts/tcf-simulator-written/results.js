@@ -646,7 +646,7 @@ function TCFResultsInterface() {
             <MDButton 
               variant="contained" 
               color="primary" 
-              onClick={() => { navigate('/tcf-simulator/written'); window.location.reload(); }}
+              onClick={() => { navigate('/simulateur-tcf-expression-ecrite'); window.location.reload(); }}
               sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
                 backgroundImage: linearGradient(gradients.primaryToSecondary.main, gradients.primaryToSecondary.state),
                 borderRadius: 3,
@@ -796,7 +796,7 @@ function TCFResultsInterface() {
                       transition: 'transform 0.2s ease'
                     } 
                   }}
-                  onClick={() => navigate('/simulateur-tcf-canada/expression-ecrits')}
+                  onClick={() => navigate('/simulateur-tcf-expression-ecrite')}
                 >
                   <Icon sx={{ fontSize: '1.2rem', mr: 0.5, color: 'rgba(255,255,255,0.9)' }}>refresh</Icon>
                   <MDTypography variant="caption" color="white" fontWeight="medium" sx={{ opacity: 0.9 }}>
@@ -1317,7 +1317,7 @@ function TCFResultsInterface() {
               variant="gradient"
               color="info"
               size="large"
-              onClick={() => navigate('/simulateur-tcf-canada/expression-ecrits')}
+              onClick={() => navigate('/simulateur-tcf-expression-ecrite')}
               sx={{
                 background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
                 px: 4,

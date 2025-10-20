@@ -2425,7 +2425,7 @@ const TCFOralExam = () => {
     localStorage.setItem('exam_chat_history', JSON.stringify(chatMessages));
     
     // Rediriger vers la page des résultats
-    navigate(`/tcf-simulator/oral/results/${subjectId}`);
+    navigate(`/simulateur-tcf-expression-orale/results/${subjectId}`);
   };
 
   // Formatage du temps pour l'enregistrement
@@ -2467,7 +2467,7 @@ const TCFOralExam = () => {
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
-          <MDButton variant="contained" onClick={() => navigate('/tcf-simulator')}>
+          <MDButton variant="contained" onClick={() => navigate('/simulateur-tcf-expression-orale')}>
             Retour au simulateur
           </MDButton>
         </MDBox>
@@ -2567,14 +2567,14 @@ const TCFOralExam = () => {
               <MDButton 
                 variant="contained" 
                 color="primary"
-                onClick={() => navigate('/tcf-simulator')}
+                onClick={() => navigate('/simulateur-tcf-expression-orale')}
               >
                 Retour au simulateur
               </MDButton>
               <MDButton 
                 variant="outlined" 
                 color="secondary"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/mon-espace-tcf')}
               >
                 Tableau de bord
               </MDButton>

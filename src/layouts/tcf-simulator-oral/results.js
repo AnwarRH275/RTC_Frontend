@@ -657,7 +657,7 @@ function TCFResultsInterface() {
             <MDButton 
               variant="contained" 
               color="primary" 
-              onClick={() => { navigate('/tcf-simulator/oral'); window.location.reload(); }}
+              onClick={() => { navigate('/simulateur-tcf-expression-orale'); window.location.reload(); }}
               sx={({ palette: { gradients }, functions: { linearGradient } }) => ({
                 backgroundImage: linearGradient(gradients.primaryToSecondary.main, gradients.primaryToSecondary.state),
                 borderRadius: 3,
@@ -819,7 +819,7 @@ function TCFResultsInterface() {
                     transition: 'transform 0.2s ease'
                   } 
                 }}
-                onClick={() => navigate('/tcf-simulator/oral')}
+                onClick={() => navigate('/simulateur-tcf-expression-orale')}
               >
                 <Icon sx={{ fontSize: '1.2rem', mr: 0.5, color: 'rgba(255,255,255,0.9)' }}>refresh</Icon>
                 <MDTypography variant="caption" color="white" fontWeight="medium" sx={{ opacity: 0.9 }}>
@@ -1247,7 +1247,7 @@ function TCFResultsInterface() {
               variant="contained" 
               color="primary" 
               size="large"
-              onClick={() => navigate('/tcf-simulator/oral')}
+              onClick={() => navigate('/simulateur-tcf-expression-orale')}
               sx={{
                 background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
                 boxShadow: '0 4px 15px rgba(25, 118, 210, 0.4)',

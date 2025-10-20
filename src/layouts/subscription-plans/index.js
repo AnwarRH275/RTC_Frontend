@@ -22,7 +22,7 @@ function SubscriptionPlansPage() {
     
     if (!token) {
       // Rediriger vers la page de connexion si pas connecté
-      navigate('/authentication/sign-in');
+      navigate('/connexion-tcf');
       return;
     }
     
@@ -53,8 +53,8 @@ function SubscriptionPlansPage() {
         priceInCents: plan.priceInCents,
         email: userInfo.email,
         userId: userInfo.id,
-        successUrl: `${window.location.origin}/authentication/payment-success?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
-        cancelUrl: `${window.location.origin}/subscription-plans`
+        successUrl: `${window.location.origin}/paiement-tcf?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
+            cancelUrl: `${window.location.origin}/packs-tcf-canada`
       };
       
       // Ajouter le code de coupon si le plan en a un

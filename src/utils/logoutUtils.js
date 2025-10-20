@@ -23,7 +23,7 @@ export const performCompleteLogout = (clearUserInfo, navigate, forceReload = tru
     
     // 3. Rediriger vers la page de connexion
     if (navigate && typeof navigate === 'function') {
-      navigate('/authentication/sign-in');
+      navigate('/connexion-tcf');
     }
     
     // 4. Forcer le rechargement de la page pour nettoyer tous les états résiduels
@@ -36,7 +36,7 @@ export const performCompleteLogout = (clearUserInfo, navigate, forceReload = tru
   } catch (error) {
     console.error('Erreur lors de la déconnexion:', error);
     // En cas d'erreur, forcer quand même le rechargement
-    window.location.href = '/authentication/sign-in';
+    window.location.href = '/connexion-tcf';
   }
 };
 

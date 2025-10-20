@@ -186,8 +186,8 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
         priceInCents: plan.priceInCents,
         email: email,
         userId: userId, // Inclure l'ID utilisateur si disponible
-        successUrl: `${window.location.origin}/authentication/payment-success?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
-        cancelUrl: `${window.location.origin}/authentication/sign-up`
+        successUrl: `${window.location.origin}/paiement-tcf?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
+        cancelUrl: `${window.location.origin}/inscription-tcf`
       };
       
       // Ajouter le code de coupon si le plan en a un
@@ -275,7 +275,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
           alignItems: 'center',
           gap: 3, 
           width: '100%',
-          maxWidth: '500px',
+          maxWidth: '600px',
           mx: 'auto',
           my: 2,
           px: 1
@@ -372,12 +372,10 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
     <Box sx={{ 
       display: 'flex', 
       flexDirection: { xs: 'column', md: 'row' }, 
-      gap: 1.5, 
+      gap: 2, 
       width: '100%',
-      maxWidth: '1200px',
+      maxWidth: '100%',
       height: 'auto',
-      maxHeight: '55vh',
-      overflow: 'auto',
       my: 1,
       px: 1,
       mx: 'auto'
@@ -394,12 +392,19 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                 <Typography component="span" sx={{ fontSize: '1rem', alignSelf: 'flex-start', mt: 1 }}>
                   $
                 </Typography>
-                {plan.price}
+                {String(plan.price).split('.')[0]}
                 <Typography component="span" sx={{ fontSize: '1rem', ml: 0.5 }}>
                   .99
                 </Typography>
               </PlanPrice>
-              <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '0.8rem' }}>
+              <Typography variant="body2" sx={{ 
+                opacity: 1, 
+                fontSize: '1.1rem', 
+                fontWeight: 'bold',
+                color: '#233a50ff',
+                textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                mt: 1
+              }}>
                 {plan.usages} Usages
               </Typography>
             </PlanHeader>

@@ -78,12 +78,10 @@ function DefaultNavbar({ transparent, light, action }) {
   return (
     <Container>
       <MDBox
-        py={1}
-        px={0}
-        my={3}
+        p={1.5}
+        my={2}
         mx={0}
         width="100%"
-        borderRadius="lg"
         shadow={transparent ? "none" : "md"}
         color={light ? "white" : "dark"}
         display="flex"
@@ -92,15 +90,12 @@ function DefaultNavbar({ transparent, light, action }) {
         position="absolute"
         left={0}
         zIndex={3}
-        sx={({
-          palette: { transparent: transparentColor, white, background },
-          functions: { rgba },
-        }) => ({
-          backgroundColor: transparent
-            ? transparentColor.main
-            : rgba(darkMode ? background.sidenav : white.main, 0.8),
-          backdropFilter: transparent ? "none" : `saturate(200%) blur(30px)`,
-        })}
+        sx={{
+          background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
+          boxShadow:
+            "0 12px 20px -10px rgba(0, 123, 255, 0.28), 0 4px 20px 0px rgba(0, 0, 0, 0.12), 0 7px 8px -5px rgba(0, 123, 255, 0.2)",
+          borderRadius: 3,
+        }}
       >
         <MDBox
           component={Link}
@@ -109,7 +104,12 @@ function DefaultNavbar({ transparent, light, action }) {
           lineHeight={1}
           pl={0}
         >
-          <MDTypography variant="button" fontWeight="bold" color={light ? "white" : "dark"}>
+          <MDTypography
+            variant="button"
+            fontWeight="bold"
+            color="white"
+            sx={{ letterSpacing: 0.3, textShadow: "none" }}
+          >
             Simulateur TCF Canada
           </MDTypography>
         </MDBox>
@@ -117,30 +117,54 @@ function DefaultNavbar({ transparent, light, action }) {
         {action &&
           (action.type === "internal" ? (
             <MDBox display={{ xs: "none", lg: "inline-block" }}>
-              <MDButton
+              <MDTypography
                 component={Link}
                 to={action.route}
-                variant="gradient"
-                color={action.color ? action.color : "info"}
-                size="small"
+                variant="button"
+                color="white"
+                fontWeight="medium"
+                sx={{
+                  textShadow: 'none',
+                  px: 2,
+                  py: 0.5,
+                  borderRadius: 999,
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.25)',
+                  }
+                }}
               >
                 {action.label}
-              </MDButton>
+              </MDTypography>
             </MDBox>
           ) : (
             <MDBox display={{ xs: "none", lg: "inline-block" }}>
-              <MDButton
+              <MDTypography
                 component="a"
                 href={action.route}
                 target="_blank"
                 rel="noreferrer"
-                variant="gradient"
-                color={action.color ? action.color : "info"}
-                size="small"
-                sx={{ mt: -0.3 }}
+                variant="button"
+                color="white"
+                fontWeight="medium"
+                sx={{
+                  mt: -0.3,
+                  textShadow: 'none',
+                  px: 2,
+                  py: 0.5,
+                  borderRadius: 999,
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.25)',
+                  }
+                }}
               >
                 {action.label}
-              </MDButton>
+              </MDTypography>
             </MDBox>
           ))}
         <MDBox

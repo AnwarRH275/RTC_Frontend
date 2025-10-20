@@ -238,7 +238,7 @@ function TCFSimulatorOral() {
           
           // Naviguer vers l'examen
           if (selectedSubject) {
-            navigate(`/tcf-simulator/oral/${selectedSubject.id}/exam`);
+            navigate(`/simulateur-tcf-expression-orale/${selectedSubject.id}/exam`);
           }
           handleCloseRecap();
         } else {
@@ -293,7 +293,7 @@ function TCFSimulatorOral() {
       setRetakeSubjectId(null);
       
       // Rediriger vers l'examen dans tous les cas
-      navigate(`/tcf-simulator/oral/${retakeSubjectId}/exam?isRetake=true`);
+      navigate(`/simulateur-tcf-expression-orale/${retakeSubjectId}/exam?isRetake=true`);
     } catch (error) {
       console.error('Erreur lors de l\'incrémentation des tentatives:', error);
       // Même en cas d'erreur, on redirige vers l'examen puisque c'est un forçage
@@ -301,7 +301,7 @@ function TCFSimulatorOral() {
         setOpenRetakeDialog(false);
         setRetakeData(null);
         setRetakeSubjectId(null);
-        navigate(`/tcf-simulator/oral/${retakeSubjectId}/exam?isRetake=true`);
+        navigate(`/simulateur-tcf-expression-orale/${retakeSubjectId}/exam?isRetake=true`);
       } else {
         // Afficher une erreur dans la modal seulement si ce n'était pas un forçage
         setRetakeData({ error: 'technical_error' });

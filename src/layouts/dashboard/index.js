@@ -130,18 +130,16 @@ function Dashboard() {
       }}
       onClick={onClick}
     >
-      <MDBox p={3}>
+      <MDBox sx={{ p: { xs: 2, sm: 3 } }}>
         <MDBox display="flex" justifyContent="space-between" alignItems="flex-start">
           <MDBox>
             <MDBox display="flex" alignItems="center" mb={1}>
               <Icon 
                 sx={{ 
-                  fontSize: '2.4rem !important', 
+                  fontSize: { xs: '2rem !important', sm: '2.4rem !important' }, 
                   color: color,
                   background: `${color}15`,
                   borderRadius: 2,
-                  
-
                 }}
               >
                 {icon}
@@ -159,14 +157,14 @@ function Dashboard() {
                 />
               )}
             </MDBox>
-            <MDTypography variant="h3" fontWeight="bold" color="dark" mb={0.5}>
+            <MDTypography variant="h3" fontWeight="bold" color="dark" mb={0.5} sx={{ fontSize: { xs: '1.4rem', sm: '1.8rem' } }}>
               {value}
             </MDTypography>
-            <MDTypography variant="button" color="text" fontWeight="medium">
+            <MDTypography variant="button" color="text" fontWeight="medium" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
               {title}
             </MDTypography>
             {subtitle && (
-              <MDTypography variant="caption" color="text" sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>
+              <MDTypography variant="caption" color="text" sx={{ opacity: 0.8, display: 'block', mt: 0.5, fontSize: { xs: '0.8rem', sm: '0.85rem' } }}>
                 {subtitle}
               </MDTypography>
             )}
@@ -205,17 +203,19 @@ function Dashboard() {
       }}
       onClick={() => navigate(path)}
     >
-      <MDBox p={4}>
+      <MDBox sx={{ p: { xs: 3, sm: 4 } }}>
         <MDBox display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
-          <Icon sx={{ fontSize: '3rem !important', opacity: 0.9 }}>{icon}</Icon>
+          <Icon sx={{ fontSize: { xs: '2.4rem !important', sm: '3rem !important' }, opacity: 0.9 }}>{icon}</Icon>
           <MDButton 
             variant="contained" 
             color="white" 
             size="small"
             sx={{ 
-              minWidth: 'auto',
+              minWidth: { xs: '100%', sm: 'auto' },
               borderRadius: 2,
-              px: 2,
+              px: { xs: 1.5, sm: 2 },
+              py: { xs: 0.75, sm: 1 },
+              fontSize: { xs: '0.8rem', sm: '0.9rem' },
               background: 'linear-gradient(135deg, rgba(191, 219, 254, 0.8) 0%, rgba(240, 248, 255, 0.9) 30%, rgba(219, 234, 254, 0.85) 70%, rgba(191, 219, 254, 0.8) 100%)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
@@ -233,10 +233,10 @@ function Dashboard() {
             COMMENCER
           </MDButton>
         </MDBox>
-        <MDTypography variant="h4" fontWeight="bold" mb={1}>
+        <MDTypography variant="h4" fontWeight="bold" mb={1} sx={{ fontSize: { xs: '1.2rem', sm: '1.4rem', md: '1.6rem' } }}>
           {title}
         </MDTypography>
-        <MDTypography variant="body2" sx={{ opacity: 0.9, mb: 3 }}>
+        <MDTypography variant="body2" sx={{ opacity: 0.9, mb: 3, fontSize: { xs: '0.9rem', sm: '1rem' } }}>
           {description}
         </MDTypography>
         {stats && (
@@ -735,7 +735,8 @@ function Dashboard() {
   return (
     <DashboardLayout>
       <DashboardNavbar />
-      <MDBox py={4} sx={{ 
+      <MDBox sx={{ 
+        py: { xs: 2, sm: 3, md: 4 }, 
         overflowX: 'hidden', 
         width: '100%',
         background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
@@ -749,11 +750,15 @@ function Dashboard() {
             borderRadius: 4,
             boxShadow: '0 20px 40px rgba(59, 130, 246, 0.3)'
           }}>
-            <MDBox p={6}>
+            <MDBox sx={{ p: { xs: 3, sm: 4, md: 6 } }}>
               <MDBox display="flex" justifyContent="space-between" alignItems="center">
                 <MDBox>
-                  <MDTypography variant="h2" fontWeight="bold" mb={2}
-                    style={{color:'#fff'}}
+                  <MDTypography
+                    variant="h2"
+                    fontWeight="bold"
+                    mb={2}
+                    sx={{ color: 'white', fontSize: { xs: '1.75rem', sm: '2.2rem', md: '2.6rem' }, lineHeight: { xs: 1.2, md: 1.3 } }}
+                   style={{color:'#fff'}}
                   >
                     Bonjour {(() => {
                       try {
@@ -764,16 +769,21 @@ function Dashboard() {
                       }
                     })()} 👋
                   </MDTypography>
-                  <MDTypography variant="h5" sx={{ opacity: 0.9, mb: 1 }}
-                  style={{color:'#fff'}}
+                  <MDTypography
+                    variant="h5"
+                    fontWeight="medium"
+                    sx={{ opacity: 0.9, mb: 1, color: 'white', fontSize: { xs: '1rem', sm: '1.2rem', md: '1.4rem' } }}
+                   style={{color:'#fff'}}
                   >
                     Prêt à booster ton score TCF Canada aujourd'hui ? 🎯
                   </MDTypography>
-                  <MDTypography variant="body1" sx={{ opacity: 0.8, fontStyle: 'italic' }}
-                  style={{color:'#fff'}}
-                  >
-                    Objectif : Niveau B2+
-                  </MDTypography>
+                   <MDTypography
+                     variant="body1"
+                     sx={{ opacity: 0.85, fontStyle: 'italic', color: 'white', fontSize: { xs: '0.9rem', sm: '1rem' }, lineHeight: { xs: 1.4, sm: 1.5 } }}
+                    style={{color:'#fff'}}
+                   >
+                     Poursuis ton apprentissage pas à pas. Chaque effort te rapproche de ton objectif ! 💪
+                   </MDTypography>
                 </MDBox>
                 
               </MDBox>
@@ -783,10 +793,16 @@ function Dashboard() {
 
         {/* Statistiques modernes */}
          <MDBox mb={6}> 
-           <MDTypography variant="h4" fontWeight="bold" color="dark" mb={3}> 
+           <MDTypography 
+             variant="h4" 
+             fontWeight="bold" 
+             color="dark" 
+             mb={3}
+             sx={{ fontSize: { xs: '1.2rem', sm: '1.4rem', md: '1.6rem' } }}
+           > 
              📊 Vos performances 
            </MDTypography> 
-           <Grid container spacing={3}> 
+           <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}> 
              <Grid item xs={12} sm={6} lg={3}> 
                <ModernStatCard 
                  title="Examens Réalisés" 
@@ -832,13 +848,13 @@ function Dashboard() {
 
         {/* Vue par compétence - Comme dans le template */}
         <MDBox mb={6}>
-          <Grid container spacing={6}>
+          <Grid container spacing={{ xs: 2, sm: 3, md: 6 }}>
             {/* Expression Orale */}
             <Grid item xs={12} md={6}>
               <Card sx={{ borderRadius: 4, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}>
-                <MDBox p={3}>
+                <MDBox sx={{ p: { xs: 2, sm: 3 } }}>
                   <MDBox display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                    <MDTypography variant="h5" fontWeight="bold" sx={{ color: '#3b82f6' }}>
+                    <MDTypography variant="h5" fontWeight="bold" sx={{ color: '#3b82f6', fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
                       🎤 Expression Orale
                     </MDTypography>
                     <Chip 
@@ -854,7 +870,7 @@ function Dashboard() {
                       }}
                     />
                   </MDBox>
-                  <MDBox display="flex" alignItems="center" gap={3} mb={3}>
+                  <MDBox display="flex" alignItems="center" sx={{ gap: { xs: 2, sm: 3 } }} mb={3}>
                     <LinearProgress 
                       variant="determinate" 
                       value={oralPct} 
@@ -873,33 +889,38 @@ function Dashboard() {
                       {oralPct}%
                     </MDTypography>
                   </MDBox>
-                  <MDBox mb={4} sx={{ height: 200 }}>
+                  <MDBox mb={4} sx={{ height: { xs: 160, sm: 200 } }}>
                     <canvas ref={chartOralRef} style={{ maxHeight: '200px' }}></canvas>
                   </MDBox>
-                  <MDBox display="flex" gap={2}>
+                  <MDBox display="flex" sx={{ gap: { xs: 1.5, sm: 2 }, flexDirection: { xs: 'column', sm: 'row' } }}>
                     <MDButton 
                       variant="contained" 
+                      size="small"
                       sx={{ 
                         background: '#3b82f6',
                         borderRadius: 3,
-                        px: 3,
+                        px: { xs: 2, sm: 3 },
+                        py: { xs: 1, sm: 1.2 },
+                        width: { xs: '100%', sm: 'auto' },
                         '&:hover': { background: '#2563eb', transform: 'scale(1.02)' }
                       }}
-                      onClick={() => navigate('/tcf-simulator/oral')}
-                      style={{color:'#fff'}}
-                    >
+                      onClick={() => navigate('/simulateur-tcf-expression-orale')}
+                    style={{color:'#fff'}}
+                   >
                       S'entraîner à l'oral
                     </MDButton>
                     <MDButton 
                       variant="outlined" 
+                      size="small"
                       sx={{ 
                         borderColor: '#e5e7eb',
                         color: '#6b7280',
                         borderRadius: 3,
-                        px: 3
+                        px: { xs: 2, sm: 3 },
+                        width: { xs: '100%', sm: 'auto' }
                       }}
                     >
-                      Voir mes erreurs
+                      Mes erreurs
                     </MDButton>
                   </MDBox>
                 </MDBox>
@@ -909,9 +930,9 @@ function Dashboard() {
             {/* Expression Écrite */}
             <Grid item xs={12} md={6}>
               <Card sx={{ borderRadius: 4, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}>
-                <MDBox p={3}>
+                <MDBox sx={{ p: { xs: 2, sm: 3 } }}>
                   <MDBox display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                    <MDTypography variant="h5" fontWeight="bold" sx={{ color: '#10b981' }}>
+                    <MDTypography variant="h5" fontWeight="bold" sx={{ color: '#10b981', fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
                       ✍️ Expression Écrite
                     </MDTypography>
                     <Chip 
@@ -927,7 +948,7 @@ function Dashboard() {
                       }}
                     />
                   </MDBox>
-                  <MDBox display="flex" alignItems="center" gap={3} mb={3}>
+                  <MDBox display="flex" alignItems="center" sx={{ gap: { xs: 2, sm: 3 } }} mb={3}>
                     <LinearProgress 
                       variant="determinate" 
                       value={ecritPct} 
@@ -946,33 +967,38 @@ function Dashboard() {
                       {ecritPct}%
                     </MDTypography>
                   </MDBox>
-                  <MDBox mb={4} sx={{ height: 200 }}>
+                  <MDBox mb={4} sx={{ height: { xs: 160, sm: 200 } }}>
                     <canvas ref={chartEcritRef} style={{ maxHeight: '200px' }}></canvas>
                   </MDBox>
-                  <MDBox display="flex" gap={2}>
+                  <MDBox display="flex" sx={{ gap: { xs: 1.5, sm: 2 }, flexDirection: { xs: 'column', sm: 'row' } }}>
                     <MDButton 
                       variant="contained" 
+                      size="small"
                       sx={{ 
                         background: '#10b981',
                         borderRadius: 3,
-                        px: 3,
+                        px: { xs: 2, sm: 3 },
+                        py: { xs: 1, sm: 1.2 },
+                        width: { xs: '100%', sm: 'auto' },
                         '&:hover': { background: '#059669', transform: 'scale(1.02)' }
                       }}
-                      onClick={() => navigate('/simulateur-tcf-canada/expression-ecrits')}
-                      style={{color:'#fff'}}
+                      onClick={() => navigate('/simulateur-tcf-expression-ecrite')}
+                     style={{color:'#fff'}}
                     >
                       S'entraîner à l'écrit
                     </MDButton>
                     <MDButton 
                       variant="outlined" 
+                      size="small"
                       sx={{ 
                         borderColor: '#e5e7eb',
                         color: '#6b7280',
                         borderRadius: 3,
-                        px: 3
+                        px: { xs: 2, sm: 3 },
+                        width: { xs: '100%', sm: 'auto' }
                       }}
                     >
-                      Voir mes erreurs
+                      Mes erreurs
                     </MDButton>
                   </MDBox>
                 </MDBox>
@@ -984,24 +1010,30 @@ function Dashboard() {
         {/* Barème NCLC - Nouveau tableau */}
         <MDBox mb={6}>
           <Card sx={{ borderRadius: 4, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}>
-            <MDBox p={3}>
-              <MDTypography variant="h5" fontWeight="bold" color="dark" mb={3}>
+            <MDBox sx={{ p: { xs: 2, sm: 3 } }}>
+              <MDTypography 
+                variant="h5" 
+                fontWeight="bold" 
+                color="dark" 
+                mb={3}
+                sx={{ fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
+              >
                 📊 Barème NCLC – Expression Orale & Écrite
               </MDTypography>
               <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 'none', border: '1px solid #e5e7eb', overflow: 'auto' }}>
                 <Table sx={{ width: '100%', tableLayout: 'fixed' }} aria-label="Barème NCLC">
                   <TableHead sx={{ display: "table-header-group" }}>
                     <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: '0.875rem', py: 2, width: '15%' }}>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 1.5, sm: 2 }, width: '15%' }}>
                         NCLC
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: '0.875rem', py: 2, width: '25%' }}>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 1.5, sm: 2 }, width: '25%' }}>
                         Score (Écrit/Oral)
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: '0.875rem', py: 2, width: '25%' }}>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 1.5, sm: 2 }, width: '25%' }}>
                         Équivalence CECRL
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: '0.875rem', py: 2, width: '35%' }}>
+                      <TableCell sx={{ fontWeight: 'bold', color: '#374151', fontSize: { xs: '0.75rem', sm: '0.875rem' }, py: { xs: 1.5, sm: 2 }, width: '35%' }}>
                         Interprétation
                       </TableCell>
                     </TableRow>
@@ -1016,13 +1048,13 @@ function Dashboard() {
                           transition: 'background-color 0.2s ease'
                         }}
                       >
-                        <TableCell sx={{ py: 2, fontSize: '0.875rem', fontWeight: '600', color: '#1f2937' }}>
+                        <TableCell sx={{ py: { xs: 1.5, sm: 2 }, fontSize: { xs: '0.75rem', sm: '0.875rem' }, fontWeight: '600', color: '#1f2937' }}>
                           {row.nclc}
                         </TableCell>
-                        <TableCell sx={{ py: 2, fontSize: '0.875rem', color: '#4b5563' }}>
+                        <TableCell sx={{ py: { xs: 1.5, sm: 2 }, fontSize: { xs: '0.75rem', sm: '0.875rem' }, color: '#4b5563' }}>
                           {row.score}
                         </TableCell>
-                        <TableCell sx={{ py: 2, fontSize: '0.875rem' }}>
+                        <TableCell sx={{ py: { xs: 1.5, sm: 2 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                           <Chip 
                             label={row.equivalence}
                             size="small"
@@ -1038,7 +1070,7 @@ function Dashboard() {
                             }}
                           />
                         </TableCell>
-                        <TableCell sx={{ py: 2, fontSize: '0.875rem', color: '#6b7280', fontStyle: 'italic' }}>
+                        <TableCell sx={{ py: { xs: 1.5, sm: 2 }, fontSize: { xs: '0.75rem', sm: '0.875rem' }, color: '#6b7280', fontStyle: 'italic' }}>
                           {row.interpretation}
                         </TableCell>
                       </TableRow>
@@ -1053,22 +1085,28 @@ function Dashboard() {
         {/* Priorités d'entraînement - Sans radar */}
         <MDBox mb={6}>
           <Card sx={{ borderRadius: 4, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}>
-            <MDBox p={3}>
-              <MDTypography variant="h5" fontWeight="bold" color="dark" mb={4}>
+            <MDBox sx={{ p: { xs: 2, sm: 3 } }}>
+              <MDTypography 
+                variant="h5" 
+                fontWeight="bold" 
+                color="dark" 
+                mb={3}
+                sx={{ fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
+              >
                 🎯 Vos priorités d'entraînement
               </MDTypography>
-              <Grid container spacing={3} justifyContent="center">
+              <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
                 <Grid item xs={12} md={8}>
-                  <MDBox sx={{ height: 300 }}>
+                  <MDBox sx={{ height: { xs: 220, sm: 300 } }}>
                     <canvas ref={chartPrioritesRef} style={{ maxHeight: '300px' }}></canvas>
                   </MDBox>
                   <MDTypography 
                     id="prioritesMsg"
                     variant="body2" 
                     color="text" 
-                    sx={{ mt: 2, textAlign: 'center' }}
+                    sx={{ mt: 2, textAlign: 'center', fontSize: { xs: '0.9rem', sm: '1rem' } }}
                   >
-                    Conseil : consacrez 60% du temps à l'écrit et 40% à l'oral cette semaine.
+                    Conseil : cette semaine, misez plutôt sur l’écrit (60%) et l’oral (40%).
                   </MDTypography>
                 </Grid>
               </Grid>
@@ -1080,7 +1118,7 @@ function Dashboard() {
 
         {/* Coaching - Comme dans le template */}
         <MDBox mb={6}>
-          <Grid container spacing={6}>
+          <Grid container spacing={{ xs: 2, sm: 3, md: 6 }}>
             <Grid item xs={12} md={6}>
               <Card sx={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -1091,29 +1129,34 @@ function Dashboard() {
                 transition: 'all 0.3s ease',
                 '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 40px rgba(16, 185, 129, 0.4)' }
               }}>
-                <MDBox p={4}>
-                  <MDTypography variant="h5" fontWeight="bold" mb={1} sx={{ color: 'white' }}
-                  style={{color:'#fff'}}
+                <MDBox sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+                  <MDTypography 
+                    variant="h5" 
+                    fontWeight="bold" 
+                    mb={1} 
+                    sx={{ color: 'white', fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
                   >
                     Coach Écrit
                   </MDTypography>
-                  <MDTypography variant="body2" sx={{ opacity: 0.9, mb: 3, color: 'white' }}
-                   style={{color:'#fff'}}
+                  <MDTypography 
+                    variant="body2" 
+                    sx={{ opacity: 0.9, mb: 3, color: 'white', fontSize: { xs: '0.9rem', sm: '1rem' } }}
                   >
                     Entraînements guidés + corrections types
                   </MDTypography>
                   <MDButton 
                     variant="contained" 
+                    size="small"
                     sx={{ 
                       background: 'white',
                       color: '#10b981',
                       borderRadius: 3,
-                      px: 3,
+                      px: { xs: 2, sm: 3 },
+                      width: { xs: '100%', sm: 'auto' },
                       '&:hover': { background: '#f9fafb', transform: 'translateY(-2px)' }
                     }}
-                    onClick={() => navigate('/simulateur-tcf-canada/expression-ecrits')}
-                   
-                 >
+                    onClick={() => navigate('/simulateur-tcf-expression-ecrite')}
+                  >
                     Commencer
                   </MDButton>
                 </MDBox>
@@ -1129,27 +1172,33 @@ function Dashboard() {
                 transition: 'all 0.3s ease',
                 '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' }
               }}>
-                <MDBox p={4}>
-                  <MDTypography variant="h5" fontWeight="bold" mb={1} sx={{ color: 'white' }}
-                   style={{color:'#fff'}}
+                <MDBox sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+                  <MDTypography 
+                    variant="h5" 
+                    fontWeight="bold" 
+                    mb={1} 
+                    sx={{ color: 'white', fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
                   >
                     Coach Oral
                   </MDTypography>
-                  <MDTypography variant="body2" sx={{ opacity: 0.9, mb: 3, color: 'white' }}
-                   style={{color:'#fff'}}
+                  <MDTypography 
+                    variant="body2" 
+                    sx={{ opacity: 0.9, mb: 3, color: 'white', fontSize: { xs: '0.9rem', sm: '1rem' } }}
                   >
                     Simulations + feedback personnalisé
                   </MDTypography>
                   <MDButton 
                     variant="contained" 
+                    size="small"
                     sx={{ 
                       background: 'white',
                       color: '#3b82f6',
                       borderRadius: 3,
-                      px: 3,
+                      px: { xs: 2, sm: 3 },
+                      width: { xs: '100%', sm: 'auto' },
                       '&:hover': { background: '#f9fafb', transform: 'translateY(-2px)' }
                     }}
-                    onClick={() => navigate('/tcf-simulator/oral')}
+                    onClick={() => navigate('/simulateur-tcf-expression-orale')}
                   >
                     Commencer
                   </MDButton>

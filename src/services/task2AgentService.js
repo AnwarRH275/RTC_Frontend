@@ -33,7 +33,7 @@ class Task2AgentService {
       (error) => {
         if (error.response?.status === 401) {
           authService.logout();
-          window.location.href = '/authentication/sign-in';
+          window.location.href = '/connexion-tcf';
         }
         return Promise.reject(error);
       }

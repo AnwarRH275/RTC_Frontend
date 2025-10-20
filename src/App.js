@@ -64,11 +64,11 @@ function ConditionalRedirect() {
   
   // Si l'utilisateur est authentifié, rediriger vers le dashboard
   if (isAuthenticated && userInfo) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/mon-espace-tcf" replace />;
   }
   
   // Sinon, rediriger vers la page d'inscription
-  return <Navigate to="/authentication/sign-up" replace />;
+  return <Navigate to="/inscription-tcf" replace />;
 }
 
 // Composant pour rediriger /reset-password vers /authentication/reset-password/cover
@@ -173,8 +173,8 @@ function AppContent() {
     
     // Nettoyer 'examStarted' si on n'est pas sur une page d'examen
     const isExamRoute = pathname.includes('/exam') && 
-                       (pathname.includes('/simulateur-tcf-canada/expression-ecrits/') || 
-                        pathname.includes('/tcf-simulator/oral/'));
+                       (pathname.includes('/simulateur-tcf-expression-ecrite/') || 
+                        pathname.includes('/simulateur-tcf-expression-orale/'));
     
     if (!isExamRoute) {
       localStorage.removeItem('examStarted');
@@ -201,7 +201,7 @@ function AppContent() {
         <CacheProvider value={rtlCache}>
           <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>
             <CssBaseline />
-            {layout === "dashboard" && !pathname.includes('/results') && !isExamStarted && (
+            {layout === "dashboard" && !pathname.includes('/results') && !pathname.includes('/connexion-tcf') && !pathname.includes('/inscription-tcf') && !isExamStarted && userInfo && (
               <>
                 <Sidenav
               color={sidenavColor}
@@ -220,14 +220,14 @@ function AppContent() {
               {getRoutes(filteredRoutes)}
               <Route path="/" element={<ConditionalRedirect />} />
               <Route path="/reset-password" element={<ResetPasswordRedirect />} />
-              <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
+              <Route path="*" element={<Navigate to="/inscription-tcf" />} />
             </Routes>
           </ThemeProvider>
         </CacheProvider>
       ) : (
         <ThemeProvider theme={darkMode ? themeDark : theme}>
           <CssBaseline />
-          {layout === "dashboard" && !pathname.includes('/results') && !isExamStarted && (
+          {layout === "dashboard" && !pathname.includes('/results') && !pathname.includes('/connexion-tcf') && !pathname.includes('/inscription-tcf') && !isExamStarted && userInfo && (
             <>
               <Sidenav
                 color={sidenavColor}
@@ -245,7 +245,7 @@ function AppContent() {
               {getRoutes(filteredRoutes)}
               <Route path="/" element={<ConditionalRedirect />} />
               <Route path="/reset-password" element={<ResetPasswordRedirect />} />
-              <Route path="*" element={<Navigate to="/authentication/sign-up" />} />
+              <Route path="*" element={<Navigate to="/inscription-tcf" />} />
             </Routes>
         </ThemeProvider>
       )}
