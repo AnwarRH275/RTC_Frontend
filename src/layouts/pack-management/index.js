@@ -63,7 +63,8 @@ import syncService from 'services/syncService';
 
 // Styled components
 const PackCard = styled(Card)(({ theme, isActive, isPopular }) => ({
-  borderRadius: 16,
+  borderRadius: '28px 28px 16px 16px',
+  overflow: 'hidden',
   boxShadow: isActive 
     ? '0 8px 16px rgba(0, 0, 0, 0.15)' 
     : '0 4px 8px rgba(0, 0, 0, 0.1)',
@@ -81,7 +82,7 @@ const GradientHeader = styled(Box)(({ gradientStart, gradientEnd }) => ({
   padding: '16px',
   color: 'white',
   textAlign: 'center',
-  borderRadius: '16px 16px 0 0',
+  borderRadius: '28px 28px 0 0',
 }));
 
 const ColorPreview = styled(Box)(({ color }) => ({

@@ -2,13 +2,26 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { AppBar, Toolbar, Box, Button } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHome, faGraduationCap, faPeopleArrows, faUserEdit, faHeadset } from "@fortawesome/free-solid-svg-icons";
+import { faHome, faGraduationCap, faPeopleArrows, faUserEdit, faHeadset, faBars } from "@fortawesome/free-solid-svg-icons";
 import MDTypography from "components/MDTypography";
 import logoTCF from "assets/logo-tfc-canada.png";
+import IconButton from "@mui/material/IconButton";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 
 function OfficialHeader() {
   const location = useLocation();
   const currentPath = location.pathname;
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const open = Boolean(anchorEl);
+
+  const handleMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   // Déterminer le bouton à afficher selon la page
   const getAuthButton = () => {
@@ -102,17 +115,56 @@ function OfficialHeader() {
           })}
         </Box>
 
-        {/* Mobile Menu Button (placeholder for future implementation) */}
+        {/* Mobile Menu Button */}
         <Box sx={{ display: { xs: "block", md: "none" } }}>
-          <Button
+          <IconButton
+            size="large"
+            edge="start"
+            color="inherit"
+            aria-label="menu"
+            onClick={handleMenu}
             sx={{
               color: "#333",
               minWidth: "auto",
               padding: "8px"
             }}
           >
-            ☰
-          </Button>
+            <FontAwesomeIcon icon={faBars} />
+          </IconButton>
+          <Menu
+            id="menu-appbar"
+            anchorEl={anchorEl}
+            anchorOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            open={open}
+            onClose={handleClose}
+          >
+            {navigationItems.map((item, index) => {
+              const IconComponent = item.icon;
+              return (
+                <MenuItem 
+                  key={index} 
+                  onClick={handleClose}
+                  component={item.external ? "a" : Link}
+                  to={item.external ? undefined : item.href}
+                  href={item.external ? item.href : undefined}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                  sx={{ color: "#333" }} // Ajout de la couleur pour le texte du MenuItem
+                >
+                  {IconComponent && <FontAwesomeIcon icon={IconComponent} style={{ marginRight: "8px" }} />}
+                  {item.label}
+                </MenuItem>
+              );
+            })}
+          </Menu>
         </Box>
       </Toolbar>
     </AppBar>

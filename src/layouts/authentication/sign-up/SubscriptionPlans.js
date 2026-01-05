@@ -7,23 +7,32 @@ import axios from "axios";
 import subscriptionPackService from '../../../services/subscriptionPackService';
 import MDButton from 'components/MDButton';
 import { API_BASE_URL } from '../../../services/config';
+import { Divider } from '@mui/material';
 
 // Clé publique Stripe
 const stripePromise = loadStripe('pk_test_51RPoNkGbR6tCbwFHGpmyQJHVvFNdqbZABAA5hJPvCnQsPR9C8dDXkiojPusno6ow5CngADJHkRdVnrtOwHeFTCNe00VVxsQVJ1');
 
 // Styled components pour un design moderne
 const PlanCard = styled(Card)(({ theme, isPopular }) => ({
-  borderRadius: 16,
+  borderRadius: '28px 28px 16px 16px',
   boxShadow: isPopular 
     ? '0 10px 20px rgba(0, 123, 255, 0.3)' 
     : '0 6px 12px rgba(0, 0, 0, 0.1)',
   transition: 'transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease',
-  overflow: 'hidden',
-  height: 'auto',
+  overflow: 'visible', // on laisse visible pour le badge "POPULAIRE"
+  height: '100%',
   display: 'flex',
   flexDirection: 'column',
   position: 'relative',
   border: isPopular ? `2px solid ${theme.palette.primary.main}` : 'none',
+  // Hauteur uniforme sur desktop pour que tous les packs aient la même taille
+  minHeight: 620,
+  [theme.breakpoints.up('lg')]: {
+    minHeight: 660,
+  },
+  [theme.breakpoints.down('md')]: {
+    minHeight: 'auto', // sur mobile/tablette, on laisse la hauteur s'ajuster
+  },
   '&:hover': {
     transform: 'translateY(-2px)',
     boxShadow: isPopular 
@@ -41,6 +50,24 @@ const PlanHeader = styled(Box)(({ theme, headerGradient }) => ({
   padding: theme.spacing(1),
   color: 'white',
   textAlign: 'center',
+  borderRadius: '28px 28px 0 0',
+  // Hauteur uniforme pour le header afin d'éviter les décalages liés à la longueur du titre/prix
+  minHeight: 140,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+}));
+
+const PlanContent = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(1.5),
+  flexGrow: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  // Hauteur minimale pour stabiliser la zone de contenu et aligner les boutons
+  minHeight: 380,
+  [theme.breakpoints.up('lg')]: {
+    minHeight: 420,
+  },
 }));
 
 const PlanPrice = styled(Box)(({ theme }) => ({
@@ -50,20 +77,14 @@ const PlanPrice = styled(Box)(({ theme }) => ({
   justifyContent: 'center',
   alignItems: 'baseline',
   marginBottom: theme.spacing(0.5),
-}));
-
-const PlanContent = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(1.5),
-  flexGrow: 1,
-  display: 'flex',
-  flexDirection: 'column',
+  color: '#1a2b49',
 }));
 
 const FeatureItem = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'flex-start',
-  marginBottom: theme.spacing(0.5),
-  fontSize: '0.8rem',
+  marginBottom: theme.spacing(0.75),
+  fontSize: '0.95rem',
 }));
 
 const ActionButton = styled(Button)(({ theme, buttonGradient, buttonHoverGradient }) => ({
@@ -288,19 +309,20 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
             <PlanCard isPopular={planToDisplay.isPopular}>
               {planToDisplay.isPopular && <PopularBadge label="POPULAIRE" />}
               <PlanHeader headerGradient={planToDisplay.headerGradient}>
-                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: planToDisplay.isPopular ? 2 : 'auto', position: 'relative' }}>
+                <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ zIndex: planToDisplay.isPopular ? 2 : 'auto', position: 'relative', fontSize: '3rem', letterSpacing: '0.02em' }}>
                   {planToDisplay.name}
                 </Typography>
                 <PlanPrice>
-                  <Typography component="span" sx={{ fontSize: '1.2rem', alignSelf: 'flex-start', mt: 1 }}>
+                  <Typography component="span" sx={{ fontSize: '2rem', alignSelf: 'flex-start', mt: 1 }}>
                     $
                   </Typography>
                   {planToDisplay.price}
-                  <Typography component="span" sx={{ fontSize: '1.2rem', ml: 0.5 }}>
+                  <Typography component="span" sx={{ fontSize: '2rem', ml: 0.5 }}>
+                 
                     .99
                   </Typography>
                 </PlanPrice>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '1.05rem', fontWeight: 700, color: '#fff', textShadow: '0 1px 1px rgba(0,0,0,0.06)' }}>
                   {planToDisplay.usages} Usages
                 </Typography>
               </PlanHeader>
@@ -308,7 +330,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                 {planToDisplay.features.map((feature, index) => (
                   <FeatureItem key={index}>
                     <CheckIcon sx={{ color: '#4CAF50', mr: 1, fontSize: '1.2rem' }} />
-                    <Typography variant="body2">{feature}</Typography>
+                    <Typography variant="body1" sx={{ fontSize: { xs: '0.95rem', md: '1.05rem' }, fontWeight: 600, color: 'white', lineHeight: 1.4 }}>{feature}</Typography>
                   </FeatureItem>
                 ))}
                 <Box sx={{ flexGrow: 1, minHeight: 15 }} />
@@ -335,9 +357,11 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                     }}
                     disabled={loadingPlanId === planToDisplay.id}
                     sx={{ 
-                      fontSize: '1.1rem',
+                      fontSize: '1.05rem',
+                      fontWeight: 700,
                       py: 1.5,
-                      boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+                      letterSpacing: '0.01em',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.24)'
                     }}
                   >
                     {loadingPlanId === planToDisplay.id ? 'Chargement...' : planToDisplay.buttonText}
@@ -378,31 +402,30 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
       height: 'auto',
       my: 1,
       px: 1,
-      mx: 'auto'
+      mx: 'auto',
+      alignItems: 'stretch'
     }}>
       {plans.map((plan) => (
-        <Box key={plan.id} sx={{ flex: 1, minWidth: { xs: '100%', md: '200px' } }}>
+        <Box key={plan.id} sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: { xs: '100%', md: '200px' }, height: '100%' }}>
           <PlanCard isPopular={plan.isPopular}>
             {plan.isPopular && <PopularBadge label="POPULAIRE" />}
             <PlanHeader headerGradient={plan.headerGradient}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: plan.isPopular ? 2 : 'auto', position: 'relative', fontSize: '1rem' }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: plan.isPopular ? 2 : 'auto', position: 'relative', fontSize: '1.5rem', letterSpacing: '0.02em', color: '#1a2b49' }}>
                 {plan.name}
               </Typography>
               <PlanPrice>
-                <Typography component="span" sx={{ fontSize: '1rem', alignSelf: 'flex-start', mt: 1 }}>
+                <Typography component="span" sx={{ fontSize: '1.3rem', alignSelf: 'flex-start', mt: 1, color: 'white' }}>
                   $
                 </Typography>
                 {String(plan.price).split('.')[0]}
-                <Typography component="span" sx={{ fontSize: '1rem', ml: 0.5 }}>
+                <Typography component="span" sx={{ fontSize: '1.3rem', ml: 0.5, color: 'white' }}>
                   .99
                 </Typography>
               </PlanPrice>
-              <Typography variant="body2" sx={{ 
-                opacity: 1, 
-                fontSize: '1.1rem', 
+              <Typography variant="body2" sx={{
+                fontSize: '1.1rem',
                 fontWeight: 'bold',
-                color: '#233a50ff',
-                textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                color: 'white',
                 mt: 1
               }}>
                 {plan.usages} Usages
@@ -410,10 +433,13 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
             </PlanHeader>
             <PlanContent>
               {plan.features.map((feature, index) => (
-                <FeatureItem key={index}>
-                  <CheckIcon sx={{ color: '#4CAF50', mr: 1, fontSize: '1rem' }} />
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>{feature}</Typography>
-                </FeatureItem>
+                <>
+                  <FeatureItem key={index}>
+                   
+                    <Typography variant="body1" sx={{ fontSize: { xs: '0.95rem', md: '1.05rem' }, fontWeight: 600, color: 'white', lineHeight: 1.4 }}>{feature}</Typography>
+                  </FeatureItem>
+                  {index < plan.features.length - 1 && <Divider sx={{ my: 1.5, borderColor: '#1a2b49', borderBottomWidth: 2 }} />}
+                </>
               ))}
               <Box sx={{ flexGrow: 1, minHeight: 10 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -440,9 +466,11 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                   }}
                   disabled={loadingPlanId === plan.id}
                   sx={{ 
-                    fontSize: '0.9rem',
-                    py: 1,
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    py: 1.1,
+                    letterSpacing: '0.01em',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.24)'
                   }}
                 >
                   {loadingPlanId === plan.id ? 'Chargement...' : plan.buttonText}

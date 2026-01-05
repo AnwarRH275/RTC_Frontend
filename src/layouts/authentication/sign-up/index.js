@@ -310,10 +310,10 @@ function Cover() {
           }
         }}>
           {/* Logo TCF Canada mis en évidence */}
-          <MDBox display="flex" justifyContent="center" mb={1.5} sx={{
+          <MDBox display="flex" justifyContent="center" mb={activeStep === 1 ? 0.5 : 1.5} sx={{
             position: 'relative',
             '@media (max-width: 768px)': {
-              mb: 1,
+              mb: activeStep === 1 ? 0.25 : 1,
             },
             '&::before': {
               content: '""',
@@ -321,8 +321,8 @@ function Cover() {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '80px',
-              height: '150px',
+              width: activeStep === 1 ? '60px' : '80px',
+              height: activeStep === 1 ? '100px' : '150px',
               background: 'radial-gradient(circle, rgba(79, 204, 231, 0.3) 0%, rgba(79, 204, 231, 0.1) 50%, transparent 70%)',
               borderRadius: '50%',
               zIndex: 0,
@@ -333,7 +333,7 @@ function Cover() {
               src={logoTcfCanada}
               alt="TCF Canada Logo"
               sx={{
-                height: { xs: '90px', sm: '110px' },
+                height: activeStep === 1 ? { xs: '56px', sm: '72px' } : { xs: '90px', sm: '110px' },
                 width: 'auto',
                 filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))',
                 position: 'relative',
