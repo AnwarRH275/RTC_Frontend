@@ -77,6 +77,7 @@ function TCFSimulatorOral() {
   const [retakeData, setRetakeData] = useState(null);
   const [retakeSubjectId, setRetakeSubjectId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [openMobileWarning, setOpenMobileWarning] = useState(false);
   const itemsPerPage = 9;
 
   const navigate = useNavigate();
@@ -117,16 +118,16 @@ function TCFSimulatorOral() {
     setSelectedSubject(subject);
     setLoadingResults(true);
     setOpenResults(true);
-    
+
     try {
       // Récupérer les examens de l'utilisateur pour ce sujet
       const userExams = await authService.getUserExams();
       const subjectExams = userExams.filter(exam => exam.id_subject === subject.id);
-      
+
       // Récupérer les réponses de l'utilisateur depuis le localStorage
       const storedResponses = localStorage.getItem(`tcf-oral-responses-${subject.id}`);
       const userResponses = storedResponses ? JSON.parse(storedResponses) : {};
-      
+
       if (subjectExams.length > 0) {
         // Grouper les examens par sujet et tâche pour reconstituer les résultats complets
         const examsByTask = {};
@@ -136,7 +137,7 @@ function TCFSimulatorOral() {
             examsByTask[taskId] = exam;
           }
         });
-        
+
         // Fonction helper pour traiter les points (éviter la redondance)
         const processPoints = (examValues, fieldName) => {
           const allPoints = examValues
@@ -151,22 +152,22 @@ function TCFSimulatorOral() {
               // Normaliser le texte pour une meilleure détection des doublons
               return point.charAt(0).toUpperCase() + point.slice(1).toLowerCase();
             });
-          
+
           // Éliminer les doublons en utilisant un Set avec normalisation
           const uniquePoints = [...new Set(allPoints)];
-          
+
           // Filtrer les points qui sont des sous-chaînes d'autres points
           return uniquePoints.filter((point, index) => {
             return !uniquePoints.some((otherPoint, otherIndex) => {
-              return index !== otherIndex && 
-                     otherPoint.length > point.length && 
-                     otherPoint.toLowerCase().includes(point.toLowerCase());
+              return index !== otherIndex &&
+                otherPoint.length > point.length &&
+                otherPoint.toLowerCase().includes(point.toLowerCase());
             });
           });
         };
-        
+
         const examValues = Object.values(examsByTask);
-        
+
         // Reconstituer le format attendu par la modal avec points par tâche
         const taskResults = Object.keys(examsByTask)
           .sort((a, b) => parseInt(a) - parseInt(b))
@@ -174,15 +175,15 @@ function TCFSimulatorOral() {
             const exam = examsByTask[taskId];
             return {
               correction: exam.reponse_ia || "Aucune correction disponible",
-              pointsForts: exam.points_fort ? 
-                exam.points_fort.split(',').map(p => p.trim()).filter(p => p) : 
+              pointsForts: exam.points_fort ?
+                exam.points_fort.split(',').map(p => p.trim()).filter(p => p) :
                 ["Aucun point fort détecté"],
-              pointsAmeliorer: exam.point_faible ? 
-                exam.point_faible.split(',').map(p => p.trim()).filter(p => p) : 
+              pointsAmeliorer: exam.point_faible ?
+                exam.point_faible.split(',').map(p => p.trim()).filter(p => p) :
                 ["L'expression orale est incompréhensible et ne répond pas à la consigne"]
             };
           });
-        
+
         const formattedResults = {
           NoteExam: examValues[0]?.score || "Non éligible (expression non compréhensible)",
           corrections_taches: taskResults.map(task => task.correction),
@@ -192,7 +193,7 @@ function TCFSimulatorOral() {
           // Ajouter les réponses de l'utilisateur
           user_responses: userResponses
         };
-        
+
         // Si aucun point fort/faible n'est trouvé, utiliser des valeurs par défaut
         if (formattedResults.pointsForts.length === 0) {
           formattedResults.pointsForts = ["Aucun point fort détecté (expression non compréhensible)"];
@@ -200,7 +201,7 @@ function TCFSimulatorOral() {
         if (formattedResults.pointsAmeliorer.length === 0) {
           formattedResults.pointsAmeliorer = ["L'expression orale est incompréhensible et ne répond pas à la consigne"];
         }
-        
+
         setExamResults(formattedResults);
       } else {
         setExamResults(null);
@@ -220,22 +221,30 @@ function TCFSimulatorOral() {
   };
 
   const handleStartExam = async () => {
+    // Vérification si l'utilisateur est sur mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+    if (isMobile) {
+      setOpenMobileWarning(true);
+      return;
+    }
+
     try {
       // Utiliser les informations utilisateur du contexte
       const userInfo = await authService.getCurrentUser();
 
       if (userInfo) {
         const currentSold = userInfo.sold;
-        
+
         // Vérifier si l'utilisateur a suffisamment de crédits
         if (currentSold > 0) {
-         
+
           // Décrémenter le solde de 1
           const newSold = currentSold - 1;
           console.log(newSold)
           // Mettre à jour le solde dans le backend via API
           await authService.updateSold(userInfo.username, newSold);
-          
+
           // Naviguer vers l'examen
           if (selectedSubject) {
             navigate(`/simulateur-tcf-expression-orale/${selectedSubject.id}/exam`);
@@ -249,16 +258,16 @@ function TCFSimulatorOral() {
         alert('Erreur: Informations utilisateur non trouvées.');
       }
     } catch (error) {
-       console.error('Erreur lors de la mise à jour du solde:', error);
-       alert('Erreur lors du démarrage de l\'examen. Veuillez réessayer.');
-     }
+      console.error('Erreur lors de la mise à jour du solde:', error);
+      alert('Erreur lors du démarrage de l\'examen. Veuillez réessayer.');
+    }
   };
 
   const handleRetakeExam = async (subjectId) => {
     try {
       // Vérifier le nombre de tentatives
       const attemptData = await attemptService.checkAttempts(subjectId);
-      
+
       if (attemptData.can_attempt) {
         // Ouvrir la modal de confirmation
         setRetakeData(attemptData);
@@ -277,7 +286,7 @@ function TCFSimulatorOral() {
       setRetakeSubjectId(subjectId);
       setOpenRetakeDialog(true);
     }
-   };
+  };
 
   const handleConfirmRetake = async () => {
     try {
@@ -286,12 +295,12 @@ function TCFSimulatorOral() {
         // Incrémenter le compteur de tentatives seulement si ce n'est pas un forçage
         await attemptService.incrementAttempt(retakeSubjectId);
       }
-      
+
       // Fermer la modal
       setOpenRetakeDialog(false);
       setRetakeData(null);
       setRetakeSubjectId(null);
-      
+
       // Rediriger vers l'examen dans tous les cas
       navigate(`/simulateur-tcf-expression-orale/${retakeSubjectId}/exam?isRetake=true`);
     } catch (error) {
@@ -326,27 +335,27 @@ function TCFSimulatorOral() {
         const userExams = await authService.getUserExams();
         console.log(userSubscriptionPlan);
         console.log('Examens utilisateur:', userExams);
-        
+
         // Créer un Set des IDs de sujets déjà passés par l'utilisateur pour les examens oraux
         // Utiliser un Set pour éviter les doublons
         const completedSubjectIds = new Set();
-        
+
         // Ajouter chaque ID de sujet au Set seulement pour les examens de type 'oral'
         userExams.forEach(exam => {
           if (exam.type_exam === 'oral') {
             completedSubjectIds.add(exam.id_subject);
           }
         });
-        
+
         console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
-        
+
         // Transformer les données pour correspondre au format attendu
         const formattedSubjects = oralData.map(subject => {
           const plan = subject.plans;
           const userPlan = userSubscriptionPlan;
-        
+
           let status = "";
-        
+
           // Vérifier si l'utilisateur a déjà passé cet examen
           if (completedSubjectIds.has(subject.id)) {
             status = "completed";
@@ -365,7 +374,7 @@ function TCFSimulatorOral() {
               status = ""; // seulement si utilisateur est "pro"
             }
           }
-        
+
           return {
             id: subject.id,
             name: "",
@@ -373,11 +382,11 @@ function TCFSimulatorOral() {
             tasks: subject.tasks || [],
             pack: subject.name + ' : ' + subject.combination,
             bgColor: "#f72585",
-            duration:  12,
+            duration: 12,
             status: status
           };
         });
-        
+
         // Define the desired order of plans
         const planOrder = {
           "Pack Oral Standard": 1,
@@ -402,7 +411,7 @@ function TCFSimulatorOral() {
         setLoading(false);
       }
     };
-    
+
     fetchSubjects();
   }, []);
 
@@ -410,9 +419,9 @@ function TCFSimulatorOral() {
   return (
     <DashboardLayout>
       <DashboardNavbar />
-      <MDBox 
-        pt={3} 
-        pb={3} 
+      <MDBox
+        pt={3}
+        pb={3}
         sx={{
           background: 'linear-gradient(135deg, rgba(191, 219, 254, 0.8) 0%, rgba(240, 248, 255, 0.9) 30%, rgba(219, 234, 254, 0.85) 70%, rgba(191, 219, 254, 0.8) 100%)',
           minHeight: '100vh',
@@ -421,9 +430,9 @@ function TCFSimulatorOral() {
           WebkitBackdropFilter: 'blur(20px)',
         }}
       >
-        <MDBox 
-          mx="auto" 
-          p={2} 
+        <MDBox
+          mx="auto"
+          p={2}
           maxWidth="1400px"
           sx={{
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -435,8 +444,8 @@ function TCFSimulatorOral() {
             p: { xs: 3, md: 5 },
           }}
         >
-          <MDBox 
-            mb={4} 
+          <MDBox
+            mb={4}
             textAlign="center"
             sx={{
               maxWidth: '800px',
@@ -444,9 +453,9 @@ function TCFSimulatorOral() {
               padding: { xs: 2, md: 3 }
             }}
           >
-            <MDTypography 
-              variant="h3" 
-              fontWeight="bold" 
+            <MDTypography
+              variant="h3"
+              fontWeight="bold"
               mb={1}
               sx={{
                 background: 'linear-gradient(90deg, #0077b6 0%, #023e8a 100%)', // Updated gradient for title
@@ -457,9 +466,9 @@ function TCFSimulatorOral() {
             >
               Coach d'Expression Orale
             </MDTypography>
-            <MDTypography 
-              variant="body1" 
-              color="text" 
+            <MDTypography
+              variant="body1"
+              color="text"
               opacity={0.8}
               mb={3}
             >
@@ -467,7 +476,7 @@ function TCFSimulatorOral() {
               Choisissez un sujet, enregistrez vos réponses et recevez une évaluation détaillée.
             </MDTypography>
           </MDBox>
-          
+
           {/* Afficher l'erreur si elle existe */}
           {error && (
             <MDBox mb={3} maxWidth="800px" mx="auto">
@@ -476,7 +485,7 @@ function TCFSimulatorOral() {
               </MDAlert>
             </MDBox>
           )}
-          
+
           {/* Afficher l'indicateur de chargement ou les sujets */}
           {loading ? (
             <MDBox display="flex" justifyContent="center" p={3}>
@@ -490,172 +499,172 @@ function TCFSimulatorOral() {
             </MDBox>
           ) : (
             <>
-            <Grid container spacing={4}>
-              {currentSubjects.map((subject) => (
-                <Grid item xs={12} md={6} lg={4} key={subject.id}>
-                  {subject.status === "completed" ? (
-                    <CompletedExpressionCard
-                      title={subject.name}
-                      onTaskClick={() => handleOpenTaskRecap(subject)}
-                      onResultClick={() => handleOpenResults(subject)}
-                      onRetakeClick={() => handleRetakeExam(subject.id)}
-                      description={
-                        <ReactQuill
-                          value={subject.blog || "Sujet d'expression orale"}
-                          readOnly={true}
-                          theme="bubble"
-                          modules={{ toolbar: false }}
-                          sx={blogContentStyles}
-                        />
-                      }
-                      pack={subject.pack}
-                      bgColor={subject.bgColor}
-                      duration={ 12}
-                      sx={{
-                        borderRadius: '12px', // Rounded corners for cards
-                        overflow: 'hidden', // Hide overflow for the top bar
-                        position: 'relative', // Needed for absolute positioning of top bar
-                        '&::before': { // Add a colored bar at the top
-                          content: '""',
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: '6px', // Height of the color bar
-                          backgroundColor: subject.bgColor, // Use subject's color
-                        },
-                        pt: 2, // Add padding at the top to account for the bar
-                      }}
-                    />
-                  ) : subject.status === "locked" ? (
-                    <LockedExpressionCard
-                      title={subject.name}
-                      description={
-                        <ReactQuill
-                          value={subject.blog || "Sujet d'expression orale"}
-                          readOnly={true}
-                          theme="bubble"
-                          modules={{ toolbar: false }}
-                          sx={blogContentStyles}
-                        />
-                      }
-                      pack={subject.pack}
-                      bgColor={subject.bgColor}
-                      duration={ 12}
-                      sx={{
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        '&::before': {
-                          content: '""',
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: '6px',
-                          backgroundColor: subject.bgColor,
-                        },
-                        pt: 2,
-                      }}
-                    />
-                  ) : (
-                    <OralExpressionCard
-                      title={subject.name}
-                      description={
-                        <ReactQuill
-                          value={subject.blog || "Sujet d'expression orale"}
-                          readOnly={true}
-                          theme="bubble"
-                          modules={{ toolbar: false }}
-                          sx={blogContentStyles}
-                        />
-                      }
-                      pack={subject.pack}
-                      bgColor={subject.bgColor}
-                      duration={ 12}
-                      action={{
-                        type: "function",
-                        onClick: () => handleOpenRecap(subject),
-                        label:  selectedSubject?.id === subject.id 
-                          ? (
+              <Grid container spacing={4}>
+                {currentSubjects.map((subject) => (
+                  <Grid item xs={12} md={6} lg={4} key={subject.id}>
+                    {subject.status === "completed" ? (
+                      <CompletedExpressionCard
+                        title={subject.name}
+                        onTaskClick={() => handleOpenTaskRecap(subject)}
+                        onResultClick={() => handleOpenResults(subject)}
+                        onRetakeClick={() => handleRetakeExam(subject.id)}
+                        description={
+                          <ReactQuill
+                            value={subject.blog || "Sujet d'expression orale"}
+                            readOnly={true}
+                            theme="bubble"
+                            modules={{ toolbar: false }}
+                            sx={blogContentStyles}
+                          />
+                        }
+                        pack={subject.pack}
+                        bgColor={subject.bgColor}
+                        duration={12}
+                        sx={{
+                          borderRadius: '12px', // Rounded corners for cards
+                          overflow: 'hidden', // Hide overflow for the top bar
+                          position: 'relative', // Needed for absolute positioning of top bar
+                          '&::before': { // Add a colored bar at the top
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '6px', // Height of the color bar
+                            backgroundColor: subject.bgColor, // Use subject's color
+                          },
+                          pt: 2, // Add padding at the top to account for the bar
+                        }}
+                      />
+                    ) : subject.status === "locked" ? (
+                      <LockedExpressionCard
+                        title={subject.name}
+                        description={
+                          <ReactQuill
+                            value={subject.blog || "Sujet d'expression orale"}
+                            readOnly={true}
+                            theme="bubble"
+                            modules={{ toolbar: false }}
+                            sx={blogContentStyles}
+                          />
+                        }
+                        pack={subject.pack}
+                        bgColor={subject.bgColor}
+                        duration={12}
+                        sx={{
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          position: 'relative',
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '6px',
+                            backgroundColor: subject.bgColor,
+                          },
+                          pt: 2,
+                        }}
+                      />
+                    ) : (
+                      <OralExpressionCard
+                        title={subject.name}
+                        description={
+                          <ReactQuill
+                            value={subject.blog || "Sujet d'expression orale"}
+                            readOnly={true}
+                            theme="bubble"
+                            modules={{ toolbar: false }}
+                            sx={blogContentStyles}
+                          />
+                        }
+                        pack={subject.pack}
+                        bgColor={subject.bgColor}
+                        duration={12}
+                        action={{
+                          type: "function",
+                          onClick: () => handleOpenRecap(subject),
+                          label: selectedSubject?.id === subject.id
+                            ? (
                               <MDBox display="flex" alignItems="center" gap={1}>
                                 <CircularProgress size={16} sx={{ color: 'white' }} />
                                 "Préparation audio..."
                               </MDBox>
                             )
-                          : "Démarrer le coaching",
-                        color: "primary",
-                        disabled:  selectedSubject?.id === subject.id,
-                      }}
+                            : "Démarrer le coaching",
+                          color: "primary",
+                          disabled: selectedSubject?.id === subject.id,
+                        }}
+                        sx={{
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          position: 'relative',
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '6px',
+                            backgroundColor: subject.bgColor,
+                          },
+                          pt: 2,
+                        }}
+                      />
+                    )}
+                  </Grid>
+                ))}
+              </Grid>
+
+              {/* Pagination moderne */}
+              {totalPages > 1 && (
+                <MDBox
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  mt={6}
+                  mb={2}
+                >
+                  <Stack spacing={2}>
+                    <Pagination
+                      count={totalPages}
+                      page={currentPage}
+                      onChange={handlePageChange}
+                      color="primary"
+                      size="large"
+                      showFirstButton
+                      showLastButton
                       sx={{
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        '&::before': {
-                          content: '""',
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: '6px',
-                          backgroundColor: subject.bgColor,
-                        },
-                        pt: 2,
-                      }}
-                    />
-                  )}
-                </Grid>
-              ))}
-            </Grid>
-            
-            {/* Pagination moderne */}
-            {totalPages > 1 && (
-              <MDBox 
-                display="flex" 
-                justifyContent="center" 
-                alignItems="center"
-                mt={6}
-                mb={2}
-              >
-                <Stack spacing={2}>
-                  <Pagination
-                    count={totalPages}
-                    page={currentPage}
-                    onChange={handlePageChange}
-                    color="primary"
-                    size="large"
-                    showFirstButton
-                    showLastButton
-                    sx={{
-                      '& .MuiPaginationItem-root': {
-                        fontSize: '1rem',
-                        fontWeight: 500,
-                        minWidth: '44px',
-                        height: '44px',
-                        margin: '0 4px',
-                        borderRadius: '12px',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
-                        },
-                        '&.Mui-selected': {
-                          background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
-                          color: 'white',
-                          fontWeight: 120,
-                          boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)',
+                        '& .MuiPaginationItem-root': {
+                          fontSize: '1rem',
+                          fontWeight: 500,
+                          minWidth: '44px',
+                          height: '44px',
+                          margin: '0 4px',
+                          borderRadius: '12px',
+                          transition: 'all 0.3s ease',
                           '&:hover': {
-                            background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
                             transform: 'translateY(-2px)',
+                            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+                          },
+                          '&.Mui-selected': {
+                            background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+                            color: 'white',
+                            fontWeight: 120,
+                            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)',
+                            '&:hover': {
+                              background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                              transform: 'translateY(-2px)',
+                            },
                           },
                         },
-                      },
-                    }}
-                  />
-                </Stack>
-              </MDBox>
-            )}
+                      }}
+                    />
+                  </Stack>
+                </MDBox>
+              )}
             </>
           )}
         </MDBox>
@@ -712,7 +721,7 @@ function TCFSimulatorOral() {
             />
           </MDBox>
         </DialogTitle>
-        
+
         <DialogContent sx={{ p: 0 }}>
           <MDBox p={4}>
 
@@ -737,9 +746,9 @@ function TCFSimulatorOral() {
                 </MDTypography>
               </MDBox>
             </MDBox>
-            
+
             <Divider sx={{ my: 3, borderColor: '#e2e8f0' }} />
-            
+
             {/* Liste des tâches */}
             <MDBox>
               <MDBox display="flex" alignItems="center" mb={3}>
@@ -748,7 +757,7 @@ function TCFSimulatorOral() {
                   Tâches à réaliser ({selectedSubject?.tasks?.length || 0})
                 </MDTypography>
               </MDBox>
-              
+
               <MDBox sx={{ maxHeight: '300px', overflowY: 'auto', pr: 1 }}>
                 {selectedSubject?.tasks?.map((task, index) => (
                   <MDBox
@@ -792,9 +801,9 @@ function TCFSimulatorOral() {
                         />
                       )}
                     </MDBox>
-                    
+
                     {task.title && (
-                      <div 
+                      <div
                         dangerouslySetInnerHTML={{ __html: task.title }}
                         style={{
                           fontSize: '1.25rem',
@@ -804,64 +813,64 @@ function TCFSimulatorOral() {
                         }}
                       />
                     )}
-                    
-              
+
+
                   </MDBox>
                 ))}
               </MDBox>
             </MDBox>
           </MDBox>
-         </DialogContent>
-         
-         <DialogActions
-           sx={{
-             background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-             borderTop: '1px solid #e2e8f0',
-             p: 3,
-             justifyContent: 'space-between',
-           }}
-         >
-           <MDButton
-             variant="outlined"
-             color="secondary"
-             onClick={handleCloseRecap}
-             sx={{
-               borderColor: '#94a3b8',
-               color: '#64748b',
-               '&:hover': {
-                 borderColor: '#64748b',
-                 backgroundColor: 'rgba(100, 116, 139, 0.04)',
-               }
-             }}
-           >
-             Fermer
-           </MDButton>
-           
-           <MDButton
-             variant="gradient"
-             color="info"
-             onClick={handleStartExam}
-             startIcon={<Icon>mic</Icon>}
-             sx={{
-               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-               color: 'white',
-               px: 4,
-               py: 1.5,
-               borderRadius: '12px',
-               fontWeight: 'bold',
-               textTransform: 'none',
-               fontSize: '1.1rem',
-               boxShadow: '0 8px 16px rgba(102, 126, 234, 0.3)',
-               '&:hover': {
-                 transform: 'translateY(-2px)',
-                 boxShadow: '0 12px 20px rgba(102, 126, 234, 0.4)',
-               }
-             }}
-           >
-             Démarrer le coaching
-           </MDButton>
-         </DialogActions>
-       </Dialog>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            borderTop: '1px solid #e2e8f0',
+            p: 3,
+            justifyContent: 'space-between',
+          }}
+        >
+          <MDButton
+            variant="outlined"
+            color="secondary"
+            onClick={handleCloseRecap}
+            sx={{
+              borderColor: '#94a3b8',
+              color: '#64748b',
+              '&:hover': {
+                borderColor: '#64748b',
+                backgroundColor: 'rgba(100, 116, 139, 0.04)',
+              }
+            }}
+          >
+            Fermer
+          </MDButton>
+
+          <MDButton
+            variant="gradient"
+            color="info"
+            onClick={handleStartExam}
+            startIcon={<Icon>mic</Icon>}
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: '12px',
+              fontWeight: 'bold',
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              boxShadow: '0 8px 16px rgba(102, 126, 234, 0.3)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 12px 20px rgba(102, 126, 234, 0.4)',
+              }
+            }}
+          >
+            Démarrer le coaching
+          </MDButton>
+        </DialogActions>
+      </Dialog>
 
       {/* Modal de récapitulatif des tâches */}
       <Dialog
@@ -876,7 +885,7 @@ function TCFSimulatorOral() {
           },
         }}
       >
-        <DialogTitle sx={{ 
+        <DialogTitle sx={{
           background: 'linear-gradient(90deg, #0077b6 0%, #023e8a 100%)',
           color: 'white',
           borderTopLeftRadius: '15px',
@@ -888,9 +897,9 @@ function TCFSimulatorOral() {
           <MDTypography variant="h5" fontWeight="medium" color="white">
             Tâches réalisées
           </MDTypography>
-          <MDButton 
-            variant="text" 
-            color="white" 
+          <MDButton
+            variant="text"
+            color="white"
             onClick={handleCloseTaskRecap}
             sx={{ minWidth: 'auto', p: 1 }}
           >
@@ -908,42 +917,42 @@ function TCFSimulatorOral() {
                 </MDBox>
                 <Divider />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <MDBox mb={2}>
                   <MDTypography variant="h6" fontWeight="bold" color="info">
                     Tâches réalisées
                   </MDTypography>
                 </MDBox>
-                
+
                 {selectedSubject.tasks && selectedSubject.tasks.map((task, index) => (
-                  <MDBox 
-                    key={task.id} 
-                    mb={2} 
-                    p={2} 
-                    sx={{ 
+                  <MDBox
+                    key={task.id}
+                    mb={2}
+                    p={2}
+                    sx={{
                       backgroundColor: 'rgba(67, 97, 238, 0.05)',
                       borderRadius: '10px',
                       border: '1px solid rgba(67, 97, 238, 0.2)',
                     }}
                   >
                     <MDBox display="flex" alignItems="center" mb={1}>
-                      <Chip 
-                        label={`Tâche ${index + 1}`} 
-                        color="success" 
-                        size="small" 
+                      <Chip
+                        label={`Tâche ${index + 1}`}
+                        color="success"
+                        size="small"
                         sx={{ mr: 1 }}
                       />
                       <MDTypography variant="subtitle1" fontWeight="medium">
-                        {task.taskType === 'entretien' ? 'Entretien' : 
-                         task.taskType === 'questions' ? 'Jeu de rôle' : 
-                         task.taskType === 'expression' ? 'Expression d\'un point de vue' : 
-                         'Tâche orale'}
+                        {task.taskType === 'entretien' ? 'Entretien' :
+                          task.taskType === 'questions' ? 'Jeu de rôle' :
+                            task.taskType === 'expression' ? 'Expression d\'un point de vue' :
+                              'Tâche orale'}
                       </MDTypography>
-                      <Chip 
-                        label="Complété" 
-                        color="success" 
-                        size="small" 
+                      <Chip
+                        label="Complété"
+                        color="success"
+                        size="small"
                         icon={<Icon>check</Icon>}
                         sx={{ ml: 'auto', backgroundColor: "rgba(79, 204, 231, 1)", color: "white" }}
                       />
@@ -959,11 +968,11 @@ function TCFSimulatorOral() {
                   </MDBox>
                 ))}
               </Grid>
-              
+
               <Grid item xs={12}>
                 <MDBox display="flex" justifyContent="flex-end" mt={2}>
-                  <MDButton 
-                    variant="gradient" 
+                  <MDButton
+                    variant="gradient"
                     color="info"
                     onClick={() => handleOpenResults(selectedSubject)}
                     startIcon={<Icon>assessment</Icon>}
@@ -1021,7 +1030,7 @@ function TCFSimulatorOral() {
                 {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
               </MDTypography>
             </MDBox>
-            
+
             {/* Section droite avec note et icône attractive */}
             <MDBox display="flex" alignItems="center" flexDirection="column">
               {loadingResults ? (
@@ -1084,15 +1093,15 @@ function TCFSimulatorOral() {
                   </MDBox>
                 </Tooltip>
               )}
-              <MDBox 
-                display="flex" 
-                alignItems="center" 
-                sx={{ 
-                  cursor: 'pointer', 
-                  '&:hover': { 
+              <MDBox
+                display="flex"
+                alignItems="center"
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': {
                     transform: 'scale(1.05)',
                     transition: 'transform 0.2s ease'
-                  } 
+                  }
                 }}
                 onClick={handleCloseResults}
               >
@@ -1102,10 +1111,10 @@ function TCFSimulatorOral() {
                 </MDTypography>
               </MDBox>
             </MDBox>
-            
-            <MDButton 
-              variant="text" 
-              color="white" 
+
+            <MDButton
+              variant="text"
+              color="white"
               onClick={handleCloseResults}
               sx={{ minWidth: 'auto', p: 1 }}
             >
@@ -1113,13 +1122,13 @@ function TCFSimulatorOral() {
             </MDButton>
           </MDBox>
         </DialogTitle>
-        
+
         <DialogContent sx={{ p: 0 }}>
           <MDBox p={4}>
             <MDTypography variant="body1" color="text" mb={4}>
               Voici les résultats détaillés de votre examen d'expression orale TCF Canada
             </MDTypography>
-            
+
             {loadingResults ? (
               <MDBox display="flex" justifyContent="center" alignItems="center" minHeight="300px">
                 <CircularProgress color="info" />
@@ -1128,9 +1137,9 @@ function TCFSimulatorOral() {
               /* Résultats par tâche */
               selectedSubject && selectedSubject.tasks && selectedSubject.tasks.map((task, index) => (
                 <Fade in timeout={500 + (index * 200)} key={index}>
-                  <Card 
-                    sx={{ 
-                      mb: 4, 
+                  <Card
+                    sx={{
+                      mb: 4,
                       overflow: 'hidden',
                       borderRadius: 4,
                       boxShadow: '0 15px 35px rgba(0,0,0,0.15)'
@@ -1139,11 +1148,11 @@ function TCFSimulatorOral() {
                     {/* En-tête de la tâche */}
                     <MDBox
                       sx={{
-                        background: task?.theme === 'immigration' 
+                        background: task?.theme === 'immigration'
                           ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                           : task?.theme === 'travail'
-                          ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                          : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                            ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                            : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
                         color: 'white',
                         p: 3
                       }}
@@ -1157,7 +1166,7 @@ function TCFSimulatorOral() {
                             Thème: {task?.theme || 'Général'}
                           </MDTypography>
                         </MDBox>
-                        
+
                         <MDBox display="flex" alignItems="center" gap={2}>
                           {examResults.taskResults && examResults.taskResults[index] && (
                             <Tooltip title="Votre niveau actuel" placement="top" arrow>
@@ -1208,14 +1217,14 @@ function TCFSimulatorOral() {
                         </MDBox>
                       </MDBox>
                     </MDBox>
-                    
+
                     <MDBox p={3}>
                       {/* Section avec deux colonnes: Votre réponse et Corrections proposées */}
                       <Grid container spacing={3}>
                         {/* Votre réponse */}
                         <Grid item xs={12} md={5}>
-                          <MDBox 
-                            p={3} 
+                          <MDBox
+                            p={3}
                             sx={{
                               background: '#f8f9fa',
                               borderRadius: 2,
@@ -1230,7 +1239,7 @@ function TCFSimulatorOral() {
                             </MDTypography>
                             <MDTypography variant="body2" color="text" lineHeight={1.8} component="div">
                               <div>
-                                {examResults.taskResults && examResults.taskResults[index] && examResults.taskResults[index].reponse ? 
+                                {examResults.taskResults && examResults.taskResults[index] && examResults.taskResults[index].reponse ?
                                   examResults.taskResults[index].reponse
                                     .split(' Candidat:')
                                     .slice(1)
@@ -1250,11 +1259,11 @@ function TCFSimulatorOral() {
                             </MDTypography>
                           </MDBox>
                         </Grid>
-                        
+
                         {/* Corrections proposées */}
                         <Grid item xs={12} md={7}>
-                          <MDBox 
-                            p={3} 
+                          <MDBox
+                            p={3}
                             sx={{
                               background: '#f0f9ff',
                               borderRadius: 2,
@@ -1267,9 +1276,9 @@ function TCFSimulatorOral() {
                             <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
                               Correction proposée :
                             </MDTypography>
-                            
+
                             {examResults.taskResults && examResults.taskResults[index] && examResults.taskResults[index].correction ? (
-                              <MDBox 
+                              <MDBox
                                 sx={{
                                   '& p': { margin: '8px 0', fontSize: '0.875rem', lineHeight: 1.8 },
                                   '& h1, & h2, & h3, & h4, & h5, & h6': { margin: '16px 0 8px 0', fontWeight: 'bold' },
@@ -1277,9 +1286,9 @@ function TCFSimulatorOral() {
                                   '& li': { margin: '4px 0' },
                                   '& strong': { fontWeight: 'bold' },
                                   '& em': { fontStyle: 'italic' },
-                                  '& code': { 
-                                    backgroundColor: '#f5f5f5', 
-                                    padding: '2px 4px', 
+                                  '& code': {
+                                    backgroundColor: '#f5f5f5',
+                                    padding: '2px 4px',
                                     borderRadius: '3px',
                                     fontSize: '0.85em'
                                   },
@@ -1320,10 +1329,10 @@ function TCFSimulatorOral() {
                                     Points forts
                                   </MDTypography>
                                 </MDBox>
-                                
-                                <Card 
-                                  sx={{ 
-                                    p: 3, 
+
+                                <Card
+                                  sx={{
+                                    p: 3,
                                     boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
                                     borderRadius: 3,
                                     background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
@@ -1335,10 +1344,10 @@ function TCFSimulatorOral() {
                                       {examResults.taskResults[index].pointsForts.map((point, i) => (
                                         <Fade in timeout={800 + (i * 200)} key={`task-${index}-fort-${i}`}>
                                           <MDBox component="li" display="flex" alignItems="flex-start" mb={2}>
-                                            <Avatar 
-                                              sx={{ 
-                                                width: 36, 
-                                                height: 36, 
+                                            <Avatar
+                                              sx={{
+                                                width: 36,
+                                                height: 36,
                                                 backgroundColor: '#10b981',
                                                 mr: 2,
                                                 mt: 0.5
@@ -1346,8 +1355,8 @@ function TCFSimulatorOral() {
                                             >
                                               <Icon sx={{ fontSize: 20, color: 'white' }}>check</Icon>
                                             </Avatar>
-                                            <MDTypography 
-                                              variant="body2" 
+                                            <MDTypography
+                                              variant="body2"
                                               sx={{
                                                 fontWeight: 500,
                                                 color: '#065f46',
@@ -1367,7 +1376,7 @@ function TCFSimulatorOral() {
                                   )}
                                 </Card>
                               </Grid>
-                              
+
                               {/* Points à améliorer */}
                               <Grid item xs={12} md={6}>
                                 <MDBox mb={2}>
@@ -1376,10 +1385,10 @@ function TCFSimulatorOral() {
                                     Points à améliorer
                                   </MDTypography>
                                 </MDBox>
-                                
-                                <Card 
-                                  sx={{ 
-                                    p: 3, 
+
+                                <Card
+                                  sx={{
+                                    p: 3,
                                     boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
                                     borderRadius: 3,
                                     background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
@@ -1391,10 +1400,10 @@ function TCFSimulatorOral() {
                                       {examResults.taskResults[index].pointsAmeliorer.map((point, i) => (
                                         <Fade in timeout={1000 + (i * 200)} key={`task-${index}-ameliorer-${i}`}>
                                           <MDBox component="li" display="flex" alignItems="flex-start" mb={2}>
-                                            <Avatar 
-                                              sx={{ 
-                                                width: 36, 
-                                                height: 36, 
+                                            <Avatar
+                                              sx={{
+                                                width: 36,
+                                                height: 36,
                                                 backgroundColor: '#f59e0b',
                                                 mr: 2,
                                                 mt: 0.5
@@ -1402,8 +1411,8 @@ function TCFSimulatorOral() {
                                             >
                                               <Icon sx={{ fontSize: 20, color: 'white' }}>trending_up</Icon>
                                             </Avatar>
-                                            <MDTypography 
-                                              variant="body2" 
+                                            <MDTypography
+                                              variant="body2"
                                               sx={{
                                                 fontWeight: 500,
                                                 color: '#92400e',
@@ -1455,7 +1464,7 @@ function TCFSimulatorOral() {
           },
         }}
       >
-        <DialogTitle sx={{ 
+        <DialogTitle sx={{
           background: retakeData?.error ? 'linear-gradient(90deg, #ef476f 0%, #d90429 100%)' : 'linear-gradient(90deg, #0077b6 0%, #023e8a 100%)',
           color: 'white',
           borderTopLeftRadius: '15px',
@@ -1463,8 +1472,8 @@ function TCFSimulatorOral() {
         }}>
           <MDTypography variant="h5" fontWeight="medium" color="white">
             {retakeData?.error === 'max_attempts' ? "Limite de tentatives atteinte" :
-             retakeData?.error === 'technical_error' ? "Erreur technique" :
-             "Refaire l'examen"}
+              retakeData?.error === 'technical_error' ? "Erreur technique" :
+                "Refaire l'examen"}
           </MDTypography>
         </DialogTitle>
         <DialogContent sx={{ p: 3, mt: 2 }}>
@@ -1491,9 +1500,9 @@ function TCFSimulatorOral() {
               <MDTypography variant="body1" mb={2}>
                 Vous êtes sur le point de refaire cet examen. Cette action sera comptabilisée comme une nouvelle tentative.
               </MDTypography>
-              <MDBox 
-                p={2} 
-                sx={{ 
+              <MDBox
+                p={2}
+                sx={{
                   backgroundColor: 'rgba(67, 97, 238, 0.05)',
                   borderRadius: '10px',
                   border: '1px solid rgba(67, 97, 238, 0.2)',
@@ -1534,6 +1543,44 @@ function TCFSimulatorOral() {
               Confirmer
             </MDButton>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Avertissement Mobile */}
+      <Dialog
+        open={openMobileWarning}
+        onClose={() => setOpenMobileWarning(false)}
+        aria-labelledby="mobile-warning-title"
+      >
+        <DialogTitle id="mobile-warning-title" sx={{ textAlign: 'center' }}>
+          <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
+            <Icon fontSize="large" color="warning">phonelink_off</Icon>
+            Appareil non compatible
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <MDBox display="flex" flexDirection="column" alignItems="center" py={1}>
+            <MDTypography variant="body2" align="center" mb={2}>
+              Pour garantir le bon fonctionnement de l'enregistrement vocal et de l'interaction avec l'examinateur IA, <strong>l'examen oral ne peut pas être passé sur un téléphone mobile.</strong>
+            </MDTypography>
+
+            <MDAlert color="info" sx={{ width: '100%', mb: 2 }}>
+              <MDTypography variant="caption" color="white" display="flex" alignItems="center" gap={1}>
+                <Icon fontSize="small">computer</Icon>
+                Veuillez vous connecter sur un ordinateur (PC ou Mac) pour passer cet examen.
+              </MDTypography>
+            </MDAlert>
+          </MDBox>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+          <MDButton
+            variant="gradient"
+            color="info"
+            onClick={() => setOpenMobileWarning(false)}
+            sx={{ minWidth: '120px' }}
+          >
+            J'ai compris
+          </MDButton>
         </DialogActions>
       </Dialog>
 
