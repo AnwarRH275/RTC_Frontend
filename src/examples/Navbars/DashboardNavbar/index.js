@@ -172,6 +172,9 @@ function DashboardNavbar({ absolute, light, isMini }) {
           borderRadius: 2,
           minWidth: 220,
           boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          top: '80px !important',
+          right: '40px !important',
+          left: 'auto !important',
         }
       }}
     >
@@ -260,6 +263,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
                 color="inherit"
                 sx={{
                   ...navbarMobileMenu,
+                  display: 'none',
                   '&:hover': {
                     backgroundColor: 'rgba(0,0,0,0.04)',
                     borderRadius: 2
@@ -279,9 +283,11 @@ function DashboardNavbar({ absolute, light, isMini }) {
                   ...navbarIconButton,
                   '&:hover': {
                     backgroundColor: 'rgba(0,0,0,0.04)',
-                    borderRadius: 2
+                    borderRadius: 2,
+                      display: 'none',
                   }
                 }}
+                
                 onClick={handleOpenNotificationMenu}
               >
                 <Badge 
@@ -291,11 +297,12 @@ function DashboardNavbar({ absolute, light, isMini }) {
                     '& .MuiBadge-badge': {
                       fontSize: '0.75rem',
                       height: 18,
-                      minWidth: 18
+                      minWidth: 18,
+                      display: 'none',
                     }
                   }}
                 >
-                  <Icon sx={iconsStyle}>notifications</Icon>
+                  {/* <Icon sx={iconsStyle}>notifications</Icon> */}
                 </Badge>
               </IconButton>
 

@@ -45,6 +45,7 @@ import MDButton from "components/MDButton";
 import TCFAdminService from "services/tcfAdminService";
 import authService from "services/authService";
 import attemptService from "services/attemptService";
+import { heIL } from "@mui/x-date-pickers";
 
 function TCFExamInterface() {
   const { subjectId } = useParams();
@@ -53,6 +54,9 @@ function TCFExamInterface() {
   const quillRef = useRef(null);
   const textareaRef = useRef(null);
   const { userInfo, loadUserInfo } = useInfoUser();
+
+  const backgroundGradient =
+    "linear-gradient(135deg, #a8e6cf 0%, #88d8c0 25%, #7fcdcd 50%, #81c7d4 75%, #88c5db 100%)";
 
   // États principaux
   const [subject, setSubject] = useState(null);
@@ -67,6 +71,35 @@ function TCFExamInterface() {
   const [showRetakeDialog, setShowRetakeDialog] = useState(false);
   const [attemptCount, setAttemptCount] = useState(0);
   const [fullscreenDocument, setFullscreenDocument] = useState(null);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const prev = {
+      background: document.body.style.background,
+      backgroundAttachment: document.body.style.backgroundAttachment,
+      backgroundRepeat: document.body.style.backgroundRepeat,
+      backgroundSize: document.body.style.backgroundSize,
+      backgroundPosition: document.body.style.backgroundPosition,
+      minHeight: document.body.style.minHeight,
+    };
+
+    document.body.style.background = backgroundGradient;
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.backgroundRepeat = "no-repeat";
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundPosition = "center";
+    document.body.style.minHeight = "100vh";
+
+    return () => {
+      document.body.style.background = prev.background;
+      document.body.style.backgroundAttachment = prev.backgroundAttachment;
+      document.body.style.backgroundRepeat = prev.backgroundRepeat;
+      document.body.style.backgroundSize = prev.backgroundSize;
+      document.body.style.backgroundPosition = prev.backgroundPosition;
+      document.body.style.minHeight = prev.minHeight;
+    };
+  }, [backgroundGradient]);
   
   // Caractères spéciaux disponibles
   const specialCharacters = [
@@ -455,27 +488,30 @@ function TCFExamInterface() {
     return (
       <MDBox 
         sx={{
-          minHeight: '100vh',
           background: 'linear-gradient(135deg, #a8e6cf 0%, #88d8c0 25%, #7fcdcd 50%, #81c7d4 75%, #88c5db 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          p: 3,
-          pl:25
+          p:8,
+          height: '100% ',
         }}
+        style={{         overflow: 'hidden',
+ }}
       >
         <Fade in timeout={1200}>
           <Card 
             sx={{ 
               maxWidth: 900, 
-              p: 6, 
-              paddingX: 8,
+              width: '50%',
+              p: 4, 
+              paddingX: 6,
               textAlign: 'center',
               borderRadius: 24,
+              marginHorizontal: '200px',
               boxShadow: '0 32px 64px rgba(0,0,0,0.12), 0 16px 32px rgba(0,0,0,0.08)',
-              overflow: 'hidden',
+              overflow: 'auto',
               position: 'relative',
-              maxHeight: '85vh',
+              minHeight: '110vh',
               background: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(20px)',
               border: '1px solid rgba(255, 255, 255, 0.2)'
@@ -493,17 +529,7 @@ function TCFExamInterface() {
             />
             
             <MDBox mb={2} mt={1}>
-              <Avatar 
-                sx={{ 
-                  width: 70, 
-                  height: 70, 
-                    background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)', 
-                  margin: '0 auto 12px',
-                  boxShadow: '0 8px 16px rgba(102, 126, 234, 0.25)'
-                }}
-              >
-                <Icon style={{fontSize: '32px !important'}} sx={{  color: 'white' }}>LibraryBooksOutlined</Icon>
-              </Avatar>
+            
               <MDTypography variant="h3" fontWeight="700" color="dark" mb={1} sx={{ fontSize: '2rem' }}>
                 {subject.name}
               </MDTypography>
@@ -586,7 +612,7 @@ function TCFExamInterface() {
           
             </MDBox>
             
-            <MDBox mt={1} mb={2}>
+            <MDBox mt={3} mb={2}>
               <MDButton 
                 variant="contained" 
                 color="info" 
@@ -600,15 +626,12 @@ function TCFExamInterface() {
                   fontWeight: '700',
                   borderRadius: 16,
                   background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
-                  boxShadow: '0 16px 32px rgba(249, 250, 251, 0.79)',
+                  boxShadow: '0 8px 24px rgba(79, 204, 231, 0.4)',
                   transition: 'all 0.3s ease',
-                  position: 'sticky',
-                  bottom: 0,
-                  zIndex: 10,
                   '&:hover': {
-                    background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
-                    boxShadow: '0 20px 40px rgba(249, 250, 251, 0.79)',
-                    transform: 'translateY(-3px) scale(1.02)'
+                    background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
+                    boxShadow: '0 12px 32px rgba(79, 204, 231, 0.5)',
+                    transform: 'translateY(-2px)'
                   }
                 }}
               >

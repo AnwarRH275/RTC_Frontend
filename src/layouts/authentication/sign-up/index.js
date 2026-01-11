@@ -233,18 +233,22 @@ function Cover() {
     <Box
       sx={{
         minHeight: "100vh",
+        width: "100%",
         backgroundImage: `url(${bgImages[currentImageIndex]})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed", // Fixe l'arrière-plan pendant le scroll
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
+        backgroundAttachment: "fixed",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: "auto",
         transition: "background-image 1s ease-in-out",
         "&::before": {
           content: '""',
-          position: "fixed", // Change de absolute à fixed pour que l'overlay reste en place
+          position: "fixed",
           top: 0,
           left: 0,
           right: 0,
@@ -254,6 +258,14 @@ function Cover() {
         }
       }}
     >
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          position: "relative"
+        }}
+      >
       {/* Header officiel */}
       <Box sx={{ position: "relative", zIndex: 2 }}>
         <OfficialHeader />
@@ -1145,6 +1157,7 @@ function Cover() {
           {error}
         </Alert>
       </Snackbar>
+      </Box>
     </Box>
   );
 }

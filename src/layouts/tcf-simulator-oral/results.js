@@ -32,7 +32,8 @@ import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import { keyframes } from "@mui/system";
-import { alpha } from "@mui/material/styles";
+import { alpha, styled } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
@@ -43,13 +44,34 @@ import MDButton from "components/MDButton";
 import TCFAdminService from "services/tcfAdminService";
 import authService from "services/authService";
 import { Paper } from "@mui/material";
+import tcfCanadaLogo from 'assets/logo-tfc-canada.png';
 
-// Animation CSS pour le chargement
-const spinAnimation = keyframes`
+// Animations pour le logo de chargement
+const breatheAnimation = keyframes`
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+`;
+
+const shimmerAnimation = keyframes`
   0% {
-    transform: rotate(0deg);
+    background-position: -200% 0;
   }
   100% {
+    background-position: 200% 0;
+  }
+`;
+
+const rotateRing = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
     transform: rotate(360deg);
   }
 `;
@@ -64,6 +86,119 @@ const pulseAnimation = keyframes`
     transform: scale(1.05);
   }
 `;
+
+// Container moderne pour le logo de chargement
+const LogoLoader = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  padding: '20px',
+  
+  '& .logo-container': {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 260,
+    height: 260,
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  
+  '& .logo-ring': {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: '50%',
+    border: '4px solid transparent',
+    borderTopColor: 'rgba(66, 153, 225, 0.9)',
+    borderRightColor: 'rgba(49, 130, 206, 0.5)',
+    animation: `${rotateRing} 2s linear infinite`,
+    zIndex: 1,
+  },
+  
+  '& .logo-ring-2': {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: '50%',
+    border: '3px solid transparent',
+    borderBottomColor: 'rgba(99, 179, 237, 0.7)',
+    borderLeftColor: 'rgba(66, 153, 225, 0.4)',
+    animation: `${rotateRing} 3s linear infinite reverse`,
+    zIndex: 0,
+  },
+  
+  '& .logo-image': {
+    width: 150,
+    height: 'auto',
+    animation: `${breatheAnimation} 2.5s ease-in-out infinite`,
+    filter: 'drop-shadow(0 12px 32px rgba(66, 153, 225, 0.35))',
+    zIndex: 2,
+    position: 'relative',
+  },
+  
+  '@media (max-width: 600px)': {
+    '& .logo-container': {
+      width: 160,
+      height: 160,
+      marginTop: 8,
+      marginBottom: 16,
+    },
+    '& .logo-ring': {
+      width: 140,
+      height: 140,
+    },
+    '& .logo-ring-2': {
+      width: 170,
+      height: 170,
+    },
+    '& .logo-image': {
+      width: 100,
+    },
+  },  
+  '& .loading-text': {
+    marginBottom: 12,
+    fontSize: '1.6rem',
+    fontWeight: 700,
+    color: '#1A365D',
+    letterSpacing: '1px',
+    textAlign: 'center',
+  },
+  
+  '& .loading-subtext': {
+    marginBottom: 20,
+    fontSize: '1.1rem',
+    fontWeight: 500,
+    color: '#4A5568',
+    background: 'linear-gradient(90deg, #4A5568 0%, #4299E1 50%, #4A5568 100%)',
+    backgroundSize: '200% 100%',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    animation: `${shimmerAnimation} 2s linear infinite`,
+  },
+  
+  '& .dots': {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '8px',
+    marginTop: 20,
+    
+    '& span': {
+      width: 12,
+      height: 12,
+      borderRadius: '50%',
+      backgroundColor: '#4299E1',
+      animation: `${breatheAnimation} 1.4s ease-in-out infinite`,
+      
+      '&:nth-of-type(1)': { animationDelay: '0s' },
+      '&:nth-of-type(2)': { animationDelay: '0.2s' },
+      '&:nth-of-type(3)': { animationDelay: '0.4s' },
+    }
+  }
+}));
 
 function TCFResultsInterface() {
   const { subjectId } = useParams();
@@ -529,13 +664,20 @@ function TCFResultsInterface() {
     return (
       <MDBox 
         sx={{
-          minHeight: '100vh',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
           background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          p: 3
+          p: 3,
+          overflow: 'auto'
         }}
       >
         <Fade in timeout={1000}>
@@ -552,54 +694,33 @@ function TCFResultsInterface() {
             }}
           >
             <MDBox mb={4} mt={1}>
-              <Box
-                sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(45deg, #667eea, #764ba2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 24px',
-                  animation: `${pulseAnimation} 2s ease-in-out infinite`,
-                  boxShadow: '0 8px 32px rgba(102, 126, 234, 0.4)'
-                }}
-              >
-                <Icon sx={{ fontSize: 40, color: 'white' }}>auto_fix_high</Icon>
-              </Box>
+              <LogoLoader>
+                <Typography className="loading-text">
+                  Correction en cours...
+                </Typography>
+                <Typography className="loading-subtext">
+                  Analyse de vos réponses
+                </Typography>
+                
+                <Box className="logo-container"> 
+                  <Box className="logo-ring-2" />
+                  <Box className="logo-ring" />
+                  <Box 
+                    component="img" 
+                    src={tcfCanadaLogo} 
+                    alt="TCF Canada" 
+                    className="logo-image"
+                  />
+                </Box>
+               
+                <Box className="dots">
+                  <span />
+                  <span />
+                  <span />
+                </Box>
+              </LogoLoader>
               
-              <MDTypography variant="h3" fontWeight="bold" color="dark" mb={1}>
-                Correction en cours...
-              </MDTypography>
-              <MDTypography variant="body1" color="text" mb={4}>
-                Nous analysons vos réponses et préparons
-                <br />
-                votre évaluation personnalisée.
-              </MDTypography>
-              
-              <MDBox 
-                sx={{
-                  height: '200px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  mb: 3
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 120,
-                    height: 120,
-                    border: '8px solid #f3f3f3',
-                    borderTop: '8px solid #667eea',
-                    borderRadius: '50%',
-                    animation: `${spinAnimation} 1s linear infinite`
-                  }}
-                />
-              </MDBox>
-              
-              <MDTypography variant="body2" color="text" fontStyle="italic">
+              <MDTypography variant="body2" color="text" fontStyle="italic" mt={3}>
                 Cela peut prendre environ 60 secondes...
               </MDTypography>
               
@@ -618,13 +739,20 @@ function TCFResultsInterface() {
     return (
       <MDBox 
         sx={{
-          minHeight: '100vh',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100vh',
           background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           p: 3,
-          pl:25
+          pl:25,
+          overflow: 'auto'
         }}
       >
         <Card 
@@ -699,9 +827,18 @@ function TCFResultsInterface() {
   return (
     <MDBox 
       sx={{
-        minHeight: '100vh',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100vh',
         background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
-        py: 4
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'auto'
       }}
     >
       <Dialog
@@ -1091,140 +1228,156 @@ function TCFResultsInterface() {
                           {/* Points forts et à améliorer pour cette tâche */}
                           <Grid item xs={12}>
                             <MDBox mt={3}>
-                              <Grid container spacing={3}>
-                                {/* Points forts */}
-                                <Grid item xs={12} md={6}>
-                                  <MDBox mb={2}>
-                                    <MDTypography variant="h6" fontWeight="bold" color="dark">
-                                      <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#10b981' }}>recommend</Icon>
-                                      Points forts
-                                    </MDTypography>
-                                  </MDBox>
+                              {/* Afficher un message si les deux listes sont vides */}
+                              {(pointsForts.length === 0 && pointsAmeliorer.length === 0) ? (
+                                <Card 
+                                  sx={{ 
+                                    p: 4, 
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                    borderRadius: 3,
+                                    background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                                    textAlign: 'center'
+                                  }}
+                                >
+                                 
+                                  <MDTypography variant="h6" fontWeight="bold" color="dark" mb={1}>
+                                    Aucun résultat disponible
+                                  </MDTypography>
                                   
-                                  <Card 
-                                    sx={{ 
-                                      p: 3, 
-                                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                                      borderRadius: 3,
-                                      background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                                      border: '1px solid rgba(16, 185, 129, 0.2)'
-                                    }}
-                                  >
-                                    <List>
-                                      {/* Afficher les points forts traduits s'ils existent, sinon afficher les originaux */}
-                                      {(taskData.pointsFortsTraduit && taskData.pointsFortsTraduit.length > 0 ? taskData.pointsFortsTraduit : pointsForts).map((point, pointIndex) => (
-                                        <Fade in timeout={800 + (pointIndex * 200)} key={pointIndex}>
-                                          <ListItem sx={{ px: 0 }}>
-                                            <ListItemIcon>
-                                              <Avatar 
-                                                sx={{ 
-                                                  width: 36, 
-                                                  height: 36, 
-                                                  backgroundColor: '#10b981'
-                                                }}
-                                              >
-                                                <Icon sx={{ fontSize: 20, color: 'white' }}>check</Icon>
-                                              </Avatar>
-                                            </ListItemIcon>
-                                            <ListItemText 
-                                              primary={point}
-                                              primaryTypographyProps={{
-                                                fontWeight: 500,
-                                                color: '#065f46'
-                                              }}
-                                            />
-                                          </ListItem>
-                                        </Fade>
-                                      )) || (
-                                        <MDTypography variant="body2" color="text" textAlign="center">
-                                          Aucun point fort identifié.
+                                </Card>
+                              ) : (
+                                <Grid container spacing={3}>
+                                  {/* Points forts */}
+                                  {pointsForts.length > 0 && (
+                                    <Grid item xs={12} md={pointsAmeliorer.length > 0 ? 6 : 12}>
+                                      <MDBox mb={2}>
+                                        <MDTypography variant="h6" fontWeight="bold" color="dark">
+                                          <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#10b981' }}>recommend</Icon>
+                                          Points forts
                                         </MDTypography>
-                                      )}
-                                    </List>
-                                  </Card>
-                                </Grid>
-                                
-                                {/* Points à améliorer */}
-                                <Grid item xs={12} md={6}>
-                                  <MDBox mb={2} display="flex" justifyContent="space-between" alignItems="center">
-                                    <MDTypography variant="h6" fontWeight="bold" color="dark">
-                                      <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#f59e0b' }}>trending_up</Icon>
-                                      Points à améliorer
-                                    </MDTypography>
-                                    
-                                    {/* Bouton de traduction à droite du titre */}
-                                    {(pointsForts.length > 0 || pointsAmeliorer.length > 0) && (
-                                      <Tooltip title="Traduire les commentaires de cette tâche" arrow placement="top">
-                                        <MDButton
-                                          variant="outlined"
-                                          color="info"
-                                          size="small"
-                                          onClick={() => {
-                                            setCurrentTaskToTranslate(index);
-                                            setTranslationOpen(true);
-                                          }}
-                                          sx={{
-                                            borderRadius: 2,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 1,
-                                            transition: 'all 0.2s ease',
-                                            '&:hover': {
-                                              transform: 'translateY(-2px)',
-                                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                                            }
-                                          }}
-                                        >
-                                          <Icon>translate</Icon>
-                                          TRADUIRE
-                                        </MDButton>
-                                      </Tooltip>
-                                    )}
-                                  </MDBox>
+                                      </MDBox>
+                                      
+                                      <Card 
+                                        sx={{ 
+                                          p: 3, 
+                                          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                          borderRadius: 3,
+                                          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                                          border: '1px solid rgba(16, 185, 129, 0.2)'
+                                        }}
+                                      >
+                                        <List>
+                                          {/* Afficher les points forts traduits s'ils existent, sinon afficher les originaux */}
+                                          {(taskData.pointsFortsTraduit && taskData.pointsFortsTraduit.length > 0 ? taskData.pointsFortsTraduit : pointsForts).map((point, pointIndex) => (
+                                            <Fade in timeout={800 + (pointIndex * 200)} key={pointIndex}>
+                                              <ListItem sx={{ px: 0 }}>
+                                                <ListItemIcon>
+                                                  <Avatar 
+                                                    sx={{ 
+                                                      width: 36, 
+                                                      height: 36, 
+                                                      backgroundColor: '#10b981'
+                                                    }}
+                                                  >
+                                                    <Icon sx={{ fontSize: 20, color: 'white' }}>check</Icon>
+                                                  </Avatar>
+                                                </ListItemIcon>
+                                                <ListItemText 
+                                                  primary={point}
+                                                  primaryTypographyProps={{
+                                                    fontWeight: 500,
+                                                    color: '#065f46'
+                                                  }}
+                                                />
+                                              </ListItem>
+                                            </Fade>
+                                          ))}
+                                        </List>
+                                      </Card>
+                                    </Grid>
+                                  )}
                                   
-                                  <Card 
-                                    sx={{ 
-                                      p: 3, 
-                                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                                      borderRadius: 3,
-                                      background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                                      border: '1px solid rgba(245, 158, 11, 0.2)'
-                                    }}
-                                  >
-                                    <List>
-                                      {/* Afficher les points à améliorer traduits s'ils existent, sinon afficher les originaux */}
-                                      {(taskData.pointsAmeliorerTraduit && taskData.pointsAmeliorerTraduit.length > 0 ? taskData.pointsAmeliorerTraduit : pointsAmeliorer).map((point, pointIndex) => (
-                                        <Fade in timeout={1000 + (pointIndex * 200)} key={pointIndex}>
-                                          <ListItem sx={{ px: 0 }}>
-                                            <ListItemIcon>
-                                              <Avatar 
-                                                sx={{ 
-                                                  width: 36, 
-                                                  height: 36, 
-                                                  backgroundColor: '#f59e0b'
-                                                }}
-                                              >
-                                                <Icon sx={{ fontSize: 20, color: 'white' }}>trending_up</Icon>
-                                              </Avatar>
-                                            </ListItemIcon>
-                                            <ListItemText 
-                                              primary={point}
-                                              primaryTypographyProps={{
-                                                fontWeight: 500,
-                                                color: '#92400e'
-                                              }}
-                                            />
-                                          </ListItem>
-                                        </Fade>
-                                      )) || (
-                                        <MDTypography variant="body2" color="text" textAlign="center">
-                                          Aucun point d'amélioration identifié.
+                                  {/* Points à améliorer */}
+                                  {pointsAmeliorer.length > 0 && (
+                                    <Grid item xs={12} md={pointsForts.length > 0 ? 6 : 12}>
+                                      <MDBox mb={2} display="flex" justifyContent="space-between" alignItems="center">
+                                        <MDTypography variant="h6" fontWeight="bold" color="dark">
+                                          <Icon sx={{ mr: 1, verticalAlign: 'middle', color: '#f59e0b' }}>trending_up</Icon>
+                                          Points à améliorer
                                         </MDTypography>
-                                      )}
-                                    </List>
-                                  </Card>
+                                        
+                                        {/* Bouton de traduction à droite du titre */}
+                                        {(pointsForts.length > 0 || pointsAmeliorer.length > 0) && (
+                                          <Tooltip title="Traduire les commentaires de cette tâche" arrow placement="top">
+                                            <MDButton
+                                              variant="outlined"
+                                              color="info"
+                                              size="small"
+                                              onClick={() => {
+                                                setCurrentTaskToTranslate(index);
+                                                setTranslationOpen(true);
+                                              }}
+                                              sx={{
+                                                borderRadius: 2,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 1,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                  transform: 'translateY(-2px)',
+                                                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                                }
+                                              }}
+                                            >
+                                              <Icon>translate</Icon>
+                                              TRADUIRE
+                                            </MDButton>
+                                          </Tooltip>
+                                        )}
+                                      </MDBox>
+                                      
+                                      <Card 
+                                        sx={{ 
+                                          p: 3, 
+                                          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                                          borderRadius: 3,
+                                          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                                          border: '1px solid rgba(245, 158, 11, 0.2)'
+                                        }}
+                                      >
+                                        <List>
+                                          {/* Afficher les points à améliorer traduits s'ils existent, sinon afficher les originaux */}
+                                          {(taskData.pointsAmeliorerTraduit && taskData.pointsAmeliorerTraduit.length > 0 ? taskData.pointsAmeliorerTraduit : pointsAmeliorer).map((point, pointIndex) => (
+                                            <Fade in timeout={1000 + (pointIndex * 200)} key={pointIndex}>
+                                              <ListItem sx={{ px: 0 }}>
+                                                <ListItemIcon>
+                                                  <Avatar 
+                                                    sx={{ 
+                                                      width: 36, 
+                                                      height: 36, 
+                                                      backgroundColor: '#f59e0b'
+                                                    }}
+                                                  >
+                                                    <Icon sx={{ fontSize: 20, color: 'white' }}>trending_up</Icon>
+                                                  </Avatar>
+                                                </ListItemIcon>
+                                                <ListItemText 
+                                                  primary={point}
+                                                  primaryTypographyProps={{
+                                                    fontWeight: 500,
+                                                    color: '#92400e'
+                                                  }}
+                                                />
+                                              </ListItem>
+                                            </Fade>
+                                          ))}
+                                        </List>
+                                      </Card>
+                                    </Grid>
+                                  )}
                                 </Grid>
-                              </Grid>
+                              )}
                             </MDBox>
                           </Grid>
                         </Grid>
@@ -1242,7 +1395,18 @@ function TCFResultsInterface() {
 
         {/* Boutons d'action */}
         <Fade in timeout={2000}>
-          <MDBox textAlign="center" mt={4} sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
+          <MDBox 
+            mt={4} 
+            sx={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              justifyContent: 'center', 
+              alignItems: 'center',
+              gap: 2,
+              width: '100%',
+              px: 2
+            }}
+          >
             <MDButton 
               variant="contained" 
               color="primary" 
@@ -1251,6 +1415,7 @@ function TCFResultsInterface() {
               sx={{
                 background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
                 boxShadow: '0 4px 15px rgba(25, 118, 210, 0.4)',
+                minWidth: '220px',
                 '&:hover': {
                   background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
                   transform: 'translateY(-2px)',
@@ -1270,6 +1435,7 @@ function TCFResultsInterface() {
               sx={{
                 background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
                 boxShadow: '0 4px 15px rgba(46, 125, 50, 0.4)',
+                minWidth: '280px',
                 '&:hover': {
                   background: 'linear-gradient(135deg, #1b5e20 0%, #0d4f14 100%)',
                   transform: 'translateY(-2px)',

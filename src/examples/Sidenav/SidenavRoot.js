@@ -81,6 +81,10 @@ export default styled(Drawer)(({ theme, ownerState }) => {
       backdropFilter: "blur(20px)",
       WebkitBackdropFilter: "blur(20px)",
       borderRadius: "0 20px 20px 0",
+      height: "120vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
 
       ...(miniSidenav ? drawerCloseStyles() : drawerOpenStyles()),
     },

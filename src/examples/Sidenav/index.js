@@ -160,7 +160,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
       variant="permanent"
       ownerState={{ transparentSidenav, whiteSidenav, miniSidenav, darkMode }}
     >
-      <MDBox pt={2} pb={1} px={6} textAlign="center">
+      <MDBox pt={1.5} pb={0.5} px={6} textAlign="center">
         <MDBox
           display={{ xs: "block", xl: "none" }}
           position="absolute"
@@ -237,8 +237,8 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
           (darkMode && !transparentSidenav && whiteSidenav)
         }
       />
-      <List>{renderRoutes}</List>
-      <MDBox p={miniSidenav ? 1 : 2} mt="auto">
+      <List sx={{ flex: 1, overflowY: "auto", overflowX: "hidden", py: 0 }}>{renderRoutes}</List>
+      <MDBox p={miniSidenav ? 1 : 1.5}>
         <MDBox sx={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -249,8 +249,8 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
           {userInfo && (
             <MDBox sx={{
               width: '100%',
-              mb: 2,
-              p: miniSidenav ? 0.5 : 1.5,
+              mb: 1,
+              p: miniSidenav ? 0.5 : 1,
               borderRadius: miniSidenav ? '8px' : '12px',
               background: 'linear-gradient(135deg, rgba(79, 204, 231, 0.1) 0%, rgba(0, 131, 176, 0.1) 100%)',
               border: '1px solid rgba(74, 144, 226, 0.2)',
@@ -262,7 +262,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
                   color={textColor}
                   fontWeight="medium"
                   textTransform="uppercase"
-                  sx={{ opacity: 0.8, mb: 1.2, fontSize: '0.95rem', justifyContent:'center', alignItems:'center', display:'flex' }}
+                  sx={{ opacity: 0.8, mb: 0.5, fontSize: '0.85rem', justifyContent:'center', alignItems:'center', display:'flex' }}
                 >
                   Plan actuel
                 </MDTypography>
@@ -275,7 +275,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: miniSidenav ? 1 : 2,
-                padding: miniSidenav ? '8px' : '16px',
+                padding: miniSidenav ? '6px' : '12px',
                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
                 borderRadius: miniSidenav ? '8px' : '12px',
                 border: '1px solid rgba(255, 255, 255, 0.1)'
@@ -332,8 +332,8 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
                   
                   <Tooltip title={`${Math.round((userInfo.sold / userInfo.total_sold) * 100) || 0}% - ${userInfo.sold || 0}/${userInfo.total_sold || 0} usages`} placement="top" arrow>
                     <Box sx={{
-                      width: miniSidenav ? '55px' : '65px',
-                      height: miniSidenav ? '55px' : '65px',
+                      width: miniSidenav ? '50px' : '60px',
+                      height: miniSidenav ? '50px' : '60px',
                       borderRadius: '50%',
                       background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
                       display: 'flex',
@@ -393,8 +393,8 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
               color="primary"
               fullWidth
               sx={{
-                fontSize: miniSidenav ? '0.65rem' : '0.75rem',
-                padding: miniSidenav ? '0.5rem 0.5rem' : '0.75rem 1.25rem',
+                fontSize: miniSidenav ? '0.65rem' : '0.7rem',
+                padding: miniSidenav ? '0.4rem 0.4rem' : '0.6rem 1rem',
                 whiteSpace: 'nowrap',
                 minWidth: 0,
                 overflow: 'hidden',

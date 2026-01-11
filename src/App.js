@@ -166,6 +166,33 @@ function AppContent() {
     document.body.setAttribute("dir", direction);
   }, [direction]);
 
+  // Responsive zoom pour les petits écrans
+  useEffect(() => {
+    const updateZoom = () => {
+      const width = window.innerWidth;
+      let zoomLevel = 1;
+      
+      if (width <= 1280) {
+        zoomLevel = 0.8; // 80% pour écrans <= 1280px
+      } else if (width <= 1440) {
+        zoomLevel = 0.85; // 85% pour écrans entre 1280 et 1440px
+      } else if (width <= 1680) {
+        zoomLevel = 0.9; // 90% pour écrans entre 1440 et 1680px
+      } else {
+        zoomLevel = 1; // 100% pour grands écrans
+      }
+      
+      document.body.style.zoom = `${zoomLevel * 90}%`;
+      document.body.style.overflowX = 'hidden';
+      document.documentElement.style.overflowX = 'hidden';
+    };
+    
+    updateZoom();
+    window.addEventListener('resize', updateZoom);
+    
+    return () => window.removeEventListener('resize', updateZoom);
+  }, []);
+
   // Setting page scroll to 0 when changing the route
   useEffect(() => {
     document.documentElement.scrollTop = 0;

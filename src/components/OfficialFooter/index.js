@@ -31,10 +31,7 @@ function OfficialFooter() {
       {/* Left side - Copyright */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
         <Typography variant="body2" sx={{ color: "#00ccff", fontSize: "0.875rem", fontWeight: "500" }}>
-          Réussir TCF Canada LTD. © 2025
-        </Typography>
-        <Typography variant="body2" sx={{ color: "#333", fontSize: "0.875rem", fontWeight: "500" }}>
-          | Tous les droits sont réservés.
+          Réussir TCF Canada LTD. © 2026  | Tous les droits sont réservés
         </Typography>
       </Box>
 

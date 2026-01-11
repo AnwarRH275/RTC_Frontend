@@ -91,60 +91,54 @@ function ordersTableData(orders, { show, cancel, refund }) {
       </MDTypography>
     ),
     actions: (
-      <MDBox display="flex" justifyContent="center" gap={1}>
-        <Tooltip title="Voir détails">
-          <IconButton
-            style={{ color: "white" }}
-            size="small"
-            color="info"
-            onClick={() => show(order)}
-            sx={{
-              background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
-              color: "white",
-              "&:hover": {
-                background: "linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))",
-              },
-            }}
-          >
-            <Visibility fontSize="small" />
-          </IconButton>
-        </Tooltip>
+      <MDBox display="flex" justifyContent="center" alignItems="center" gap={1}>
+        <IconButton
+          style={{ color: "white" }}
+          size="small"
+          color="info"
+          onClick={() => show(order)}
+          sx={{
+            background: "linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)",
+            color: "white",
+            "&:hover": {
+              background: "linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))",
+            },
+          }}
+        >
+          <Visibility fontSize="small" />
+        </IconButton>
         {order.status === "paid" && (
           <>
-            <Tooltip title="Annuler commande">
-              <IconButton
-                style={{ color: "white" }}
-                size="small"
-                color="error"
-                onClick={() => cancel(order)}
-                sx={{
-                  background: "linear-gradient(135deg, #FF512F, #DD2476)",
-                  color: "white",
-                  "&:hover": {
-                    background: "linear-gradient(135deg, #DF412F, #BD1456)",
-                  },
-                }}
-              >
-                <Cancel fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Rembourser">
-              <IconButton
-                style={{ color: "white" }}
-                size="small"
-                color="success"
-                onClick={() => refund(order)}
-                sx={{
-                  background: "linear-gradient(135deg, #2ECC71, #27AE60)",
-                  color: "white",
-                  "&:hover": {
-                    background: "linear-gradient(135deg, #27AE60, #229954)",
-                  },
-                }}
-              >
-                <Undo fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <IconButton
+              style={{ color: "white" }}
+              size="small"
+              color="error"
+              onClick={() => cancel(order)}
+              sx={{
+                background: "linear-gradient(135deg, #FF512F, #DD2476)",
+                color: "white",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #DF412F, #BD1456)",
+                },
+              }}
+            >
+              <Cancel fontSize="small" />
+            </IconButton>
+            <IconButton
+              style={{ color: "white" }}
+              size="small"
+              color="success"
+              onClick={() => refund(order)}
+              sx={{
+                background: "linear-gradient(135deg, #2ECC71, #27AE60)",
+                color: "white",
+                "&:hover": {
+                  background: "linear-gradient(135deg, #27AE60, #229954)",
+                },
+              }}
+            >
+              <Undo fontSize="small" />
+            </IconButton>
           </>
         )}
       </MDBox>

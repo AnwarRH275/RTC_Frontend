@@ -464,7 +464,7 @@ function FinancialManagement() {
                   color="dark"
                   icon="weekend"
                   title="Total Revenue"
-                  count={statistics.totalRevenue}
+                  count={typeof statistics.totalRevenue === 'number' ? statistics.totalRevenue.toFixed(2) : statistics.totalRevenue}
                   percentage={{
                     color: "success",
                     amount: "+55%",
@@ -493,7 +493,7 @@ function FinancialManagement() {
                   color="success"
                   icon="store"
                   title="Average Order Value"
-                  count={statistics.averageOrderValue}
+                  count={typeof statistics.averageOrderValue === 'number' ? statistics.averageOrderValue.toFixed(2) : statistics.averageOrderValue}
                   percentage={{
                     color: "success",
                     amount: "+1%",

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { styled } from '@mui/material/styles';
 import {
   Box,
   Typography,
@@ -51,6 +52,124 @@ import { useExamState } from './hooks/useExamState';
 import { useTaskState } from './hooks/useTaskState';
 import { useChatState } from './hooks/useChatState';
 import { generateAudio } from './utils/audioUtils';
+import tcfCanadaLogo from 'assets/logo-tfc-canada.png';
+
+// Animations pour le logo de chargement
+const breatheAnimation = keyframes`
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+`;
+
+const shimmerAnimation = keyframes`
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+`;
+
+const rotateRing = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+// Container moderne pour le logo de chargement
+const LogoLoader = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  padding: '40px',
+  
+  '& .logo-container': {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  
+  '& .logo-ring': {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: '50%',
+    border: '4px solid transparent',
+    borderTopColor: 'rgba(66, 153, 225, 0.9)',
+    borderRightColor: 'rgba(49, 130, 206, 0.5)',
+    animation: `${rotateRing} 2s linear infinite`,
+  },
+  
+  '& .logo-ring-2': {
+    position: 'absolute',
+    width: 230,
+    height: 230,
+    borderRadius: '50%',
+    border: '3px solid transparent',
+    borderBottomColor: 'rgba(99, 179, 237, 0.7)',
+    borderLeftColor: 'rgba(66, 153, 225, 0.4)',
+    animation: `${rotateRing} 3s linear infinite reverse`,
+  },
+  
+  '& .logo-image': {
+    width: 150,
+    height: 'auto',
+    animation: `${breatheAnimation} 2.5s ease-in-out infinite`,
+    filter: 'drop-shadow(0 12px 32px rgba(66, 153, 225, 0.35))',
+    zIndex: 2,
+  },
+  
+  '& .loading-text': {
+    marginTop: 50,
+    fontSize: '1.6rem',
+    fontWeight: 700,
+    color: '#1A365D',
+    letterSpacing: '1px',
+    textAlign: 'center',
+  },
+  
+  '& .loading-subtext': {
+    marginTop: 16,
+    fontSize: '1.1rem',
+    fontWeight: 500,
+    color: '#4A5568',
+    background: 'linear-gradient(90deg, #4A5568 0%, #4299E1 50%, #4A5568 100%)',
+    backgroundSize: '200% 100%',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    animation: `${shimmerAnimation} 2s linear infinite`,
+  },
+  
+  '& .dots': {
+    display: 'inline-flex',
+    gap: '6px',
+    marginLeft: '8px',
+    
+    '& span': {
+      width: 10,
+      height: 10,
+      borderRadius: '50%',
+      backgroundColor: '#4299E1',
+      animation: `${breatheAnimation} 1.4s ease-in-out infinite`,
+      
+      '&:nth-of-type(1)': { animationDelay: '0s' },
+      '&:nth-of-type(2)': { animationDelay: '0.2s' },
+      '&:nth-of-type(3)': { animationDelay: '0.4s' },
+    }
+  }
+}));
 
 const TCFOralExam = () => {
   const { subjectId } = useParams();
@@ -138,6 +257,10 @@ const TCFOralExam = () => {
   const [micTestTranscript, setMicTestTranscript] = useState('');
   const [micTestRecording, setMicTestRecording] = useState(false);
   const micTestRecognitionRef = useRef(null);
+  // Confirmation de sortie avant redirection (débit du solde)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  // Empêcher la réouverture automatique du dialog micro lors d'une reprise volontaire
+  const [suppressMicAutoDialog, setSuppressMicAutoDialog] = useState(false);
 
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -1026,7 +1149,7 @@ const TCFOralExam = () => {
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Overlay transparent pour bloquer les interactions utilisateur */}
+        {/* Overlay transparent pour bloquer les interactions utilisateur sauf si une modal est ouverte */}
         <Box sx={{
           position: 'absolute',
           top: 0,
@@ -1034,8 +1157,9 @@ const TCFOralExam = () => {
           right: 0,
           bottom: 0,
           backgroundColor: 'transparent',
-          zIndex: 9999,
-          pointerEvents: 'all'
+          // Ne pas bloquer les clics si le test micro ou la confirmation sont ouverts
+          zIndex: (showMicTestDialog || showCancelConfirm) ? 0 : 9999,
+          pointerEvents: (showMicTestDialog || showCancelConfirm) ? 'none' : 'all'
 
         }} />
         {/* Effet de particules en arrière-plan */}
@@ -1516,13 +1640,21 @@ const TCFOralExam = () => {
 
         // Vérifier si l'utilisateur n'a pas parlé (aucune transcription accumulée)
         if (isRecordingRef.current && accumulatedTranscriptRef.current.trim() === '') {
-          console.log('🎤 Aucune parole détectée - Affichage de la popup d\'aide');
+          console.log('🎤 Aucune parole détectée - gestion auto-dialogue microphone');
           // Arrêter l'enregistrement
           handleStopRecording();
-          // Afficher la popup de test du microphone pour aider l'utilisateur
-          setShowMicTestDialog(true);
-          setMicTestStatus('idle');
-          setMicTestTranscript('');
+
+          // Si la popup a été ouverte volontairement via "Reprendre", ne pas la rouvrir automatiquement
+          if (!suppressMicAutoDialog) {
+            // Afficher la popup de test du microphone pour aider l'utilisateur
+            setShowMicTestDialog(true);
+            setMicTestStatus('idle');
+            setMicTestTranscript('');
+          } else {
+            // Réinitialiser le drapeau de suppression après l'action volontaire
+            setSuppressMicAutoDialog(false);
+          }
+
           return; // Ne pas redémarrer la reconnaissance
         }
 
@@ -2631,15 +2763,35 @@ const TCFOralExam = () => {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <DashboardNavbar />
-        <MDBox p={3}>
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-            <Box textAlign="center">
-              <LinearProgress sx={{ width: 300, mb: 2 }} />
-              <Typography>Chargement de l'examen...</Typography>
-            </Box>
+        <Box p={3}>
+          <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="70vh">
+            <LogoLoader>
+              <Box className="logo-container">
+                <Box className="logo-ring-2" />
+                <Box className="logo-ring" />
+                <Box 
+                  component="img" 
+                  src={tcfCanadaLogo} 
+                  alt="TCF Canada" 
+                  className="logo-image"
+                />
+              </Box>
+              <Typography className="loading-text">
+                Chargement de l'examen
+              </Typography>
+              <Box display="flex" alignItems="center">
+                <Typography className="loading-subtext">
+                  Initialisation en cours
+                </Typography>
+                <Box className="dots">
+                  <span />
+                  <span />
+                  <span />
+                </Box>
+              </Box>
+            </LogoLoader>
           </Box>
-        </MDBox>
+        </Box>
       </DashboardLayout>
     );
   }
@@ -2909,29 +3061,39 @@ const TCFOralExam = () => {
               {canProceed && (
                 <Button
                   variant="contained"
-                  color="primary"
                   onClick={handleNextInteraction}
                   startIcon={currentInteraction < currentTask.interactions.length - 1 ?
                     <PlayArrow /> :
                     currentTaskIndex < examData.tasks.length - 1 ?
                       <PlayArrow /> : <CheckCircle />}
+                  sx={{
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #0083b0 0%, #00b4db 100%)',
+                    boxShadow: '0 4px 15px rgba(0, 131, 176, 0.3)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #006d94 0%, #0099bf 100%)',
+                    }
+
+                  }}
+                   style={{color:'white'}}
                 >
                   {currentInteraction < currentTask.interactions.length - 1 ?
                     "Continuer" :
                     currentTaskIndex < examData.tasks.length - 1 ?
-                      <span style={{ color: 'white' }}>Tâche suivante</span> : <span style={{ color: 'white' }}>Terminer l'examen</span>}
+                      "Tâche suivante" : "Terminer l'examen"}
                 </Button>
-              )}
+              )} 
 
               {/* Bouton d'urgence */}
-              <Button
+              {/* <Button
                 variant="outlined"
                 color="warning"
                 startIcon={<Warning />}
                 onClick={handleExamEnd}
               >
                 Terminer l'examen
-              </Button>
+              </Button> */}
             </Box>
           </Paper>
 
@@ -3046,8 +3208,8 @@ const TCFOralExam = () => {
               >
                 {micTestRecording ? 'Parlez maintenant...' :
                   micTestStatus === 'success' ? '✓ Test réussi !' :
-                    micTestStatus === 'error' ? 'Réessayer le test' :
-                      'Démarrer le test'}
+                    micTestStatus === 'error' ? 'Réessayer le test microphone' :
+                      'Testez votre microphone'}
               </Button>
             </Box>
 
@@ -3093,9 +3255,11 @@ const TCFOralExam = () => {
           <DialogActions sx={{ p: 2, gap: 1, borderTop: '1px solid #e2e8f0' }}>
             <Button
               onClick={() => {
+                // Fermer le test microphone puis afficher la confirmation avant redirection
                 setShowMicTestDialog(false);
                 setMicTestStatus('idle');
                 setMicTestTranscript('');
+                setShowCancelConfirm(true);
               }}
               variant="outlined"
               sx={{
@@ -3144,6 +3308,59 @@ const TCFOralExam = () => {
                style={{color:'white'}}
             >
               {micTestStatus === 'success' ? '✓ Continuer l\'examen' : 'Reprendre l\'examen'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dialog confirmation sortie - avertissement débit */}
+        <Dialog
+          open={showCancelConfirm}
+          onClose={() => setShowCancelConfirm(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle sx={{ textAlign: 'center' }}>Confirmation</DialogTitle>
+          <DialogContent>
+            <MDTypography variant="body1" color="text" sx={{ mb: 2 }}>
+             Attention : Si vous quittez l'examen maintenant, votre solde sera débité. 
+             Voulez-vous continuer ?
+            </MDTypography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                // Reprendre l'examen: rouvrir le test micro et démarrer le test micro en sécurité
+                setShowCancelConfirm(false);
+                setShowMicTestDialog(true);
+                // Empêcher que la logique de fin d'enregistrement ré-ouvre la popup automatiquement
+                setSuppressMicAutoDialog(true);
+                // Démarrer le test du microphone (utilise son propre SpeechRecognition)
+                try {
+                  handleStartMicTest();
+                } catch (e) {
+                  console.warn('Erreur démarrage test micro automatique:', e);
+                  // Au minimum, réinitialiser la reconnaissance principale
+                  resetSpeechRecognition();
+                }
+                // Nettoyer le drapeau après un timeout (sécurité)
+                setTimeout(() => setSuppressMicAutoDialog(false), 6000);
+              }}
+              style={{color:"#000"}}
+            >
+              Reprendre
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setShowCancelConfirm(false);
+                // Rediriger vers la page principale (simulateur)
+                navigate('/simulateur-tcf-expression-orale');
+              }}
+              sx={{ background: 'linear-gradient(135deg, #0083b0 0%, #00b4db 100%)', color: 'white' }}
+              style={{color:'white'}}
+            >
+              Confirmer
             </Button>
           </DialogActions>
         </Dialog>

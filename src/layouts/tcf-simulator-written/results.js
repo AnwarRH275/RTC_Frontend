@@ -32,7 +32,8 @@ import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import { keyframes } from "@mui/system";
-import { alpha } from "@mui/material/styles";
+import { alpha, styled } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
@@ -43,6 +44,7 @@ import MDButton from "components/MDButton";
 import TCFAdminService from "services/tcfAdminService";
 import authService from "services/authService";
 import { Paper } from "@mui/material";
+import tcfCanadaLogo from 'assets/logo-tfc-canada.png';
 
 // Animation CSS pour le chargement
 const spinAnimation = keyframes`
@@ -65,6 +67,148 @@ const pulseAnimation = keyframes`
   }
 `;
 
+const breatheAnimation = keyframes`
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+`;
+
+const shimmerAnimation = keyframes`
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+`;
+
+const rotateRing = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+// Container moderne pour le logo de chargement
+const LogoLoader = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  padding: '20px',
+  
+  '& .logo-container': {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 260,
+    height: 260,
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  
+  '& .logo-ring': {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: '50%',
+    border: '4px solid transparent',
+    borderTopColor: 'rgba(66, 153, 225, 0.9)',
+    borderRightColor: 'rgba(49, 130, 206, 0.5)',
+    animation: `${rotateRing} 2s linear infinite`,
+    zIndex: 1,
+  },
+  
+  '& .logo-ring-2': {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: '50%',
+    border: '3px solid transparent',
+    borderBottomColor: 'rgba(99, 179, 237, 0.7)',
+    borderLeftColor: 'rgba(66, 153, 225, 0.4)',
+    animation: `${rotateRing} 3s linear infinite reverse`,
+    zIndex: 0,
+  },
+  
+  '& .logo-image': {
+    width: 150,
+    height: 'auto',
+    animation: `${breatheAnimation} 2.5s ease-in-out infinite`,
+    filter: 'drop-shadow(0 12px 32px rgba(66, 153, 225, 0.35))',
+    zIndex: 2,
+    position: 'relative',
+  },
+  
+  '@media (max-width: 600px)': {
+    '& .logo-container': {
+      width: 160,
+      height: 160,
+      marginTop: 8,
+      marginBottom: 16,
+    },
+    '& .logo-ring': {
+      width: 140,
+      height: 140,
+    },
+    '& .logo-ring-2': {
+      width: 170,
+      height: 170,
+    },
+    '& .logo-image': {
+      width: 100,
+    },
+  },  
+  '& .loading-text': {
+    marginBottom: 12,
+    fontSize: '1.6rem',
+    fontWeight: 700,
+    color: '#1A365D',
+    letterSpacing: '1px',
+    textAlign: 'center',
+  },
+  
+  '& .loading-subtext': {
+    marginBottom: 20,
+    fontSize: '1.1rem',
+    fontWeight: 500,
+    color: '#4A5568',
+    background: 'linear-gradient(90deg, #4A5568 0%, #4299E1 50%, #4A5568 100%)',
+    backgroundSize: '200% 100%',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    animation: `${shimmerAnimation} 2s linear infinite`,
+  },
+  
+  '& .dots': {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '8px',
+    marginTop: 20,
+    
+    '& span': {
+      width: 12,
+      height: 12,
+      borderRadius: '50%',
+      backgroundColor: '#4299E1',
+      animation: `${breatheAnimation} 1.4s ease-in-out infinite`,
+      
+      '&:nth-of-type(1)': { animationDelay: '0s' },
+      '&:nth-of-type(2)': { animationDelay: '0.2s' },
+      '&:nth-of-type(3)': { animationDelay: '0.4s' },
+    }
+  }
+}));
+
 function TCFResultsInterface() {
   const { subjectId } = useParams();
   const navigate = useNavigate();
@@ -78,6 +222,37 @@ function TCFResultsInterface() {
   const [saving, setSaving] = useState(false);
   const [noteMoyenne, setNoteMoyenne] = useState(null);
   const [loadingNoteMoyenne, setLoadingNoteMoyenne] = useState(false);
+
+  const backgroundGradient = "linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)";
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const prev = {
+      background: document.body.style.background,
+      backgroundAttachment: document.body.style.backgroundAttachment,
+      backgroundRepeat: document.body.style.backgroundRepeat,
+      backgroundSize: document.body.style.backgroundSize,
+      backgroundPosition: document.body.style.backgroundPosition,
+      minHeight: document.body.style.minHeight,
+    };
+
+    document.body.style.background = backgroundGradient;
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.backgroundRepeat = "no-repeat";
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundPosition = "center";
+    document.body.style.minHeight = "100vh";
+
+    return () => {
+      document.body.style.background = prev.background;
+      document.body.style.backgroundAttachment = prev.backgroundAttachment;
+      document.body.style.backgroundRepeat = prev.backgroundRepeat;
+      document.body.style.backgroundSize = prev.backgroundSize;
+      document.body.style.backgroundPosition = prev.backgroundPosition;
+      document.body.style.minHeight = prev.minHeight;
+    };
+  }, [backgroundGradient]);
   
   // États pour la traduction
   const [translationOpen, setTranslationOpen] = useState(false);
@@ -518,13 +693,20 @@ function TCFResultsInterface() {
     return (
       <MDBox 
         sx={{
-          minHeight: '100vh',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
           background: 'linear-gradient(135deg, rgba(79, 204, 231, 1) 0%, #0083b0 100%)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          p: 3
+          p: 3,
+          overflow: 'auto'
         }}
       >
         <Fade in timeout={1000}>
@@ -541,54 +723,33 @@ function TCFResultsInterface() {
             }}
           >
             <MDBox mb={4} mt={1}>
-              <Box
-                sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(45deg, #667eea, #764ba2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 24px',
-                  animation: `${pulseAnimation} 2s ease-in-out infinite`,
-                  boxShadow: '0 8px 32px rgba(102, 126, 234, 0.4)'
-                }}
-              >
-                <Icon sx={{ fontSize: 40, color: 'white' }}>auto_fix_high</Icon>
-              </Box>
+              <LogoLoader>
+                <Typography className="loading-text">
+                  Correction en cours...
+                </Typography>
+                <Typography className="loading-subtext">
+                  Analyse de vos réponses
+                </Typography>
+                
+                <Box className="logo-container"> 
+                  <Box className="logo-ring-2" />
+                  <Box className="logo-ring" />
+                  <Box 
+                    component="img" 
+                    src={tcfCanadaLogo} 
+                    alt="TCF Canada" 
+                    className="logo-image"
+                  />
+                </Box>
+               
+                <Box className="dots">
+                  <span />
+                  <span />
+                  <span />
+                </Box>
+              </LogoLoader>
               
-              <MDTypography variant="h3" fontWeight="bold" color="dark" mb={1}>
-                Correction en cours...
-              </MDTypography>
-              <MDTypography variant="body1" color="text" mb={4}>
-                Nous analysons vos réponses et préparons
-                <br />
-                votre évaluation personnalisée.
-              </MDTypography>
-              
-              <MDBox 
-                sx={{
-                  height: '200px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  mb: 3
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 120,
-                    height: 120,
-                    border: '8px solid #f3f3f3',
-                    borderTop: '8px solid #667eea',
-                    borderRadius: '50%',
-                    animation: `${spinAnimation} 1s linear infinite`
-                  }}
-                />
-              </MDBox>
-              
-              <MDTypography variant="body2" color="text" fontStyle="italic">
+              <MDTypography variant="body2" color="text" fontStyle="italic" mt={3}>
                 Cela peut prendre environ 60 secondes...
               </MDTypography>
               
