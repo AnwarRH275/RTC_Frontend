@@ -278,7 +278,7 @@ function Cover() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          px: 2,
+          px: activeStep === 1 ? 1 : 2,
           py: 4,
           position: "relative",
           zIndex: 2,
@@ -287,20 +287,20 @@ function Cover() {
       >
         <Card
            sx={{
-             maxWidth: activeStep === 1 ? "1200px" : "800px",
-             width: "100%",
+             maxWidth: activeStep === 1 ? "98%" : "800px",
+             width: activeStep === 1 ? "98%" : "100%",
              backgroundColor: "rgba(255, 255, 255, 0.62)",
              backdropFilter: "blur(15px)",
              borderRadius: "16px",
              boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
-             p: 3,
+             p: activeStep === 1 ? 2 : 3,
              textAlign: "center",
              border: "1px solid rgba(255, 255, 255, 0.2)",
              transition: "all 0.3s ease-in-out",
              // Suppression des propriétés maxHeight et overflowY pour permettre le scroll de page
              '@media (max-width: 1280px)': {
-               maxWidth: activeStep === 1 ? "95%" : "90%",
-               width: "95%",
+               maxWidth: activeStep === 1 ? "99%" : "90%",
+               width: activeStep === 1 ? "99%" : "95%",
              },
              '@media (max-width: 768px)': {
                width: "95%",

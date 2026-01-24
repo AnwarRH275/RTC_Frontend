@@ -211,14 +211,7 @@ function DashboardNavbar({ absolute, light, isMini }) {
           <MDTypography variant="button">Mon Profil</MDTypography>
         </ListItemText>
       </MenuItem>
-      <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/facturation-tcf'); }}>
-        <ListItemIcon>
-          <Icon fontSize="small">settings</Icon>
-        </ListItemIcon>
-        <ListItemText>
-          <MDTypography variant="button">Paramètres</MDTypography>
-        </ListItemText>
-      </MenuItem>
+    
       <Divider />
       <MenuItem onClick={() => { handleCloseUserMenu(); handleLogout(); }}>
         <ListItemIcon>

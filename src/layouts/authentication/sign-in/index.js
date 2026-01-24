@@ -19,8 +19,12 @@ import {
   Typography,
   Alert,
   Snackbar,
-  Card
+  Card,
+  InputAdornment,
+  IconButton
 } from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 // Custom components
 import OfficialHeader from "components/OfficialHeader";
@@ -48,6 +52,8 @@ function Basic() {
   const [rememberMe, setRememberMe] = useState(false);
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const toggleShowPassword = () => setShowPassword((prev) => !prev);
   const [error, setError] = useState("");
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -212,12 +218,26 @@ function Basic() {
             <MDBox sx={{ mb: 2 }}>
               <MDInput
                 fullWidth
-                type="password"
+                type={showPassword ? "text" : "password"}
                 variant="outlined"
                 placeholder="Mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                        onClick={toggleShowPassword}
+                        edge="end"
+                        size="large"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,

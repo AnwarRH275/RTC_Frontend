@@ -26,9 +26,9 @@ const PlanCard = styled(Card)(({ theme, isPopular }) => ({
   position: 'relative',
   border: isPopular ? `2px solid ${theme.palette.primary.main}` : 'none',
   // Hauteur uniforme sur desktop pour que tous les packs aient la même taille
-  minHeight: 620,
+  minHeight: 'auto',
   [theme.breakpoints.up('lg')]: {
-    minHeight: 660,
+    minHeight: 'auto',
   },
   [theme.breakpoints.down('md')]: {
     minHeight: 'auto', // sur mobile/tablette, on laisse la hauteur s'ajuster
@@ -47,44 +47,44 @@ const PlanHeader = styled(Box)(({ theme, headerGradient }) => ({
   background: headerGradient 
     ? `linear-gradient(135deg, ${headerGradient.start}, ${headerGradient.end})`
     : 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
-  padding: theme.spacing(1),
+  padding: theme.spacing(0.75),
   color: 'white',
   textAlign: 'center',
   borderRadius: '28px 28px 0 0',
   // Hauteur uniforme pour le header afin d'éviter les décalages liés à la longueur du titre/prix
-  minHeight: 140,
+  minHeight: 75,
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'center',
 }));
 
 const PlanContent = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(1.5),
+  padding: theme.spacing(1),
   flexGrow: 1,
   display: 'flex',
   flexDirection: 'column',
   // Hauteur minimale pour stabiliser la zone de contenu et aligner les boutons
-  minHeight: 380,
+  minHeight: 'auto',
   [theme.breakpoints.up('lg')]: {
-    minHeight: 420,
+    minHeight: 'auto',
   },
 }));
 
 const PlanPrice = styled(Box)(({ theme }) => ({
-  fontSize: '2rem',
+  fontSize: '1.5rem',
   fontWeight: 700,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'baseline',
-  marginBottom: theme.spacing(0.5),
+  marginBottom: theme.spacing(0.25),
   color: '#1a2b49',
 }));
 
 const FeatureItem = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'flex-start',
-  marginBottom: theme.spacing(0.75),
-  fontSize: '0.95rem',
+  marginBottom: theme.spacing(0.25),
+  fontSize: '0.9rem',
 }));
 
 const ActionButton = styled(Button)(({ theme, buttonGradient, buttonHoverGradient }) => ({
@@ -393,40 +393,41 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
   }
 
   return (
-    <Box sx={{ 
+    <Box style={{ 
       display: 'flex', 
-      flexDirection: { xs: 'column', md: 'row' }, 
-      gap: 2, 
+      flexDirection: 'row',
+      flexWrap: 'nowrap',
+      gap: '24px', 
       width: '100%',
-      maxWidth: '100%',
+      maxWidth: 'none',
       height: 'auto',
-      my: 1,
-      px: 1,
-      mx: 'auto',
-      alignItems: 'stretch'
+      margin: '0',
+      padding: '0',
+      alignItems: 'stretch',
+      justifyContent: 'stretch'
     }}>
       {plans.map((plan) => (
-        <Box key={plan.id} sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: { xs: '100%', md: '200px' }, height: '100%' }}>
+        <Box key={plan.id} style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0', minWidth: '0', maxWidth: 'none', height: '100%' }}>
           <PlanCard isPopular={plan.isPopular}>
             {plan.isPopular && <PopularBadge label="POPULAIRE" />}
             <PlanHeader headerGradient={plan.headerGradient}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ zIndex: plan.isPopular ? 2 : 'auto', position: 'relative', fontSize: '1.5rem', letterSpacing: '0.02em', color: '#1a2b49' }}>
+              <Typography variant="h6" fontWeight="bold" sx={{ zIndex: plan.isPopular ? 2 : 'auto', position: 'relative', fontSize: '1.1rem', letterSpacing: '0.02em', color: '#1a2b49', mb: 0.25 }}>
                 {plan.name}
               </Typography>
               <PlanPrice>
-                <Typography component="span" sx={{ fontSize: '1.3rem', alignSelf: 'flex-start', mt: 1, color: 'white' }}>
+                <Typography component="span" sx={{ fontSize: '1rem', alignSelf: 'flex-start', mt: 0.5, color: 'white' }}>
                   $
                 </Typography>
                 {String(plan.price).split('.')[0]}
-                <Typography component="span" sx={{ fontSize: '1.3rem', ml: 0.5, color: 'white' }}>
+                <Typography component="span" sx={{ fontSize: '1rem', ml: 0.25, color: 'white' }}>
                   .99
                 </Typography>
               </PlanPrice>
               <Typography variant="body2" sx={{
-                fontSize: '1.1rem',
+                fontSize: '0.9rem',
                 fontWeight: 'bold',
                 color: 'white',
-                mt: 1
+                mt: 0.25
               }}>
                 {plan.usages} Usages
               </Typography>
@@ -436,13 +437,13 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                 <>
                   <FeatureItem key={index}>
                    
-                    <Typography variant="body1" sx={{ fontSize: { xs: '0.95rem', md: '1.05rem' }, fontWeight: 600, color: 'white', lineHeight: 1.4 }}>{feature}</Typography>
+                    <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.9rem' }, fontWeight: 500, color: '#1a2b49', lineHeight: 1.35 }}>{feature}</Typography>
                   </FeatureItem>
-                  {index < plan.features.length - 1 && <Divider sx={{ my: 1.5, borderColor: '#1a2b49', borderBottomWidth: 2 }} />}
+                  {index < plan.features.length - 1 && <Divider sx={{ my: 0.4, borderColor: 'rgba(26, 43, 73, 0.2)', borderBottomWidth: 1 }} />}
                 </>
               ))}
-              <Box sx={{ flexGrow: 1, minHeight: 10 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Box sx={{ flexGrow: 1, minHeight: 5 }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
               
                 <ActionButton 
                   variant="contained" 

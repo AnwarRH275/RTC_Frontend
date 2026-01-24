@@ -30,6 +30,10 @@ import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
+import InputAdornment from "@mui/material/InputAdornment";
+import IconButton from "@mui/material/IconButton";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 // API configuration
 import { API_BASE_URL } from '../../services/config';
@@ -71,6 +75,12 @@ function Overview() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const toggleShowCurrent = () => setShowCurrentPassword(v => !v);
+  const toggleShowNew = () => setShowNewPassword(v => !v);
+  const toggleShowConfirm = () => setShowConfirmPassword(v => !v);
 
   useEffect(() => {
     // Récupérer les informations utilisateur depuis localStorage
@@ -465,30 +475,75 @@ function Overview() {
             )}
             <TextField
               fullWidth
-              type="password"
+              type={showCurrentPassword ? "text" : "password"}
               label="Mot de passe actuel"
               value={passwordData.currentPassword}
               onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
               margin="normal"
               variant="outlined"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showCurrentPassword ? "Masquer le mot de passe actuel" : "Afficher le mot de passe actuel"}
+                      onClick={toggleShowCurrent}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                      size="small"
+                    >
+                      {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
             />
             <TextField
               fullWidth
-              type="password"
+              type={showNewPassword ? "text" : "password"}
               label="Nouveau mot de passe"
               value={passwordData.newPassword}
               onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
               margin="normal"
               variant="outlined"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showNewPassword ? "Masquer le nouveau mot de passe" : "Afficher le nouveau mot de passe"}
+                      onClick={toggleShowNew}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                      size="small"
+                    >
+                      {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
             />
             <TextField
               fullWidth
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               label="Confirmer le nouveau mot de passe"
               value={passwordData.confirmPassword}
               onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
               margin="normal"
               variant="outlined"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showConfirmPassword ? "Masquer le mot de passe de confirmation" : "Afficher le mot de passe de confirmation"}
+                      onClick={toggleShowConfirm}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                      size="small"
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
             />
           </DialogContent>
           <DialogActions sx={{ p: 3, pt: 1 }}>

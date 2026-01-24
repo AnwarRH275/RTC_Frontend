@@ -109,6 +109,21 @@ function Dashboard() {
     return 'C2';
   };
   
+  // Utilitaire de formatage des valeurs affichées dans les cartes (jusqu'à 2 décimales)
+  const formatStatValue = (val) => {
+    if (val === null || val === undefined) return 0;
+    // Si c'est déjà une chaîne (ex: "3 jours"), la renvoyer
+    if (typeof val === 'string' && /\D/.test(val)) return val;
+
+    const num = Number(val);
+    if (isNaN(num)) return val;
+
+    // N'afficher que les décimales nécessaires (max 2)
+    if (Number.isInteger(num)) return num;
+    const fixed = Number(num.toFixed(0));
+    return fixed % 1 === 0 ? fixed.toFixed(0) : fixed.toString();
+  };
+
   // Composant de carte de statistique moderne
   const ModernStatCard = ({ title, value, subtitle, icon, color, trend, onClick, isClickable = false }) => (
     <Card 
@@ -158,7 +173,7 @@ function Dashboard() {
               )}
             </MDBox>
             <MDTypography variant="h3" fontWeight="bold" color="dark" mb={0.5} sx={{ fontSize: { xs: '1.4rem', sm: '1.8rem' } }}>
-              {value}
+              {formatStatValue(value)}
             </MDTypography>
             <MDTypography variant="button" color="text" fontWeight="medium" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
               {title}
@@ -1135,13 +1150,15 @@ function Dashboard() {
                     fontWeight="bold" 
                     mb={1} 
                     sx={{ color: 'white', fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
-                  >
+                  style={{color:'#fff'}}
+                 >
                     Coach Écrit
                   </MDTypography>
                   <MDTypography 
                     variant="body2" 
                     sx={{ opacity: 0.9, mb: 3, color: 'white', fontSize: { xs: '0.9rem', sm: '1rem' } }}
-                  >
+                  style={{color:'#fff'}}
+                 >
                     Entraînements guidés + corrections types
                   </MDTypography>
                   <MDButton 
@@ -1178,13 +1195,15 @@ function Dashboard() {
                     fontWeight="bold" 
                     mb={1} 
                     sx={{ color: 'white', fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
+                     style={{color:'#fff'}}
                   >
                     Coach Oral
                   </MDTypography>
                   <MDTypography 
                     variant="body2" 
                     sx={{ opacity: 0.9, mb: 3, color: 'white', fontSize: { xs: '0.9rem', sm: '1rem' } }}
-                  >
+                    style={{color:'#fff'}}
+                 >
                     Simulations + feedback personnalisé
                   </MDTypography>
                   <MDButton 

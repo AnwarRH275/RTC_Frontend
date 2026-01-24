@@ -31,21 +31,19 @@ import Footer from "layouts/authentication/components/Footer";
 
 function BasicLayout({ image, children }) {
   return (
-    <PageLayout>
-      <DefaultNavbar
-        action={{
-          type: "external",
-          route: "https://examens.preptcfcanada.com/iump-subscription-plan/",
-          label: "Packs Nabil",
-        }}
-        transparent
-        light
-      />
+ <PageLayout background="transparent">
+  
       <MDBox
-        position="absolute"
-        width="100%"
+        position="fixed"
+        top={0}
+        left={0}
+        right={0}
+        bottom={0}
+        width="120%"
         minHeight="100vh"
         sx={{
+          zIndex: -1,
+          backgroundAttachment: 'fixed',
           backgroundImage: ({ functions: { linearGradient, rgba }, palette: { gradients } }) =>
             image &&
             `${linearGradient(
@@ -57,14 +55,14 @@ function BasicLayout({ image, children }) {
           backgroundRepeat: "no-repeat",
         }}
       />
-      <MDBox px={1} width="100%" height="100vh" mx="auto">
-        <Grid container spacing={1} justifyContent="center" alignItems="center" height="100%">
-          <Grid item xs={11} sm={9} md={5} lg={4} xl={3}>
+      <MDBox px={0} width="120%" minHeight="100vh" pb={8} mx="auto">
+        <Grid container spacing={0} justifyContent="center" alignItems="center" height="100%">
+          <Grid item xs={11} sm={9} md={5} lg={4} xl={3} sx={{ display: "flex", justifyContent: "center" }}>
             {children}
           </Grid>
         </Grid>
       </MDBox>
-      <Footer light />
+      {/* <Footer light /> */}
     </PageLayout>
   );
 }

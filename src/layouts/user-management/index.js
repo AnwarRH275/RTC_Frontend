@@ -34,6 +34,7 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import SubscriptionsIcon from "@mui/icons-material/Subscriptions";
 import Visibility from "@mui/icons-material/Visibility";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import CircularProgress from '@mui/material/CircularProgress';
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 // Simulateur TCF Canada React components
@@ -70,6 +71,7 @@ function UserManagement() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [countryCode, setCountryCode] = useState("+1"); // Default country code
+  const [deletingUser, setDeletingUser] = useState(null); // username currently being deleted (to disable button)
   const [balanceType, setBalanceType] = useState("sold"); // Type de solde à modifier: "sold" ou "total_sold"
   const [newBalanceValue, setNewBalanceValue] = useState("");
   const [subscriptionPlans, setSubscriptionPlans] = useState([]);
@@ -116,15 +118,28 @@ function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-     const response = await fetch(`${API_BASE_URL}/auth/users`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-  });   
+      const response = await fetch(`${API_BASE_URL}/auth/users`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.status === 401) {
+        showSnackbar('Session expirée. Veuillez vous reconnecter.', 'error');
+        // Optionnel : rediriger ou déconnecter
+        setLoading(false);
+        return;
+      }
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Erreur lors du chargement des utilisateurs');
+      }
+
       const data = await response.json();
-      
+
       // Si l'utilisateur est modérateur, filtrer pour ne montrer que les utilisateurs qu'il peut gérer
       if (userInfo?.role === 'moderator') {
         const filteredUsers = data.filter(user => 
@@ -137,7 +152,7 @@ function UserManagement() {
       }
     } catch (error) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
-      showSnackbar('Erreur lors du chargement des utilisateurs', 'error');
+      showSnackbar(error.message || 'Erreur lors du chargement des utilisateurs', 'error');
     } finally {
       setLoading(false);
     }
@@ -366,32 +381,81 @@ function UserManagement() {
 
   const handleDeleteUser = async (username) => {
     const userToDelete = users.find(u => u.username === username);
-    
+
     // Seuls les administrateurs peuvent supprimer des utilisateurs
     if (userInfo?.role !== 'admin') {
       showSnackbar('Seuls les administrateurs peuvent supprimer des utilisateurs', 'error');
       return;
     }
-    
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/auth/delete/${username}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
-        if (response.ok) {
-          showSnackbar('Utilisateur supprimé avec succès');
-          fetchUsers();
-        } else {
-          throw new Error('Erreur lors de la suppression');
+
+    // Prévenir si l'utilisateur n'existe pas dans l'UI
+    if (!userToDelete) {
+      showSnackbar('Utilisateur introuvable dans la liste', 'error');
+      return;
+    }
+
+    const confirmMsg = username === userInfo.username ?
+      'Vous êtes sur le point de supprimer votre propre compte. Continuer et vous serez déconnecté(e). Continuer ?' :
+      'Êtes-vous sûr de vouloir supprimer cet utilisateur ?';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setDeletingUser(username);
+      const encodedUsername = encodeURIComponent(username);
+      const response = await fetch(`${API_BASE_URL}/auth/delete/${encodedUsername}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      } catch (error) {
-        console.error('Erreur:', error);
-        showSnackbar('Erreur lors de la suppression', 'error');
+      });
+
+      // Gérer statuts HTTP spécifiques
+      if (response.status === 401) {
+        setDeletingUser(null);
+        showSnackbar('Session expirée. Veuillez vous reconnecter.', 'error');
+        return;
       }
+
+      if (response.status === 403) {
+        const err = await response.json().catch(() => ({}));
+        setDeletingUser(null);
+        showSnackbar(err.message || 'Vous n\'avez pas la permission de supprimer cet utilisateur', 'error');
+        return;
+      }
+
+      if (response.status === 404) {
+        setDeletingUser(null);
+        showSnackbar('Utilisateur non trouvé', 'error');
+        fetchUsers();
+        return;
+      }
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        setDeletingUser(null);
+        throw new Error(err.message || 'Erreur lors de la suppression');
+      }
+
+      // Succès
+      showSnackbar('Utilisateur supprimé avec succès');
+
+      // Supprimer localement pour réactivité immédiate
+      setUsers(prev => prev.filter(u => u.username !== username));
+
+      // Si on a supprimé soi-même, déconnecter
+      if (username === userInfo.username) {
+        authService.logout();
+        window.location.href = '/login';
+        return;
+      }
+
+      setDeletingUser(null);
+    } catch (error) {
+      console.error('Erreur:', error);
+      setDeletingUser(null);
+      showSnackbar(error.message || 'Erreur lors de la suppression', 'error');
     }
   };
 
@@ -535,7 +599,7 @@ function UserManagement() {
               size="small"
               color="error"
               onClick={() => handleDeleteUser(user.username)}
-              disabled={userInfo?.role !== 'admin'}
+              disabled={userInfo?.role !== 'admin' || deletingUser === user.username}
               sx={{
                 background: "linear-gradient(135deg, #FF512F, #DD2476)",
                 color: "white",
@@ -548,7 +612,11 @@ function UserManagement() {
                 }
               }}
             >
-              <DeleteIcon fontSize="small" />
+              {deletingUser === user.username ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : (
+                <DeleteIcon fontSize="small" />
+              )}
             </IconButton>
           </span>
         </Tooltip>

@@ -38,6 +38,10 @@ function PaymentSuccess() {
   useEffect(() => {
     const completeRegistration = async () => {
       try {
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const MAX_VERIFY_ATTEMPTS = 4;
+        const VERIFY_RETRY_DELAY_MS = 1500;
+
         // Récupérer les paramètres de l'URL
         const params = new URLSearchParams(location.search);
         const sessionId = params.get("session_id");
@@ -54,29 +58,50 @@ function PaymentSuccess() {
         const userInfo = localStorage.getItem("user_info");
         const isLoggedIn = token && userInfo;
         
-        // Vérifier le statut du paiement
+        // Vérifier le statut du paiement (avec retries si en attente)
+        let verifyData = null;
         try {
-          const verifyResponse = await fetch(`${API_BASE_URL}/stripe/verify-payment`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { "Authorization": `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify({ session_id: sessionId })
-          });
-          
-          const verifyData = await verifyResponse.json();
-          
-          if (verifyData.status !== "success") {
-            setError("Le paiement n'a pas été confirmé. Veuillez réessayer.");
-            setLoading(false);
-            return;
+          for (let attempt = 1; attempt <= MAX_VERIFY_ATTEMPTS; attempt += 1) {
+            const verifyResponse = await fetch(`${API_BASE_URL}/stripe/verify-payment`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify({ session_id: sessionId })
+            });
+            
+            const data = await verifyResponse.json();
+            if (!verifyResponse.ok) {
+              throw new Error(data?.error || data?.message || "Erreur lors de la vérification du paiement.");
+            }
+
+            verifyData = data;
+
+            if (verifyData.status === "success") {
+              break;
+            }
+
+            if (verifyData.status !== "pending") {
+              break;
+            }
+
+            if (attempt < MAX_VERIFY_ATTEMPTS) {
+              await wait(VERIFY_RETRY_DELAY_MS);
+            }
           }
         } catch (verifyError) {
           console.error("Erreur lors de la vérification du paiement:", verifyError);
-          // Continuer malgré l'erreur de vérification pour le développement
-          // Pour le développement, on continue même si la vérification échoue
-          console.log("Poursuite du processus malgré l'erreur de vérification (mode développement)");
+          setError(verifyError.message || "Impossible de vérifier le paiement pour le moment.");
+          setLoading(false);
+          return;
+        }
+
+        if (!verifyData || verifyData.status !== "success") {
+          const fallbackMessage = "Le paiement est en attente de confirmation. Veuillez réessayer dans quelques instants.";
+          setError(verifyData?.message || fallbackMessage);
+          setLoading(false);
+          return;
         }
         
         // Vérifier si c'est un utilisateur existant (upgrade) ou un nouvel utilisateur
@@ -98,74 +123,87 @@ function PaymentSuccess() {
           }
         }
         
-        // Nouvel utilisateur - processus d'inscription complet
+        // Nouvel utilisateur - finaliser via connexion (compte déjà créé avant paiement)
         const storedData = localStorage.getItem("signupData");
-        
+
         if (!storedData) {
           setError("Aucune donnée d'inscription trouvée. Veuillez retourner à la page d'inscription.");
           setLoading(false);
           return;
         }
-        
+
         // Récupérer les données du formulaire
         const userData = JSON.parse(storedData);
-        
+
         // Récupérer les informations du plan à partir de l'URL ou de la session Stripe
-        // Pour le développement, on utilise les informations de la session
         try {
-          // Récupérer le plan à partir de la session Stripe (si disponible)
-          const planInfo = params.get("plan") || "standard"; // Par défaut, on utilise le plan standard
-          
-          // Ajouter les informations du plan aux données utilisateur
+          const planInfo = planName || "standard";
           userData.plan = planInfo;
           console.log("Données utilisateur avec plan:", userData);
-
-          
-          
-          // Mettre à jour les données dans localStorage (pour référence future)
           localStorage.setItem("signupData", JSON.stringify(userData));
         } catch (planError) {
           console.error("Erreur lors de la récupération des informations du plan:", planError);
-          // Continuer sans les informations du plan
         }
-        
-        // Envoyer les données au backend pour finaliser l'inscription
-        const response = await authService.signup(userData);
-        
-        if (response.data) {
-          setSuccess(true);
-          // Nettoyer les données stockées
-          localStorage.removeItem("signupData");
 
-          const response = await fetch(`${API_BASE_URL}/auth/login`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              username: userData.username, // Le backend accepte maintenant username ou email
-              password: userData.password
-            })
-          });
-          
-          const data = await response.json();
-          
-          if (data.access_token) {
-            // Stocker le token dans localStorage
-            localStorage.setItem("token", data.access_token);
-            console.log(data.access_token)
-            
-            // Stocker les informations utilisateur si disponibles
-            if (data.user_info) {
-              localStorage.setItem("user_info", JSON.stringify(data.user_info));
-              console.log("Informations utilisateur stockées:", data.user_info);
-            }
+        // Se connecter après paiement confirmé
+        const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            username: userData.username,
+            password: userData.password
+          })
+        });
 
-            await loadUserInfo(true); // Forcer le refresh depuis l'API 
+        const loginData = await loginResponse.json();
+
+        if (loginResponse.ok && loginData.access_token) {
+          localStorage.setItem("token", loginData.access_token);
+          if (loginData.user_info) {
+            localStorage.setItem("user_info", JSON.stringify(loginData.user_info));
           }
-
-
+          localStorage.removeItem("signupData");
+          await loadUserInfo(true);
+          setSuccess(true);
+          setLoading(false);
+          return;
         }
+
+        // Fallback: si le compte n'existe pas (ancien flux), tenter une création puis connexion
+        if (loginResponse.status === 404) {
+          const signupResponse = await authService.signup(userData);
+          if (signupResponse?.data) {
+            const retryLoginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                username: userData.username,
+                password: userData.password
+              })
+            });
+
+            const retryLoginData = await retryLoginResponse.json();
+            if (retryLoginResponse.ok && retryLoginData.access_token) {
+              localStorage.setItem("token", retryLoginData.access_token);
+              if (retryLoginData.user_info) {
+                localStorage.setItem("user_info", JSON.stringify(retryLoginData.user_info));
+              }
+              localStorage.removeItem("signupData");
+              await loadUserInfo(true);
+              setSuccess(true);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+
+        setError(loginData?.message || "Votre paiement est confirmé, mais la connexion a échoué. Veuillez vous connecter.");
+        setLoading(false);
+        return;
       } catch (error) {
         console.error("Erreur lors du traitement du paiement:", error);
         setError(error.response?.data?.message || "Une erreur est survenue lors du traitement de votre paiement.");
@@ -182,98 +220,108 @@ function PaymentSuccess() {
     navigate("/mon-espace-tcf");
   };
 
+  // Hauteur du header estimée à 80px (ajustez si besoin)
+  const HEADER_HEIGHT = 80;
   return (
     <BasicLayout image={bgImage}>
-      <Card sx={{
-        width: "100%",
-        maxWidth: 500,
-        mx: "auto",
-        borderRadius: 2,
-        boxShadow: "0 8px 32px 0 rgba(0,0,0,0.3)",
-        background: "rgba(255, 255, 255, 0.7)",
-        backdropFilter: "blur(15px)",
-        border: "1px solid rgba(255, 255, 255, 0.3)",
-        WebkitBackdropFilter: "blur(15px)"
-      }}>
-        
-        <MDBox pt={4} pb={3} px={3} textAlign="center">
-          {loading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-              <CircularProgress color="info" />
-              <MDTypography variant="body1" color="text" ml={2}>
-                Finalisation de votre inscription...
-              </MDTypography>
-            </Box>
-          ) : error ? (
-            <>
-              <MDTypography variant="h5" fontWeight="medium" color="error" mb={2}>
-                Erreur
-              </MDTypography>
-              <MDTypography variant="body1" color="text" mb={4}>
-                {error}
-              </MDTypography>
-              <MDButton 
-                variant="contained" 
-                color="info" 
-                onClick={() => navigate("/inscription-tcf")}
-                sx={{ 
-                  background: 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
-                  borderRadius: '30px',
-                  boxShadow: '0 4px 20px 0 rgba(0,123,255,.25)',
-                  height: '3rem',
-                  fontSize: '1rem',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
-                    boxShadow: '0 6px 25px 0 rgba(0,123,255,.3)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all .2s ease-in-out',
-                }}
-              >
-                Retour à l'inscription
-              </MDButton>
-            </>
-          ) : (
-            <>
-              <Grid container spacing={3} justifyContent="center">
-                <Grid item xs={12}>
-                  <MDTypography variant="h5" fontWeight="medium" color="success" mb={1}>
-                    Paiement réussi !
-                  </MDTypography>
-                  <MDTypography variant="body1" color="text" mb={1}>
-                    Votre inscription et votre abonnement ont été finalisés avec succès.
-                  </MDTypography>
-                  <MDTypography variant="body1" color="text" mb={4}>
-                    Vous pouvez maintenant accéder à votre tableau de bord pour commencer à utiliser nos services.
-                  </MDTypography>
-                </Grid>
-              </Grid>
-              <MDButton 
-                variant="contained" 
-                color="info" 
-                onClick={handleGoToDashboard}
-                fullWidth
-                sx={{ 
-                  background: 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
-                  borderRadius: '30px',
-                  boxShadow: '0 4px 20px 0 rgba(0,123,255,.25)',
-                  height: '3.5rem',
-                  fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
-                    boxShadow: '0 6px 25px 0 rgba(0,123,255,.3)',
-                    transform: 'translateY(-2px)',
-                  },
-                  transition: 'all .2s ease-in-out',
-                }}
-              >
-                Se connecter
-              </MDButton>
-            </>
-          )}
-        </MDBox>
-      </Card>
+      <MDBox
+        sx={{
+          height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          paddingTop: `${HEADER_HEIGHT}px`,
+        }}
+      >
+        <Card sx={{
+          width: "100%",
+          maxWidth: 500,
+          mx: "auto",
+          borderRadius: 2,
+          boxShadow: "0 8px 32px 0 rgba(0,0,0,0.3)",
+          background: "rgba(255, 255, 255, 0.7)",
+          backdropFilter: "blur(15px)",
+          border: "1px solid rgba(255, 255, 255, 0.3)",
+          WebkitBackdropFilter: "blur(15px)",
+          position: "relative",
+          zIndex: 2
+        }}>
+          <MDBox pt={4} pb={3} px={3} textAlign="center">
+            {loading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                <CircularProgress color="info" />
+                <MDTypography variant="body1" color="text" ml={2}>
+                  Finalisation de votre inscription...
+                </MDTypography>
+              </Box>
+            ) : error ? (
+              <>
+                <MDTypography variant="h5" fontWeight="medium" color="error" mb={2}>
+                  Erreur
+                </MDTypography>
+                <MDTypography variant="body1" color="text" mb={4}>
+                  {error}
+                </MDTypography>
+                <MDButton 
+                  variant="contained" 
+                  color="info" 
+                  onClick={() => navigate("/inscription-tcf")}
+                  sx={{ 
+                    background: 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
+                    borderRadius: '30px',
+                    boxShadow: '0 4px 20px 0 rgba(0,123,255,.25)',
+                    height: '3rem',
+                    fontSize: '1rem',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
+                      boxShadow: '0 6px 25px 0 rgba(0,123,255,.3)',
+                      transform: 'translateY(-2px)',
+                    },
+                    transition: 'all .2s ease-in-out',
+                  }}
+                >
+                  Retour à l'inscription
+                </MDButton>
+              </>
+            ) : (
+              <MDBox display="flex" flexDirection="column" alignItems="center" justifyContent="center" width="100%">
+                <MDTypography variant="h5" fontWeight="medium" color="success" mb={1} textAlign="center">
+                  Paiement réussi !
+                </MDTypography>
+                <MDTypography variant="body1" color="text" mb={1} textAlign="center">
+                  Votre inscription et votre abonnement ont été finalisés avec succès.
+                </MDTypography>
+                <MDTypography variant="body1" color="text" mb={4} textAlign="center">
+                  Vous pouvez maintenant accéder à votre tableau de bord pour commencer à utiliser nos services.
+                </MDTypography>
+                <MDButton 
+                  variant="contained" 
+                  color="info" 
+                  onClick={handleGoToDashboard}
+                  fullWidth
+                  sx={{ 
+                    background: 'linear-gradient(135deg, rgba(79, 204, 231, 1), #0083b0)',
+                    borderRadius: '30px',
+                    boxShadow: '0 4px 20px 0 rgba(0,123,255,.25)',
+                    height: '3.5rem',
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #0083b0, rgba(79, 204, 231, 1))',
+                      boxShadow: '0 6px 25px 0 rgba(0,123,255,.3)',
+                      transform: 'translateY(-2px)',
+                    },
+                    transition: 'all .2s ease-in-out',
+                  }}
+                >
+                  Se connecter
+                </MDButton>
+              </MDBox>
+            )}
+          </MDBox>
+        </Card>
+      </MDBox>
     </BasicLayout>
   );
 }

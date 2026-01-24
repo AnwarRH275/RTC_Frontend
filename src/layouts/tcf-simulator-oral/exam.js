@@ -261,6 +261,50 @@ const TCFOralExam = () => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   // Empêcher la réouverture automatique du dialog micro lors d'une reprise volontaire
   const [suppressMicAutoDialog, setSuppressMicAutoDialog] = useState(false);
+  
+  // Détection du navigateur et support de la reconnaissance vocale
+  const [browserInfo, setBrowserInfo] = useState({ name: '', supported: true });
+  const [showBrowserWarning, setShowBrowserWarning] = useState(false);
+  
+  // Détection du navigateur au montage du composant
+  useEffect(() => {
+    const detectBrowser = () => {
+      const ua = navigator.userAgent;
+      let browserName = 'unknown';
+
+      // Seul Google Chrome est autorisé pour l'examen (exclut Edge/Opera/Brave/Safari)
+      const isChrome = /Chrome/.test(ua) && !(/Edg|OPR|Brave|Chromium|SamsungBrowser|CriOS|FxiOS/.test(ua));
+
+      if (isChrome) {
+        browserName = 'Chrome';
+      } else if (/Firefox/.test(ua)) {
+        browserName = 'Firefox';
+      } else if (/Edg/.test(ua)) {
+        browserName = 'Edge';
+      } else if (/Safari/.test(ua) && !/Chrome/.test(ua)) {
+        browserName = 'Safari';
+      } else if (/OPR|Opera/.test(ua)) {
+        browserName = 'Opera';
+      }
+
+      const hasWebSpeechAPI = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
+
+      // Autorisé seulement si c'est Chrome ET que l'API Web Speech est disponible
+      const isSupported = isChrome && hasWebSpeechAPI;
+
+      setBrowserInfo({ name: browserName, supported: isSupported });
+
+      // Afficher la popup d'avertissement pour les navigateurs non supportés
+      if (!isSupported) {
+        console.warn(`🌐 Navigateur ${browserName} détecté - Seul Google Chrome est autorisé pour l'examen oral.`);
+        setShowBrowserWarning(true);
+      } else {
+        console.log(`🌐 Navigateur Chrome détecté - Reconnaissance vocale disponible`);
+      }
+    };
+
+    detectBrowser();
+  }, []);
 
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -1481,20 +1525,51 @@ const TCFOralExam = () => {
     return initializeSpeechRecognition();
   };
 
+  // Copier le lien de connexion dans le presse-papiers avec fallback
+  const copyLoginLink = async () => {
+    const loginPath = '/connexion-tcf';
+    const loginUrl = `${window.location.origin}${loginPath}`;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(loginUrl);
+        alert('Lien de connexion copié dans le presse-papiers !');
+      } else {
+        // Fallback ancien navigateur : ouvrir une boîte de prompt pour permettre la copie manuelle
+        window.prompt('Copiez ce lien de connexion:', loginUrl);
+      }
+    } catch (e) {
+      console.warn('Échec copie lien de connexion:', e);
+      try {
+        window.prompt('Copiez ce lien de connexion:', loginUrl);
+      } catch (e2) {
+        alert(`Veuillez copier manuellement ce lien: ${loginUrl}`);
+      }
+    }
+  }; 
+
   const initializeSpeechRecognition = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       console.warn('Reconnaissance vocale non supportée');
+      setShowBrowserWarning(true);
       return false;
     }
 
     try {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
-
-      recognition.continuous = true;
+      
+      // Détecter Safari pour une configuration optimisée
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      // Configuration adaptée au navigateur
+      // Safari a des limitations avec continuous=true, on utilise une approche différente
+      recognition.continuous = !isSafari; // Safari: false pour éviter les bugs
       recognition.interimResults = true;
       recognition.lang = 'fr-FR';
       recognition.maxAlternatives = 1;
+      
+      // Pour Safari, on doit redémarrer manuellement la reconnaissance
+      const isSafariRef = isSafari;
 
       let restartTimeout = null;
       let currentTranscript = '';
@@ -1658,20 +1733,33 @@ const TCFOralExam = () => {
           return; // Ne pas redémarrer la reconnaissance
         }
 
+        // Redémarrage automatique si l'enregistrement est toujours actif
+        // Pour Safari (continuous=false), on doit redémarrer après chaque fin
         if (isRecordingRef.current && !restartTimeout) {
+          const restartDelay = isSafariRef ? 50 : 100; // Plus rapide pour Safari
           restartTimeout = setTimeout(() => {
             try {
               if (recognition.state === 'inactive' || recognition.state === undefined) {
-                console.log('Redémarrage automatique de la reconnaissance vocale');
+                console.log(`Redémarrage automatique de la reconnaissance vocale (Safari: ${isSafariRef})`);
                 recognition.start();
               } else {
                 console.warn('Reconnaissance vocale déjà active lors du redémarrage, état:', recognition.state);
               }
             } catch (error) {
               console.warn('Impossible de redémarrer la reconnaissance vocale:', error);
+              // Pour Safari, réessayer après un délai plus long en cas d'erreur
+              if (isSafariRef && isRecordingRef.current) {
+                setTimeout(() => {
+                  try {
+                    recognition.start();
+                  } catch (e) {
+                    console.warn('Échec du redémarrage Safari:', e);
+                  }
+                }, 300);
+              }
             }
             restartTimeout = null;
-          }, 100);
+          }, restartDelay);
         }
       };
 
@@ -1686,6 +1774,13 @@ const TCFOralExam = () => {
   // Démarrer l'examen
   const handleStartExam = async () => {
     try {
+      // Vérifier le navigateur : seul Google Chrome est autorisé
+      if (!browserInfo.supported) {
+        setShowBrowserWarning(true);
+        playNotificationSound('error');
+        return;
+      }
+
       // Utiliser les informations utilisateur du contexte
       if (userInfo) {
         const currentSold = userInfo.sold;
@@ -1814,6 +1909,17 @@ const TCFOralExam = () => {
       setMicTestTranscript('');
       setMicTestRecording(true);
 
+      // Vérifier d'abord si la reconnaissance vocale est supportée
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setMicTestStatus('error');
+        const browserName = browserInfo.name || 'Votre navigateur';
+        setMicTestTranscript(`La reconnaissance vocale n'est pas supportée par ${browserName}. Veuillez utiliser Google Chrome, Microsoft Edge ou Safari (macOS/iOS).`);
+        setMicTestRecording(false);
+        setShowBrowserWarning(true);
+        return;
+      }
+
       // Vérifier l'accès au microphone
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -1823,19 +1929,18 @@ const TCFOralExam = () => {
         }
       });
 
-      // Initialiser la reconnaissance vocale pour le test
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        setMicTestStatus('error');
-        setMicTestTranscript('La reconnaissance vocale n\'est pas supportée par votre navigateur. Utilisez Chrome ou Edge.');
-        stream.getTracks().forEach(track => track.stop());
-        return;
-      }
+      // Détecter Safari pour configuration spécifique
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
       const testRecognition = new SpeechRecognition();
       testRecognition.continuous = false;
       testRecognition.interimResults = true;
       testRecognition.lang = 'fr-FR';
+      
+      // Safari nécessite parfois un délai avant de démarrer
+      if (isSafari) {
+        testRecognition.maxAlternatives = 1;
+      }
 
       testRecognition.onresult = (event) => {
         let transcript = '';
@@ -2841,6 +2946,55 @@ const TCFOralExam = () => {
 
             <Divider sx={{ my: 3 }} />
 
+            {/* Alerte navigateur non compatible - affichée AVANT le démarrage */}
+            {!browserInfo.supported && (
+              <Box sx={{ mb: 4 }}>
+                <Box sx={{
+                  border: '2px solid #f44336',
+                  borderRadius: 2,
+                  p: 3,
+                  bgcolor: '#fff5f5'
+                }}>
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                    <Box sx={{ color: '#b71c1c', fontSize: '1.6rem' }}>⚠️</Box>
+                    <Box>
+                      <Typography variant="h6" fontWeight="bold" color="error" gutterBottom>
+                        Navigateur non compatible : {browserInfo.name || 'Non reconnu'}
+                      </Typography>
+                      <Typography variant="body1" sx={{ mb: 2 }}>
+                        Votre navigateur n'est pas autorisé pour l'examen oral. Seul <strong>Google Chrome</strong> est accepté.
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2 }}>
+                        <Chip label="✅ Google Chrome" sx={{ backgroundColor: '#e8f5e9', color: '#2e7d32', fontWeight: 'bold' }} />
+                        <Chip label="❌ Autres navigateurs" sx={{ backgroundColor: '#ffebee', color: '#c62828', fontWeight: 'bold' }} />
+                      </Box>
+
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        💡 Astuce : Téléchargez et ouvrez cette page dans Google Chrome pour utiliser la reconnaissance vocale et voir les images de la tâche.
+                      </Typography>
+
+                      <Box sx={{ mt: 2 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          sx={{ mr: 1 }}
+                          onClick={() => {
+                            copyLoginLink();
+                          }}
+                          style={{color: '#1976d2', borderColor: '#1976d2'}}
+                        >
+                          📋 Copier le lien de connexion
+                        </Button>
+
+                       
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
             <MDBox mb={4}>
               <MDTypography variant="h5" fontWeight="bold" mb={2}>
                 Instructions importantes :
@@ -2875,9 +3029,15 @@ const TCFOralExam = () => {
                 size="large"
                 onClick={handleStartExam}
                 startIcon={<PlayArrow />}
+                disabled={!browserInfo.supported}
               >
                 Commencer l'examen
               </MDButton>
+              {!browserInfo.supported && (
+                <Typography variant="caption" display="block" color="error" sx={{ mt: 1 }}>
+                  Veuillez utiliser un navigateur compatible pour commencer l'examen
+                </Typography>
+              )}
             </MDBox>
           </Paper>
         </MDBox>
@@ -3031,8 +3191,8 @@ const TCFOralExam = () => {
               </Alert>
             )}
 
-            {/* Image si présente */}
-            {currentTask.imageUrl && (
+            {/* Image si présente - affichée uniquement pour Google Chrome */}
+            {browserInfo.name === 'Chrome' && currentTask.imageUrl && (
               <Box sx={{ mb: 3, textAlign: 'center' }}>
                 <img
                   src={currentTask.imageUrl}
@@ -3361,6 +3521,97 @@ const TCFOralExam = () => {
               style={{color:'white'}}
             >
               Confirmer
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dialog d'avertissement pour navigateurs non supportés (Firefox, etc.) */}
+        <Dialog
+          open={showBrowserWarning}
+          onClose={() => setShowBrowserWarning(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: '16px',
+              background: '#ffffff',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            }
+          }}
+        >
+          <DialogTitle sx={{
+            background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+            color: 'white',
+            textAlign: 'center',
+            py: 2.5
+          }}
+          style={{color:'white'}}
+          >
+            <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
+              <Warning sx={{ fontSize: 28 }} />
+              <Typography variant="h6" fontWeight="bold" style={{color:'white'}}>
+                Navigateur non compatible
+              </Typography>
+            </Box>
+          </DialogTitle>
+
+          <DialogContent sx={{ p: 3, mt: 1 }}>
+            <Box sx={{ border: '2px solid #f44336', borderRadius: 2, p: 3, bgcolor: '#fff5f5', mb: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                <Warning sx={{ fontSize: 28, color: '#b71c1c' }} />
+                <Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    Votre navigateur ({browserInfo.name || 'actuel'}) n'est pas autorisé pour l'examen oral.
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Pour passer l'examen et voir les images de la tâche, utilisez uniquement <strong>Google Chrome</strong>.
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                    <Chip label="✅ Google Chrome" sx={{ backgroundColor: '#e8f5e9', color: '#2e7d32', fontWeight: 'bold' }} />
+                    <Chip label="❌ Autres navigateurs" sx={{ backgroundColor: '#ffebee', color: '#c62828', fontWeight: 'bold' }} />
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              💡 <strong>Astuce :</strong> Ouvrez cette page dans Google Chrome pour activer la reconnaissance vocale et voir toutes les images des tâches.
+            </Typography>
+          </DialogContent>
+
+          <DialogActions sx={{ p: 2, gap: 1, borderTop: '1px solid #e2e8f0' }}>
+            <Button
+              onClick={() => setShowBrowserWarning(false)}
+              variant="outlined"
+              sx={{
+                borderRadius: '8px',
+                borderColor: '#cbd5e1',
+                color: '#64748b',
+                '&:hover': {
+                  borderColor: '#94a3b8',
+                  bgcolor: '#f8fafc'
+                }
+              }}
+            >
+              Fermer
+            </Button>
+            <Button
+              onClick={() => {
+                copyLoginLink();
+              }}
+              variant="contained"
+              sx={{
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #0083b0 0%, #00b4db 100%)',
+                boxShadow: '0 4px 15px rgba(0, 131, 176, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #006d94 0%, #0099bf 100%)',
+                }
+              }}
+              style={{color:'white'}}
+            >
+              📋 Copier le lien de connexion
             </Button>
           </DialogActions>
         </Dialog>
