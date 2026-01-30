@@ -120,16 +120,26 @@ function Cover() {
   const steps = ['Informations personnelles', 'Choisir un plan'];
 
   const countryCodes = [
-    { code: "+1", country: "Canada/USA" },
-    { code: "+33", country: "France" },
-    { code: "+32", country: "Belgique" },
-    { code: "+41", country: "Suisse" },
-    { code: "+212", country: "Maroc" },
-    { code: "+213", country: "Algérie" },
-    { code: "+216", country: "Tunisie" },
-    { code: "+225", country: "Côte d'Ivoire" },
-    { code: "+221", country: "Sénégal" },
-    { code: "+237", country: "Cameroun" },
+    { code: "+1", country: "Canada/USA", flag: "🇨🇦" },
+    { code: "+33", country: "France", flag: "🇫🇷" },
+    { code: "+32", country: "Belgique", flag: "🇧🇪" },
+    { code: "+41", country: "Suisse", flag: "🇨🇭" },
+    { code: "+44", country: "Royaume-Uni", flag: "🇬🇧" },
+    { code: "+49", country: "Allemagne", flag: "🇩🇪" },
+    { code: "+34", country: "Espagne", flag: "🇪🇸" },
+    { code: "+39", country: "Italie", flag: "🇮🇹" },
+    { code: "+351", country: "Portugal", flag: "🇵🇹" },
+    { code: "+212", country: "Maroc", flag: "🇲🇦" },
+    { code: "+213", country: "Algérie", flag: "🇩🇿" },
+    { code: "+216", country: "Tunisie", flag: "🇹🇳" },
+    { code: "+225", country: "Côte d'Ivoire", flag: "🇨🇮" },
+    { code: "+221", country: "Sénégal", flag: "🇸🇳" },
+    { code: "+237", country: "Cameroun", flag: "🇨🇲" },
+    { code: "+20", country: "Égypte", flag: "🇪🇬" },
+    { code: "+234", country: "Nigeria", flag: "🇳🇬" },
+    { code: "+233", country: "Ghana", flag: "🇬🇭" },
+    { code: "+971", country: "Émirats arabes unis", flag: "🇦🇪" },
+    { code: "+966", country: "Arabie saoudite", flag: "🇸🇦" },
   ];
 
   const handleNext = () => {
@@ -725,12 +735,27 @@ function Cover() {
                         id="country-code"
                         value={countryCode}
                         displayEmpty
-                        renderValue={(value) => value || "Indicatif"}
+                        renderValue={(value) => {
+                          if (!value) return "Indicatif";
+                          const selected = countryCodes.find((country) => country.code === value);
+                          return (
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <span style={{ fontSize: "1rem" }}>{selected?.flag}</span>
+                              <span>{selected?.code}</span>
+                               <span>({selected.country})</span>
+                            </Box>
+                          );
+                        }}
                         onChange={(e) => setCountryCode(e.target.value)}
                       >
                         {countryCodes.map((country) => (
                           <MenuItem key={country.code} value={country.code}>
-                            {country.code} ({country.country})
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <span style={{ fontSize: "1rem" }}>{country.flag}</span>
+                              <span>{country.code}</span>
+                              <span>({country.country})</span>
+                              
+                            </Box>
                           </MenuItem>
                         ))}
                       </Select>
@@ -745,7 +770,11 @@ function Cover() {
                       variant="outlined" 
                       fullWidth 
                       value={tel} 
-                      onChange={(e) => setTel(e.target.value)} 
+                      onChange={(e) => setTel(e.target.value.replace(/\D/g, ""))} 
+                      inputProps={{
+                        inputMode: "numeric",
+                        pattern: "[0-9]*",
+                      }}
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,

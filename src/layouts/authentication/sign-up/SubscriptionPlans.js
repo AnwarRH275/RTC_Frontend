@@ -83,8 +83,11 @@ const PlanPrice = styled(Box)(({ theme }) => ({
 const FeatureItem = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'flex-start',
+  justifyContent: 'center',
   marginBottom: theme.spacing(0.25),
   fontSize: '0.9rem',
+  textAlign: 'center',
+  width: '100%',
 }));
 
 const ActionButton = styled(Button)(({ theme, buttonGradient, buttonHoverGradient }) => ({
@@ -437,7 +440,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
                 <>
                   <FeatureItem key={index}>
                    
-                    <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.9rem' }, fontWeight: 500, color: '#1a2b49', lineHeight: 1.35 }}>{feature}</Typography>
+                    <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.9rem' }, fontWeight: 500, color: '#1a2b49', lineHeight: 1.35, textAlign: 'center', width: '100%' }}>{feature}</Typography>
                   </FeatureItem>
                   {index < plan.features.length - 1 && <Divider sx={{ my: 0.4, borderColor: 'rgba(26, 43, 73, 0.2)', borderBottomWidth: 1 }} />}
                 </>

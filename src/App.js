@@ -25,6 +25,7 @@ import Icon from "@mui/material/Icon";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
+import MDTypography from "components/MDTypography";
 
 // Simulateur TCF Canada React example components
 import Sidenav from "examples/Sidenav";
@@ -43,7 +44,7 @@ import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
 
 // Simulateur TCF Canada React routes
-import routes, { getFilteredRoutes } from "routes";
+import routes, { getFilteredRoutes, getPublicRoutes } from "routes";
 
 // Simulateur TCF Canada React contexts
 import { useMaterialUIController, setMiniSidenav, InfoUserProvider, useInfoUser } from "context";
@@ -84,6 +85,29 @@ function ResetPasswordRedirect() {
   return <Navigate to={destinationUrl} replace />;
 }
 
+function NotFound() {
+  return (
+    <MDBox
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        textAlign: "center",
+        px: 2,
+      }}
+    >
+      <MDTypography variant="h3" fontWeight="bold" color="text">
+        404
+      </MDTypography>
+      <MDTypography variant="h6" color="text" sx={{ mt: 1 }}>
+        Page introuvable ou accès non autorisé
+      </MDTypography>
+    </MDBox>
+  );
+}
+
 // Composant interne qui utilise le contexte utilisateur
 function AppContent() {
   const [controller, dispatch] = useMaterialUIController();
@@ -103,10 +127,12 @@ function AppContent() {
   const [isExamStarted, setIsExamStarted] = useState(false);
   
   // Utiliser le contexte utilisateur au lieu de localStorage directement
-  const { userInfo } = useInfoUser();
+  const { userInfo, isAuthenticated } = useInfoUser();
   
   // Filtrer les routes selon le rôle de l'utilisateur
-  const filteredRoutes = userInfo && userInfo.role ? getFilteredRoutes(userInfo.role) : routes;
+  const filteredRoutes = isAuthenticated && userInfo && userInfo.role
+    ? getFilteredRoutes(userInfo.role)
+    : getPublicRoutes();
 
   // Cache for the rtl
   useMemo(() => {
@@ -247,7 +273,7 @@ function AppContent() {
               {getRoutes(filteredRoutes)}
               <Route path="/" element={<ConditionalRedirect />} />
               <Route path="/reset-password" element={<ResetPasswordRedirect />} />
-              <Route path="*" element={<Navigate to="/inscription-tcf" />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </ThemeProvider>
         </CacheProvider>
@@ -272,7 +298,7 @@ function AppContent() {
               {getRoutes(filteredRoutes)}
               <Route path="/" element={<ConditionalRedirect />} />
               <Route path="/reset-password" element={<ResetPasswordRedirect />} />
-              <Route path="*" element={<Navigate to="/inscription-tcf" />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
         </ThemeProvider>
       )}

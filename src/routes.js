@@ -185,7 +185,7 @@ const routes = [
     icon: <Icon fontSize="small">payment</Icon>,
     route: "/paiement-tcf",
     component: <PaymentSuccess />,
-    roles: ["Administrator", "Client"],
+    roles: ["Administrator", "Client", ""],
   },
   {
     type: "route",
@@ -227,5 +227,9 @@ export const getFilteredRoutes = (userRole) => {
     return route.roles.includes(mappedRole);
   });
 };
+
+// Fonction pour récupérer uniquement les routes publiques (sans authentification)
+export const getPublicRoutes = () =>
+  routes.filter(route => !route.roles || route.roles.includes("") || route.roles.includes("Public"));
 
 export default routes;
