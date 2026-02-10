@@ -1,4 +1,20 @@
 Options -MultiViews
 RewriteEngine On
+
+# Bloquer les endpoints /api/* côté frontend (évite 200 sur des routes fictives)
+RewriteRule ^api/ - [R=404,L]
+
+# Sécurité headers
+<IfModule mod_headers.c>
+	Header set X-Content-Type-Options "nosniff"
+	Header set X-Frame-Options "DENY"
+	Header set X-XSS-Protection "1; mode=block"
+	Header set Referrer-Policy "strict-origin-when-cross-origin"
+	Header set Permissions-Policy "camera=(), microphone=(self), geolocation=(), interest-cohort=()"
+	Header set Content-Security-Policy "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' https: data: blob:; font-src 'self' https: data:; connect-src 'self' https: wss:; frame-ancestors 'none'"
+	Header set Cache-Control "no-store"
+	Header set X-Permitted-Cross-Domain-Policies "none"
+</IfModule>
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^ index.html [QSA,L]

@@ -21,7 +21,7 @@ import { Routes, Route, Navigate, useLocation, useSearchParams } from "react-rou
 // @mui material components
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import Icon from "@mui/material/Icon";
+import axios from "axios";
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
@@ -44,14 +44,12 @@ import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
 
 // Simulateur TCF Canada React routes
-import routes, { getFilteredRoutes, getPublicRoutes } from "routes";
+import { getFilteredRoutes, getPublicRoutes } from "routes";
 
 // Simulateur TCF Canada React contexts
 import { useMaterialUIController, setMiniSidenav, InfoUserProvider, useInfoUser } from "context";
 
 // Images
-import brandWhite from "assets/images/logo-ct.png";
-import brandDark from "assets/images/logo-ct-dark.png";
 import tcfCanadaLogo from "assets/logo-tfc-canada.png";
 
 // Composant de redirection conditionnelle
@@ -115,10 +113,7 @@ function AppContent() {
     miniSidenav,
     direction,
     layout,
-    openConfigurator,
     sidenavColor,
-    transparentSidenav,
-    whiteSidenav,
     darkMode,
   } = controller;
   const [onMouseEnter, setOnMouseEnter] = useState(false);
@@ -142,6 +137,23 @@ function AppContent() {
     });
 
     setRtlCache(cacheRtl);
+  }, []);
+
+  // Initialiser un token CSRF côté front et le mettre en header par défaut (axios)
+  useEffect(() => {
+    try {
+      const key = "csrf_token";
+      let token = localStorage.getItem(key);
+      if (!token) {
+        const array = new Uint8Array(16);
+        window.crypto.getRandomValues(array);
+        token = Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
+        localStorage.setItem(key, token);
+      }
+      axios.defaults.headers.common["X-CSRF-Token"] = token;
+    } catch (e) {
+      // noop
+    }
   }, []);
 
   // Vérifier l'état de l'examen depuis localStorage
@@ -250,6 +262,21 @@ function AppContent() {
 
   return (
     <>
+      <h1
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
+        Expression TCF - Plateforme d'entraînement
+      </h1>
       {direction === "rtl" ? (
         <CacheProvider value={rtlCache}>
           <ThemeProvider theme={darkMode ? themeDarkRTL : themeRTL}>

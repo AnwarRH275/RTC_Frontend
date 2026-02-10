@@ -564,6 +564,18 @@ function TCFResultsInterface() {
           sessionId: `session-${Date.now()}`
         };
         
+        const isValidResults = (data, tasks) => {
+          if (!Array.isArray(data) || data.length === 0) return false;
+          if (Array.isArray(tasks) && tasks.length > 0 && data.length !== tasks.length) return false;
+          return data.every((taskResult) => {
+            if (!taskResult || typeof taskResult.output !== 'object') return false;
+            const taskKey = Object.keys(taskResult.output)[0];
+            if (!taskKey) return false;
+            const taskData = taskResult.output[taskKey];
+            return taskData && (typeof taskData.corrections_taches === 'string' || Array.isArray(taskData.pointsForts));
+          });
+        };
+
         // Fonction pour effectuer l'appel API avec retry
         const makeAPICall = async (retryCount = 0) => {
           try {
@@ -576,6 +588,9 @@ function TCFResultsInterface() {
             
             // Traiter la réponse de l'API
             if (response.data && Array.isArray(response.data)) {
+              if (!isValidResults(response.data, subjectData.tasks)) {
+                throw new Error('Format de réponse invalide');
+              }
               setResults(response.data);
               
               // Calculer la note moyenne
@@ -590,8 +605,8 @@ function TCFResultsInterface() {
           } catch (apiError) {
             console.error(`Tentative ${retryCount + 1} échouée:`, apiError);
             
-            if (retryCount < 4) { // Retry jusqu'à 5 fois (0-4)
-              console.log(`Nouvelle tentative dans 2 secondes... (${retryCount + 2}/5)`);
+            if (retryCount < 6) { // Retry jusqu'à 7 fois (0-6)
+              console.log(`Nouvelle tentative dans 2 secondes... (${retryCount + 2}/7)`);
               setTimeout(() => {
                 makeAPICall(retryCount + 1);
               }, 2000); // Attendre 2 secondes avant de réessayer
