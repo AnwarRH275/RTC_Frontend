@@ -201,12 +201,19 @@ function PaymentSuccess() {
           }
         }
 
-        setError(loginData?.message || "Votre paiement est confirmé, mais la connexion a échoué. Veuillez vous connecter.");
+        // Utiliser un message d'erreur unifié pour les échecs de connexion
+        setError("Nom d'utilisateur ou mot de passe incorrect.");
         setLoading(false);
         return;
       } catch (error) {
         console.error("Erreur lors du traitement du paiement:", error);
-        setError(error.response?.data?.message || "Une erreur est survenue lors du traitement de votre paiement.");
+        // Si l'erreur contient un status d'authentification, afficher le message unifié
+        const status = error.response?.status;
+        if ([400, 401, 403, 404].includes(status)) {
+          setError("Nom d'utilisateur ou mot de passe incorrect.");
+        } else {
+          setError(error.response?.data?.message || "Une erreur est survenue lors du traitement de votre paiement.");
+        }
       } finally {
         setLoading(false);
       }

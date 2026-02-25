@@ -26,11 +26,20 @@ const signup = async (userData) => {
     }
     return response;
   } catch (error) {
-    if (error.response && error.response.data && error.response.data.message) {
-      throw new Error(error.response.data.message);
-    } else {
-      throw new Error('Échec de la connexion. Veuillez vérifier vos identifiants.');
+    // Renvoyer un message unique pour toutes les erreurs d'authentification
+    if (error.response) {
+      const status = error.response.status;
+      // Pour toutes les erreurs liées à l'authentification, afficher un message générique
+      if ([400, 401, 403, 404].includes(status)) {
+        throw new Error("Nom d'utilisateur ou mot de passe incorrect.");
+      }
+      const dataMessage = error.response.data && error.response.data.message;
+      if (dataMessage) {
+        throw new Error(dataMessage);
+      }
     }
+
+    throw new Error("Nom d'utilisateur ou mot de passe incorrect.");
   }
 };
 

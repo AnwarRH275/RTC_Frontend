@@ -318,15 +318,31 @@ function UserManagement() {
   };
 
   const handleSubmit = async () => {
-    if (!editMode && formData.password !== confirmPassword) {
+    const adminEditingPassword = editMode && userInfo?.role === "admin" && (formData.password || confirmPassword);
+
+    if ((!editMode || adminEditingPassword) && formData.password !== confirmPassword) {
       showSnackbar("Les mots de passe ne correspondent pas", "error");
       return;
     }
 
+    if ((!editMode || adminEditingPassword) && formData.password && formData.password.length < 6) {
+      showSnackbar("Le mot de passe doit contenir au moins 6 caractères", "error");
+      return;
+    }
+
     const telWithCode = formData.tel ? `${countryCode} ${formData.tel}` : "";
+    const payload = {
+      ...formData,
+      tel: telWithCode,
+      plan: formData.subscription_plan
+    };
 
     try {
       if (editMode) {
+        if (userInfo?.role !== "admin" || !formData.password) {
+          delete payload.password;
+        }
+
         // Update user
         const response = await fetch(`${API_BASE_URL}/auth/signup`, {
           method: 'PUT',
@@ -335,11 +351,7 @@ function UserManagement() {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
     
           },
-          body: JSON.stringify({
-            ...formData,
-            tel: telWithCode,
-            plan: formData.subscription_plan
-          }),
+          body: JSON.stringify(payload),
         });
         
         if (response.ok) {
@@ -347,28 +359,12 @@ function UserManagement() {
           fetchUsers();
           handleCloseDialog();
         } else {
-          throw new Error('Erreur lors de la modification');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Erreur lors de la modification');
         }
       } else {
         // Create new user
-        try {
-      const response = await authService.signup({
-        ...formData,
-        tel: telWithCode,
-        plan: formData.subscription_plan,
-      }, {
-        method: 'POST', // ou 'PUT' selon ton besoin, mais signup est généralement POST
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      alert(`Bearer ${localStorage.getItem('token')}`)
-      // Gérer la réponse ici (ex: redirection, message de succès, etc.)
-      console.log('Inscription réussie', response);
-    } catch (error) {
-      console.error('Erreur lors de l\'inscription :', error);
-    }       
+        await authService.signup(payload);
         showSnackbar('Utilisateur créé avec succès');
         fetchUsers();
         handleCloseDialog();
@@ -735,18 +731,6 @@ function UserManagement() {
                 sx={{ mb: 2 }}
               />
             </Grid>
-            {!editMode && (
-              <Grid item xs={12}>
-                <MDInput
-                  label="Mot de passe"
-                  type="password"
-                  fullWidth
-                  value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
-                  sx={{ mb: 2 }}
-                />
-              </Grid>
-            )}
             <Grid item xs={12} md={6}>
               <MDInput
                 label="Nom"
@@ -765,11 +749,11 @@ function UserManagement() {
                 sx={{ mb: 2 }}
               />
             </Grid>
-            {!editMode && (
+            {(!editMode || (editMode && userInfo?.role === 'admin')) && (
               <>
                 <Grid item xs={12} md={6}>
                   <MDInput
-                    label="Mot de passe"
+                    label={editMode ? "Nouveau mot de passe" : "Mot de passe"}
                     type={showPassword ? "text" : "password"}
                     fullWidth
                     value={formData.password}
@@ -786,7 +770,7 @@ function UserManagement() {
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <MDInput
-                    label="Confirmer le mot de passe"
+                    label={editMode ? "Confirmer le nouveau mot de passe" : "Confirmer le mot de passe"}
                     type={showConfirmPassword ? "text" : "password"}
                     fullWidth
                     value={confirmPassword}
@@ -801,6 +785,13 @@ function UserManagement() {
                     }}
                   />
                 </Grid>
+                {editMode && userInfo?.role === 'admin' && (
+                  <Grid item xs={12}>
+                    <MDTypography variant="caption" color="text">
+                      Laissez les champs mot de passe vides pour conserver le mot de passe actuel.
+                    </MDTypography>
+                  </Grid>
+                )}
               </>
             )}
             <Grid item xs={12} md={6}>
