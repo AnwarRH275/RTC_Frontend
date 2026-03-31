@@ -78,6 +78,7 @@ function TCFSimulatorOral() {
   const [retakeSubjectId, setRetakeSubjectId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [openMobileWarning, setOpenMobileWarning] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const itemsPerPage = 9;
 
   const navigate = useNavigate();
@@ -180,7 +181,8 @@ function TCFSimulatorOral() {
                 ["Aucun point fort détecté"],
               pointsAmeliorer: exam.point_faible ?
                 exam.point_faible.split(',').map(p => p.trim()).filter(p => p) :
-                ["L'expression orale est incompréhensible et ne répond pas à la consigne"]
+                ["L'expression orale est incompréhensible et ne répond pas à la consigne"],
+              reponse: exam.reponse_utilisateur || ""
             };
           });
 
@@ -190,8 +192,8 @@ function TCFSimulatorOral() {
           taskResults: taskResults,
           pointsForts: processPoints(examValues, 'points_fort'),
           pointsAmeliorer: processPoints(examValues, 'point_faible'),
-          // Ajouter les réponses de l'utilisateur
-          user_responses: userResponses
+          // Ajouter les réponses de l'utilisateur (depuis la base de données)
+          user_responses: taskResults.map(t => t.reponse)
         };
 
         // Si aucun point fort/faible n'est trouvé, utiliser des valeurs par défaut
@@ -290,31 +292,20 @@ function TCFSimulatorOral() {
 
   const handleConfirmRetake = async () => {
     try {
-      // Si c'est un forçage (erreur présente), on ne tente pas d'incrémenter
-      if (!retakeData?.error) {
-        // Incrémenter le compteur de tentatives seulement si ce n'est pas un forçage
-        await attemptService.incrementAttempt(retakeSubjectId);
-      }
+      // Incrémenter le compteur de tentatives
+      await attemptService.incrementAttempt(retakeSubjectId);
 
       // Fermer la modal
       setOpenRetakeDialog(false);
       setRetakeData(null);
       setRetakeSubjectId(null);
 
-      // Rediriger vers l'examen dans tous les cas
+      // Rediriger vers l'examen
       navigate(`/simulateur-tcf-expression-orale/${retakeSubjectId}/exam?isRetake=true`);
     } catch (error) {
       console.error('Erreur lors de l\'incrémentation des tentatives:', error);
-      // Même en cas d'erreur, on redirige vers l'examen puisque c'est un forçage
-      if (retakeData?.error) {
-        setOpenRetakeDialog(false);
-        setRetakeData(null);
-        setRetakeSubjectId(null);
-        navigate(`/simulateur-tcf-expression-orale/${retakeSubjectId}/exam?isRetake=true`);
-      } else {
-        // Afficher une erreur dans la modal seulement si ce n'était pas un forçage
-        setRetakeData({ error: 'technical_error' });
-      }
+      // Afficher une erreur dans la modal
+      setRetakeData({ error: 'technical_error' });
     }
   };
 
@@ -324,95 +315,122 @@ function TCFSimulatorOral() {
     setRetakeSubjectId(null);
   };
 
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        // Récupérer les sujets depuis le service TCFOral
-        const oralDataResponse = await TCFOralService.getAllSubjects();
-        const oralData = oralDataResponse.subjects || oralDataResponse;
-        const userSubscriptionPlan = await authService.getCurrentUserPlan();
-        // Récupérer les examens passés par l'utilisateur
-        const userExams = await authService.getUserExams();
-        console.log(userSubscriptionPlan);
-        console.log('Examens utilisateur:', userExams);
+  // Fonction pour charger les sujets
+  const fetchSubjects = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Récupérer les sujets depuis le service TCFOral
+      const oralDataResponse = await TCFOralService.getAllSubjects();
+      const oralData = oralDataResponse.subjects || oralDataResponse;
+      const userSubscriptionPlan = await authService.getCurrentUserPlan();
+      // Récupérer les examens passés par l'utilisateur
+      const userExams = await authService.getUserExams();
+      console.log(userSubscriptionPlan);
+      console.log('Examens utilisateur:', userExams);
 
-        // Créer un Set des IDs de sujets déjà passés par l'utilisateur pour les examens oraux
-        // Utiliser un Set pour éviter les doublons
-        const completedSubjectIds = new Set();
+      // Créer un Set des IDs de sujets déjà passés par l'utilisateur pour les examens oraux
+      // Utiliser un Set pour éviter les doublons
+      const completedSubjectIds = new Set();
 
-        // Ajouter chaque ID de sujet au Set seulement pour les examens de type 'oral'
-        userExams.forEach(exam => {
-          if (exam.type_exam === 'oral') {
-            completedSubjectIds.add(exam.id_subject);
+      // Ajouter chaque ID de sujet au Set seulement pour les examens de type 'oral'
+      userExams.forEach(exam => {
+        if (exam.type_exam === 'oral') {
+          completedSubjectIds.add(exam.id_subject);
+        }
+      });
+
+      console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
+
+      // Transformer les données pour correspondre au format attendu
+      const formattedSubjects = oralData.map(subject => {
+        const plan = subject.plans;
+        const userPlan = userSubscriptionPlan;
+
+        let status = "";
+
+        // Vérifier si l'utilisateur a déjà passé cet examen
+        if (completedSubjectIds.has(subject.id)) {
+          status = "completed";
+        } else if (plan === "Pack Oral Standard") {
+          status = ""; // Toujours accessible
+        } else if (plan === "Pack Oral Performance") {
+          if (userPlan === "standard") {
+            status = "locked";
+          } else {
+            status = ""; // performance ou pro
           }
-        });
-
-        console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
-
-        // Transformer les données pour correspondre au format attendu
-        const formattedSubjects = oralData.map(subject => {
-          const plan = subject.plans;
-          const userPlan = userSubscriptionPlan;
-
-          let status = "";
-
-          // Vérifier si l'utilisateur a déjà passé cet examen
-          if (completedSubjectIds.has(subject.id)) {
-            status = "completed";
-          } else if (plan === "Pack Oral Standard") {
-            status = ""; // Toujours accessible
-          } else if (plan === "Pack Oral Performance") {
-            if (userPlan === "standard") {
-              status = "locked";
-            } else {
-              status = ""; // performance ou pro
-            }
-          } else if (plan === "Pack Oral Pro") {
-            if (userPlan === "standard" || userPlan === "performance") {
-              status = "locked";
-            } else {
-              status = ""; // seulement si utilisateur est "pro"
-            }
+        } else if (plan === "Pack Oral Pro") {
+          if (userPlan === "standard" || userPlan === "performance") {
+            status = "locked";
+          } else {
+            status = ""; // seulement si utilisateur est "pro"
           }
+        }
 
-          return {
-            id: subject.id,
-            name: "",
-            blog: subject.blog || "",
-            tasks: subject.tasks || [],
-            pack: subject.name + ' : ' + subject.combination,
-            bgColor: "#f72585",
-            duration: 12,
-            status: status
-          };
-        });
-
-        // Define the desired order of plans
-        const planOrder = {
-          "Pack Oral Standard": 1,
-          "Pack Oral Performance": 2,
-          "Pack Oral Pro": 3,
+        return {
+          id: subject.id,
+          name: "",
+          blog: subject.blog || "",
+          tasks: subject.tasks || [],
+          pack: subject.name + ' : ' + subject.combination,
+          bgColor: "#f72585",
+          duration: 12,
+          status: status
         };
+      });
 
-        // Sort the subjects based on the defined order
-        formattedSubjects.sort((a, b) => {
-          const orderA = planOrder[a.pack] || 99; // Default to a high number if plan is not in the map
-          const orderB = planOrder[b.pack] || 99;
-          return orderA - orderB;
-        });
+      // Define the desired order of plans
+      const planOrder = {
+        "Pack Oral Standard": 1,
+        "Pack Oral Performance": 2,
+        "Pack Oral Pro": 3,
+      };
 
-        setSubjects(formattedSubjects);
-        setLoading(false);
-      } catch (error) {
-        console.error("Erreur lors du chargement des sujets:", error);
-        // En cas d'erreur, utiliser les données statiques comme fallback
-        setSubjects([]);
-        setError("Impossible de charger les sujets. Veuillez réessayer plus tard.");
-        setLoading(false);
+      // Sort the subjects based on the defined order
+      formattedSubjects.sort((a, b) => {
+        const orderA = planOrder[a.pack] || 99; // Default to a high number if plan is not in the map
+        const orderB = planOrder[b.pack] || 99;
+        return orderA - orderB;
+      });
+
+      setSubjects(formattedSubjects);
+      setLoading(false);
+    } catch (error) {
+      console.error("Erreur lors du chargement des sujets:", error);
+      // En cas d'erreur, utiliser les données statiques comme fallback
+      setSubjects([]);
+      setError("Impossible de charger les sujets. Veuillez réessayer plus tard.");
+      setLoading(false);
+    }
+  };
+
+  // Effect pour charger les sujets au montage et lors des rafraîchissements
+  useEffect(() => {
+    fetchSubjects();
+  }, [refreshTrigger]);
+
+  // Effect pour détecter quand l'utilisateur revient sur la page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // L'utilisateur revient sur la page, rafraîchir les données
+        setRefreshTrigger(prev => prev + 1);
       }
     };
 
-    fetchSubjects();
+    const handleFocus = () => {
+      // L'utilisateur revient sur la fenêtre, rafraîchir les données
+      setRefreshTrigger(prev => prev + 1);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
 
@@ -1229,9 +1247,7 @@ function TCFSimulatorOral() {
                               background: '#f8f9fa',
                               borderRadius: 2,
                               border: '1px solid #e9ecef',
-                              height: '100%',
                               minHeight: '250px',
-                              overflow: 'auto'
                             }}
                           >
                             <MDTypography variant="h6" fontWeight="bold" color="dark" mb={2}>
@@ -1268,9 +1284,7 @@ function TCFSimulatorOral() {
                               background: '#f0f9ff',
                               borderRadius: 2,
                               border: '1px solid #cfe2ff',
-                              height: '100%',
                               minHeight: '250px',
-                              overflow: 'auto'
                             }}
                           >
                             <MDTypography variant="h6" fontWeight="bold" color="info" mb={2}>
@@ -1457,90 +1471,146 @@ function TCFSimulatorOral() {
         onClose={handleCloseRetakeDialog}
         maxWidth="sm"
         fullWidth
-        sx={{
-          '& .MuiDialog-paper': {
-            borderRadius: '15px',
-            boxShadow: '0 8px 32px rgba(31, 38, 135, 0.37)',
-          },
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'hidden',
+          }
         }}
       >
-        <DialogTitle sx={{
-          background: retakeData?.error ? 'linear-gradient(90deg, #ef476f 0%, #d90429 100%)' : 'linear-gradient(90deg, #0077b6 0%, #023e8a 100%)',
-          color: 'white',
-          borderTopLeftRadius: '15px',
-          borderTopRightRadius: '15px',
-        }}>
-          <MDTypography variant="h5" fontWeight="medium" color="white">
-            {retakeData?.error === 'max_attempts' ? "Limite de tentatives atteinte" :
-              retakeData?.error === 'technical_error' ? "Erreur technique" :
-                "Refaire l'examen"}
+        <DialogTitle
+          sx={{
+            background: retakeData?.error ?
+              'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' :
+              'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            color: 'white',
+            textAlign: 'center',
+            py: 3,
+            position: 'relative',
+          }}
+        >
+          <Icon sx={{ fontSize: '2.5rem', mb: 1 }}>
+            {retakeData?.error ? 'error' : 'refresh'}
+          </Icon>
+          <MDTypography variant="h5" fontWeight="bold" color="white">
+            {retakeData?.error === 'max_attempts' ? 'Tentatives épuisées' :
+              retakeData?.error === 'technical_error' ? 'Erreur technique' :
+                'Confirmer la tentative'}
           </MDTypography>
         </DialogTitle>
-        <DialogContent sx={{ p: 3, mt: 2 }}>
+
+        <DialogContent sx={{ p: 4 }}>
           {retakeData?.error === 'max_attempts' ? (
-            <MDBox>
-              <MDTypography variant="body1" mb={2}>
-                Vous avez atteint le nombre maximum de tentatives pour cet examen ({retakeData.max_attempts} tentatives).
+            <MDBox textAlign="center">
+              <MDTypography variant="body1" color="text" mb={2}>
+                Vous avez déjà utilisé votre tentative pour cet examen.
               </MDTypography>
-              <MDTypography variant="body2" color="text">
-                Pour obtenir des tentatives supplémentaires, veuillez mettre à niveau votre abonnement ou contacter le support.
+              <MDTypography variant="body2" color="text" opacity={0.7}>
+                Vous ne pouvez plus repasser cet examen.
               </MDTypography>
             </MDBox>
           ) : retakeData?.error === 'technical_error' ? (
-            <MDBox>
-              <MDTypography variant="body1" mb={2}>
-                Une erreur technique est survenue lors de la vérification de vos tentatives.
+            <MDBox textAlign="center">
+              <MDTypography variant="body1" color="text" mb={2}>
+                Une erreur technique s'est produite.
               </MDTypography>
-              <MDTypography variant="body2" color="text">
-                Veuillez réessayer ultérieurement ou contacter le support si le problème persiste.
+              <MDTypography variant="body2" color="text" opacity={0.7}>
+                Veuillez réessayer plus tard.
               </MDTypography>
             </MDBox>
           ) : (
             <MDBox>
-              <MDTypography variant="body1" mb={2}>
-                Vous êtes sur le point de refaire cet examen. Cette action sera comptabilisée comme une nouvelle tentative.
-              </MDTypography>
               <MDBox
-                p={2}
                 sx={{
-                  backgroundColor: 'rgba(67, 97, 238, 0.05)',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(67, 97, 238, 0.2)',
+                  background: 'linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%)',
+                  borderRadius: '12px',
+                  p: 3,
+                  mb: 3,
+                  border: '1px solid #81d4fa'
                 }}
               >
-                <MDTypography variant="body2" color="text">
-                  Tentatives utilisées: <strong>{retakeData?.attempts_used || 0}</strong> sur <strong>{retakeData?.max_attempts || 'illimité'}</strong>
+                <MDTypography variant="h6" fontWeight="bold" color="#0277bd" mb={2}>
+                  Informations sur les tentatives
+                </MDTypography>
+                <MDBox display="flex" alignItems="center" mb={1}>
+                  <Icon sx={{ color: '#0277bd', mr: 1 }}>info</Icon>
+                  <MDTypography variant="body2" color="#0277bd">
+                    Vous avez droit à 1 tentative pour cet examen
+                  </MDTypography>
+                </MDBox>
+                <MDBox display="flex" alignItems="center" mb={1}>
+                  <Icon sx={{ color: '#0277bd', mr: 1 }}>play_circle</Icon>
+                  <MDTypography variant="body2" color="#0277bd">
+                    Tentative actuelle: {(retakeData?.attempt_count || 0) + 1} / 1
+                  </MDTypography>
+                </MDBox>
+              </MDBox>
+
+              <MDBox
+                sx={{
+                  background: 'linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)',
+                  borderRadius: '12px',
+                  p: 3,
+                  border: '1px solid #ce93d8'
+                }}
+              >
+                <MDBox display="flex" alignItems="center" mb={1}>
+                  <Icon sx={{ color: '#7b1fa2', mr: 1 }}>monetization_off</Icon>
+                  <MDTypography variant="body2" color="#7b1fa2" fontWeight="bold">
+                    Cette tentative ne déduira pas de crédit de votre solde
+                  </MDTypography>
+                </MDBox>
+              </MDBox>
+
+              <MDBox mt={3} textAlign="center">
+                <MDTypography variant="body1" color="text">
+                  Voulez-vous commencer la tentative?
                 </MDTypography>
               </MDBox>
-              <MDTypography variant="body2" color="text" mt={2}>
-                Voulez-vous continuer?
-              </MDTypography>
             </MDBox>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
+
+        <DialogActions
+          sx={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+            p: 3,
+            justifyContent: 'center',
+            gap: 2
+          }}
+        >
           <MDButton
-            variant="outlined"
-            color="dark"
             onClick={handleCloseRetakeDialog}
+            variant="outlined"
+            color="secondary"
+            sx={{
+              borderRadius: '12px',
+              px: 4,
+              py: 1.5,
+              fontWeight: 'bold',
+              minWidth: '120px'
+            }}
           >
-            Annuler
+            {retakeData?.error ? 'Fermer' : 'Annuler'}
           </MDButton>
-          {retakeData?.error ? (
+
+          {!retakeData?.error && (
             <MDButton
-              variant="gradient"
-              color="error"
               onClick={handleConfirmRetake}
-            >
-              Forcer le passage
-            </MDButton>
-          ) : (
-            <MDButton
               variant="gradient"
               color="info"
-              onClick={handleConfirmRetake}
+              sx={{
+                borderRadius: '12px',
+                px: 4,
+                py: 1.5,
+                fontWeight: 'bold',
+                minWidth: '180px'
+              }}
             >
-              Confirmer
+              <Icon sx={{ mr: 1 }}>play_arrow</Icon>
+              Commencer la tentative
             </MDButton>
           )}
         </DialogActions>

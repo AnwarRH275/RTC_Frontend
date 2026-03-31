@@ -883,6 +883,7 @@ function PackManagement() {
               onClick={handleSavePack} 
               variant="contained" 
               startIcon={<SaveIcon />}
+              style={{color:"#fff"}}
             >
               {editingPack ? 'Mettre à jour' : 'Créer'}
             </Button>

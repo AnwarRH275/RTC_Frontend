@@ -253,22 +253,26 @@ function TCFResultsInterface() {
   };
 
   // Fonction pour enregistrer les résultats via l'API
-  const saveResultsToAPI = async (correctionResults, subjectData) => {
+  const saveResultsToAPI = async (correctionResults, subjectData, responsesData) => {
     try {
       setSaving(true);
       const userId = getUserIdFromToken();
       
       // Préparer les données pour chaque tâche en utilisant le nouveau format
-      const savePromises = correctionResults.map(async (taskResult, index) => {
+      const savePromises = correctionResults
+        .filter((taskResult) => taskResult && taskResult.output) // Ignorer les tâches vides
+        .map(async (taskResult, _idx) => {
         const taskKey = Object.keys(taskResult.output)[0]; // tache1, tache2, etc.
         const taskData = taskResult.output[taskKey];
-        const task = subjectData.tasks[index];
-        const taskResponse = responses[index] || '';
+        // Retrouver l'index original à partir du nom de la tâche (tache1 → 0, tache2 → 1, etc.)
+        const originalIndex = parseInt(taskKey.replace('tache', ''), 10) - 1;
+        const task = subjectData.tasks[originalIndex] || subjectData.tasks[_idx];
+        const taskResponse = responsesData[originalIndex] || '';
         
         const payload = {
           id_user: userId,
           id_subject: parseInt(subjectId),
-          id_task: task.id || index + 1,
+          id_task: task?.id || originalIndex + 1,
           reponse_utilisateur: taskResponse,
           score: taskData.NoteExam || '',
           reponse_ia: taskData.corrections_taches?.[0] || '',
@@ -317,11 +321,13 @@ function TCFResultsInterface() {
     
     if (results && Array.isArray(results) && results[currentTaskToTranslate]) {
       const taskResult = results[currentTaskToTranslate];
-      const taskKey = Object.keys(taskResult.output)[0];
-      const taskData = taskResult.output[taskKey];
-      
-      if (taskData.pointsForts) taskPointsForts = taskData.pointsForts;
-      if (taskData.pointsAmeliorer) taskPointsAmeliorer = taskData.pointsAmeliorer;
+      if (taskResult && taskResult.output) {
+        const taskKey = Object.keys(taskResult.output)[0];
+        const taskData = taskResult.output[taskKey];
+        
+        if (taskData?.pointsForts) taskPointsForts = taskData.pointsForts;
+        if (taskData?.pointsAmeliorer) taskPointsAmeliorer = taskData.pointsAmeliorer;
+      }
     }
     
     const payload = {
@@ -352,6 +358,7 @@ function TCFResultsInterface() {
           if (results && Array.isArray(results) && results[currentTaskToTranslate]) {
             const updatedResults = [...results];
             const taskResult = updatedResults[currentTaskToTranslate];
+            if (!taskResult || !taskResult.output) return;
             const taskKey = Object.keys(taskResult.output)[0];
             
             // Ajouter les traductions à la tâche
@@ -518,14 +525,20 @@ function TCFResultsInterface() {
           chatInput: chatInputArray
         };
         
-        // Fonction pour effectuer l'appel API avec retry
+        // Helper: attendre N ms (utilisé entre les retries)
+        const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        // Fonction pour effectuer l'appel API avec retry (max 1 retry pour limiter la consommation de tokens)
         const makeAPICall = async (retryCount = 0) => {
           try {
             // Appel réel à l'API de correction ORAL
             const response = await axios.post(
               `${API_BASE_URL}/proxy/oral`,
               payload,
-              { headers: { 'Content-Type': 'application/json' } }
+              {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 360000, // 6 minutes max côté navigateur (n8n peut prendre 5 min)
+              }
             );
             
             // Traiter la réponse de l'API
@@ -536,23 +549,19 @@ function TCFResultsInterface() {
               await calculateNoteMoyenne(response.data);
               
               // Enregistrer les résultats via l'API d'enregistrement, en passant subjectData
-              await saveResultsToAPI(response.data, subjectData);
+              await saveResultsToAPI(response.data, subjectData, responsesData);
               
-              // Supprimer les entrées localStorage inutiles après traitement
-       
-        
-        // Nettoyer les fichiers audio générés pour éviter d'épuiser les ressources
-        try {
-          const response = await axios.post(
-            `${API_BASE_URL}/synthesis/cleanup-audio-files`,
-            { session_id: subjectId },
-            { headers: { 'Content-Type': 'application/json' } }
-          );
-          console.log('Nettoyage des fichiers audio:', response.data);
-        } catch (cleanupError) {
-          console.warn('Erreur lors du nettoyage des fichiers audio via API:', cleanupError);
-          // En cas d'erreur, continuer sans bloquer l'affichage des résultats
-        }
+              // Nettoyer les fichiers audio générés pour éviter d'épuiser les ressources
+              try {
+                const cleanupResp = await axios.post(
+                  `${API_BASE_URL}/synthesis/cleanup-audio-files`,
+                  { session_id: subjectId },
+                  { headers: { 'Content-Type': 'application/json' } }
+                );
+                console.log('Nettoyage des fichiers audio:', cleanupResp.data);
+              } catch (cleanupError) {
+                console.warn('Erreur lors du nettoyage des fichiers audio via API:', cleanupError);
+              }
               
               setLoading(false);
             } else {
@@ -561,14 +570,13 @@ function TCFResultsInterface() {
           } catch (apiError) {
             console.error(`Tentative ${retryCount + 1} échouée:`, apiError);
             
-            if (retryCount < 4) { // Retry jusqu'à 5 fois (0-4)
-              console.log(`Nouvelle tentative dans 2 secondes... (${retryCount + 2}/5)`);
-              setTimeout(() => {
-                makeAPICall(retryCount + 1);
-              }, 2000); // Attendre 2 secondes avant de réessayer
+            if (retryCount < 1) { // 1 seul retry pour ne pas consommer les tokens inutilement
+              console.log(`Nouvelle tentative dans 10 secondes... (${retryCount + 2}/2)`);
+              await delay(10000); // 10 sec entre les tentatives
+              return makeAPICall(retryCount + 1);
             } else {
               console.error('Toutes les tentatives ont échoué');
-              setError("Une erreur s'est produite lors de la correction après 5 tentatives. Veuillez réessayer.");
+              setError("Une erreur s'est produite lors de la correction. Veuillez réessayer.");
               setLoading(false);
             }
           }
@@ -597,9 +605,11 @@ function TCFResultsInterface() {
       
       if (resultsData && Array.isArray(resultsData)) {
         resultsData.forEach((taskResult, index) => {
+          // Ignorer les tâches vides (pas de clé output)
+          if (!taskResult || !taskResult.output) return;
           const taskKey = Object.keys(taskResult.output)[0];
           const taskData = taskResult.output[taskKey];
-          const noteExam = taskData.NoteExam || '';
+          const noteExam = taskData?.NoteExam || '';
           
           if (noteExam) {
             noteExams[`Tache${index + 1}`] = noteExam;
@@ -627,10 +637,14 @@ function TCFResultsInterface() {
           }
         }
       );
-      
-      if (response.data && response.data.output && response.data.output.noteMoyenne) {
-        setNoteMoyenne(response.data.output.noteMoyenne);
-        console.log('Note moyenne calculée:', response.data.output.noteMoyenne);
+
+      const noteMoyenneValue = Array.isArray(response.data)
+        ? response.data?.[0]?.output?.noteMoyenne
+        : response.data?.output?.noteMoyenne;
+
+      if (noteMoyenneValue) {
+        setNoteMoyenne(noteMoyenneValue);
+        console.log('Note moyenne calculée:', noteMoyenneValue);
       } else {
         console.error('Format de réponse invalide pour la note moyenne:', response.data);
       }
@@ -976,14 +990,19 @@ function TCFResultsInterface() {
             {/* Résultats par tâche */}
             {results && Array.isArray(results) && results.length > 0 ? (
               results.map((taskResult, index) => {
+                // Ignorer les tâches vides (pas de clé output)
+                if (!taskResult || !taskResult.output || Object.keys(taskResult.output).length === 0) {
+                  return null;
+                }
                 const taskKey = Object.keys(taskResult.output)[0];
                 const taskData = taskResult.output[taskKey];
                 const task = subject?.tasks[index];
-                const corrections = Array.isArray(taskData.corrections_taches)
+                const corrections = (Array.isArray(taskData?.corrections_taches)
                   ? taskData.corrections_taches.filter(Boolean)
-                  : (taskData.corrections_taches ? [taskData.corrections_taches] : []);
-                const pointsForts = taskData.pointsForts || [];
-                const pointsAmeliorer = taskData.pointsAmeliorer || [];
+                  : (taskData?.corrections_taches ? [taskData.corrections_taches] : [])
+                ).map(c => c.replace(/\\n/g, '\n'));
+                const pointsForts = taskData?.pointsForts || [];
+                const pointsAmeliorer = taskData?.pointsAmeliorer || [];
 
                 return (
                   <Fade in timeout={500 + (index * 200)} key={index}>

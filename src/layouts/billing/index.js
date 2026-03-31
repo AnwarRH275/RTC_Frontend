@@ -110,6 +110,7 @@ function FinancialManagement() {
   const [cancelDialog, setCancelDialog] = useState({ open: false, order: null });
   const [refundDialog, setRefundDialog] = useState({ open: false, order: null });
   const [viewDialog, setViewDialog] = useState({ open: false, order: null });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, order: null });
 
   const handleStatusFilterChange = (event) => {
     setStatusFilter(event.target.value);
@@ -180,6 +181,7 @@ function FinancialManagement() {
     show: (order) => setViewDialog({ open: true, order }),
     cancel: (order) => setCancelDialog({ open: true, order }),
     refund: (order) => setRefundDialog({ open: true, order }),
+    deleteOrder: (order) => setDeleteDialog({ open: true, order }),
   });
 
   // Fonction pour récupérer le token d'authentification
@@ -327,6 +329,31 @@ function FinancialManagement() {
       fetchAllOrders();
       fetchStatistics();
       setRefundDialog({ open: false, order: null });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Fonction pour supprimer une commande
+  const deleteOrder = async (orderId) => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/order-admin/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression de la commande');
+      }
+
+      setSuccess('Commande supprimée avec succès');
+      fetchAllOrders();
+      fetchStatistics();
+      setDeleteDialog({ open: false, order: null });
     } catch (err) {
       setError(err.message);
     }
@@ -722,6 +749,27 @@ function FinancialManagement() {
           </MDButton>
           <MDButton variant="contained" color="error" onClick={() => cancelOrder(cancelDialog.order?.id, true)}>
             Confirmer l'annulation
+          </MDButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de suppression */}
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, order: null })}>
+        <DialogTitle>Supprimer la commande</DialogTitle>
+        <DialogContent>
+          <MDTypography variant="body2" mb={2}>
+            Êtes-vous sûr de vouloir supprimer définitivement la commande <strong>{deleteDialog.order?.orderNumber}</strong> ?
+          </MDTypography>
+          <MDTypography variant="body2" color="error">
+            Cette action est irréversible. Toutes les données liées à cette commande seront perdues.
+          </MDTypography>
+        </DialogContent>
+        <DialogActions>
+          <MDButton variant="outlined" color="secondary" onClick={() => setDeleteDialog({ open: false, order: null })}>
+            Annuler
+          </MDButton>
+          <MDButton variant="contained" color="error" onClick={() => deleteOrder(deleteDialog.order?.id)}>
+            Supprimer définitivement
           </MDButton>
         </DialogActions>
       </Dialog>

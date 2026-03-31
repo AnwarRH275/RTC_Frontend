@@ -12,7 +12,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import TextField from "@mui/material/TextField";
+
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Select from "@mui/material/Select";
@@ -61,7 +61,8 @@ import subscriptionPackService from "services/subscriptionPackService";
 function UserManagement() {
   const { userInfo } = useInfoUser(); // Récupérer les infos de l'utilisateur connecté
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // utilisé pour l'état de chargement du tableau
+
   const [openDialog, setOpenDialog] = useState(false);
   const [openBalanceDialog, setOpenBalanceDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -75,6 +76,7 @@ function UserManagement() {
   const [balanceType, setBalanceType] = useState("sold"); // Type de solde à modifier: "sold" ou "total_sold"
   const [newBalanceValue, setNewBalanceValue] = useState("");
   const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   // Form state
   const [formData, setFormData] = useState({
     username: "",
@@ -108,12 +110,6 @@ function UserManagement() {
     { value: "admin", label: "Administrateur" },
     { value: "moderator", label: "Modérateur" }
   ];
-
-  // Fetch users and subscription plans on component mount
-  useEffect(() => {
-    fetchUsers();
-    fetchSubscriptionPlans();
-  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -180,6 +176,12 @@ function UserManagement() {
       ]);
     }
   };
+
+  // Fetch users and subscription plans on component mount
+  useEffect(() => {
+    fetchUsers();
+    fetchSubscriptionPlans();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getColorFromPackId = (packId) => {
     const colorMap = {
@@ -300,7 +302,7 @@ function UserManagement() {
       });
       
       if (response.ok) {
-        const data = await response.json();
+        await response.json();
         showSnackbar(`Solde ${balanceType === "sold" ? "" : "total "} mis à jour avec succès`);
         fetchUsers();
         handleCloseBalanceDialog();
@@ -473,13 +475,28 @@ function UserManagement() {
   const columns = [
     { Header: "Utilisateur", accessor: "user", width: "20%", align: "left" },
     { Header: "Contact", accessor: "contact", width: "18%", align: "left" },
-    { Header: "Solde", accessor: "info", width: "15%", align: "center" },
-    { Header: "Plan", accessor: "plan", width: "12%", align: "center" },
-    { Header: "Rôle", accessor: "role", width: "10%", align: "center" },
-    { Header: "Actions", accessor: "actions", width: "15%", align: "center" },
+    { Header: "Solde", accessor: "info", width: "12%", align: "center" },
+    { Header: "Plan", accessor: "plan", width: "10%", align: "center" },
+    { Header: "Rôle", accessor: "role", width: "8%", align: "center" },
+    { Header: "Création", accessor: "datecreation", width: "10%", align: "center" },
+    { Header: "Actions", accessor: "actions", width: "12%", align: "center" },
   ];
 
-  const rows = users.map((user) => ({
+  const filteredUsers = users.filter((user) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (user.username || "").toLowerCase().includes(q) ||
+      (user.email || "").toLowerCase().includes(q) ||
+      (user.nom || "").toLowerCase().includes(q) ||
+      (user.prenom || "").toLowerCase().includes(q) ||
+      (user.tel || "").toLowerCase().includes(q) ||
+      (user.role || "").toLowerCase().includes(q) ||
+      (user.date_create ? new Date(user.date_create).toLocaleDateString("fr-FR") : "").includes(q)
+    );
+  });
+
+  const rows = filteredUsers.map((user) => ({
     user: (
       <MDBox display="flex" alignItems="center" lineHeight={1}>
         <Box
@@ -530,6 +547,13 @@ function UserManagement() {
       </MDBox>
     ),
     plan: getPlanChip(user.subscription_plan),
+    datecreation: (
+      <MDTypography variant="caption" color="text" fontWeight="medium">
+        {(user.datecreation || user.date_create)
+          ? new Date(user.datecreation || user.date_create).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
+          : "—"}
+      </MDTypography>
+    ),
     role: (
       <Chip
         label={userRoles.find(r => r.value === user.role)?.label || "Client"}
@@ -597,10 +621,10 @@ function UserManagement() {
               onClick={() => handleDeleteUser(user.username)}
               disabled={userInfo?.role !== 'admin' || deletingUser === user.username}
               sx={{
-                background: "linear-gradient(135deg, #FF512F, #DD2476)",
+                backgroundColor: "#d32f2f", // red 700
                 color: "white",
                 "&:hover": {
-                  background: "linear-gradient(135deg, #DF412F, #BD1456)",
+                  backgroundColor: "#b71c1c", // darker red
                 },
                 "&:disabled": {
                   background: "rgba(0, 0, 0, 0.12)",
@@ -656,6 +680,7 @@ function UserManagement() {
                   color="white"
                   startIcon={<AddIcon />}
                   onClick={() => handleOpenDialog()}
+                  disabled={loading}
                   sx={{
                     color: "#0062E6",
                     fontWeight: "bold",
@@ -667,15 +692,29 @@ function UserManagement() {
                   Nouvel Utilisateur
                 </MDButton>
               </MDBox>
-              <MDBox pt={3}>
-                <DataTable
-                  table={{ columns, rows }}
-                  isSorted={false}
-                  entriesPerPage={false}
-                  showTotalEntries={false}
-                  noEndBorder
-                  canSearch
+              <MDBox px={3} pt={3} display="flex" justifyContent="flex-end">
+                <MDInput
+                  placeholder="Rechercher..."
+                  value={searchQuery}
+                  size="small"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  sx={{ width: "12rem" }}
                 />
+              </MDBox>
+              <MDBox pt={1}>
+                {loading ? (
+                  <MDBox display="flex" justifyContent="center" py={5}>
+                    <CircularProgress />
+                  </MDBox>
+                ) : (
+                  <DataTable
+                    table={{ columns, rows }}
+                    isSorted={false}
+                    entriesPerPage={false}
+                    showTotalEntries={false}
+                    noEndBorder
+                  />
+                )}
               </MDBox>
             </Card>
           </Grid>
@@ -718,6 +757,8 @@ function UserManagement() {
                 value={formData.username}
                 onChange={(e) => handleInputChange("username", e.target.value)}
                 disabled={editMode}
+                InputLabelProps={{ shrink: !!formData.username }}
+                inputProps={{ style: { textOverflow: 'ellipsis', overflow: 'hidden' } }}
                 sx={{ mb: 2 }}
               />
             </Grid>
@@ -728,6 +769,8 @@ function UserManagement() {
                 fullWidth
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
+                InputLabelProps={{ shrink: !!formData.email }}
+                inputProps={{ style: { textOverflow: 'ellipsis', overflow: 'hidden' } }}
                 sx={{ mb: 2 }}
               />
             </Grid>
@@ -737,6 +780,7 @@ function UserManagement() {
                 fullWidth
                 value={formData.nom}
                 onChange={(e) => handleInputChange("nom", e.target.value)}
+                InputLabelProps={{ shrink: !!formData.nom }}
                 sx={{ mb: 2 }}
               />
             </Grid>
@@ -746,6 +790,7 @@ function UserManagement() {
                 fullWidth
                 value={formData.prenom}
                 onChange={(e) => handleInputChange("prenom", e.target.value)}
+                InputLabelProps={{ shrink: !!formData.prenom }}
                 sx={{ mb: 2 }}
               />
             </Grid>
@@ -817,6 +862,7 @@ function UserManagement() {
                 fullWidth
                 value={formData.tel}
                 onChange={(e) => handleInputChange("tel", e.target.value)}
+                InputLabelProps={{ shrink: !!formData.tel }}
                 sx={{ mb: 2 }}
               />
             </Grid>
@@ -1012,7 +1058,7 @@ function UserManagement() {
           <Button
             onClick={handleUpdateBalance}
             variant="contained"
-            style={{color:'#fff' }}
+           
             sx={{
               background: "linear-gradient(135deg, #2ECC71, #27AE60)",
               borderRadius: 2,
@@ -1022,6 +1068,7 @@ function UserManagement() {
                 background: "linear-gradient(135deg, #27AE60, #229954)",
               }
             }}
+             style={{color:'#fff !important' }}
           >
             Mettre à jour
           </Button>

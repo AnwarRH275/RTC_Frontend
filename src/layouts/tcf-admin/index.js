@@ -679,6 +679,7 @@ const handleDeleteSubject = async (id) => {
     { Header: "État", accessor: "status", align: "center" },
     { Header: "Durée (minutes)", accessor: "duration", align: "center" },
     { Header: "Nombre de tâches", accessor: "taskCount", align: "center" },
+    { Header: "Date de création", accessor: "datecreation", align: "center" },
     { Header: "Actions", accessor: "actions", align: "center" },
   ];
 
@@ -720,6 +721,11 @@ const handleDeleteSubject = async (id) => {
           {subject.tasks.length}
         </MDTypography>
       ),
+      datecreation: (
+        <MDTypography variant="button" fontWeight="medium">
+          {subject.date || "—"}
+        </MDTypography>
+      ),
       actions: (
         <MDBox display="flex" alignItems="center">
           <MDButton
@@ -748,7 +754,7 @@ const handleDeleteSubject = async (id) => {
     <DashboardLayout>
       <DashboardNavbar />
       <MDBox pt={6} pb={3}>
-        {alertInfo.show && (
+        {alertInfo.show && alertInfo.message && (
           <MDAlert color={alertInfo.color} dismissible>
             {alertInfo.message}
           </MDAlert>

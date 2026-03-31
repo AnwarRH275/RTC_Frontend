@@ -1,8 +1,8 @@
 import React from 'react';
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
-import { Chip, Tooltip, IconButton } from "@mui/material";
-import { Visibility, Cancel, Undo } from "@mui/icons-material";
+import { Chip, IconButton } from "@mui/material";
+import { Visibility, Cancel, Undo, DeleteForever } from "@mui/icons-material";
 
 function formatAmount(amount, currency) {
   return new Intl.NumberFormat("fr-FR", {
@@ -44,7 +44,7 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString("fr-FR", options);
 }
 
-function ordersTableData(orders, { show, cancel, refund }) {
+function ordersTableData(orders, { show, cancel, refund, deleteOrder }) {
   const columns = [
     { Header: "N° Commande", accessor: "orderNumber", width: "15%", align: "left" },
     { Header: "Client", accessor: "customer", width: "25%", align: "left" },
@@ -105,7 +105,7 @@ function ordersTableData(orders, { show, cancel, refund }) {
             },
           }}
         >
-          <Visibility fontSize="small" />
+          <Visibility fontSize="small" style={{ color: 'white' }} />
         </IconButton>
         {order.status === "paid" && (
           <>
@@ -122,7 +122,7 @@ function ordersTableData(orders, { show, cancel, refund }) {
                 },
               }}
             >
-              <Cancel fontSize="small" />
+              <Cancel fontSize="small" style={{ color: 'white' }} />
             </IconButton>
             <IconButton
               style={{ color: "white" }}
@@ -137,10 +137,23 @@ function ordersTableData(orders, { show, cancel, refund }) {
                 },
               }}
             >
-              <Undo fontSize="small" />
+              <Undo fontSize="small" style={{ color: 'white' }} />
             </IconButton>
           </>
         )}
+        <IconButton
+          size="small"
+          onClick={() => deleteOrder(order)}
+          sx={{
+            backgroundColor: "#d32f2f",
+            color: "white",
+            "&:hover": {
+              backgroundColor: "#b71c1c",
+            },
+          }}
+        >
+          <DeleteForever fontSize="small" style={{ color: 'white' }} />
+        </IconButton>
       </MDBox>
     ),
   }));

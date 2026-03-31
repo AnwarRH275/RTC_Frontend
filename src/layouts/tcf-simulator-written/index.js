@@ -925,9 +925,17 @@ function TCFSimulatorWritten() {
                 selectedSubject.tasks.map((task, index) => (
                   <MDBox key={index} mb={2} p={2} sx={{ border: "1px solid #eee", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
                     <MDTypography variant="body2" fontWeight="medium">
-                      Tâche {index + 1}:<span  dangerouslySetInnerHTML={{ __html:  task.title}} />
+                      Tâche {index + 1}:
                     </MDTypography>
-                    <MDTypography variant="body2" color="text" mt={1} dangerouslySetInnerHTML={{ __html: task.description }} />
+                    {task.title && (
+                      <div dangerouslySetInnerHTML={{ __html: task.title }} style={{ fontSize: "0.875rem", fontWeight: "bold", marginTop: "4px" }} />
+                    )}
+                    {task.structure && (
+                      <div dangerouslySetInnerHTML={{ __html: task.structure }} style={{ fontSize: "0.875rem", marginTop: "4px", opacity: 0.85 }} />
+                    )}
+                    {task.instructions && (
+                      <div dangerouslySetInnerHTML={{ __html: task.instructions }} style={{ fontSize: "0.875rem", marginTop: "6px", backgroundColor: "rgba(102,126,234,0.05)", borderRadius: "6px", padding: "6px" }} />
+                    )}
                   </MDBox>
                 ))
               ) : (
@@ -995,7 +1003,7 @@ function TCFSimulatorWritten() {
               Résultats de votre évaluation
             </MDTypography>
             <MDTypography variant="body1" color="white" opacity={0.9} mt={1}>
-              Mai 2026
+              {selectedSubject?.pack || selectedSubject?.name || "Sujet d'expression écrite"}
             </MDTypography>
             <Chip
               label={examResults?.NoteExam || "Non éligible (langue non lisible)"}

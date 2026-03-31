@@ -64,13 +64,13 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
     navigate('/packs-tcf-canada');
   };
 
-  let textColor = "black";
+  let textColor = "dark";
 
-  // if (transparentSidenav || (whiteSidenav && !darkMode)) {
-  //   textColor = "dark";
-  // } else if (whiteSidenav && darkMode) {
-  //   textColor = "inherit";
-  // }
+  if (transparentSidenav || (whiteSidenav && !darkMode)) {
+    textColor = "dark";
+  } else if (whiteSidenav && darkMode) {
+    textColor = "inherit";
+  }
 
   const closeSidenav = () => setMiniSidenav(dispatch, true);
 

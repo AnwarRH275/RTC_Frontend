@@ -564,33 +564,31 @@ function TCFResultsInterface() {
           sessionId: `session-${Date.now()}`
         };
         
-        const isValidResults = (data, tasks) => {
-          if (!Array.isArray(data) || data.length === 0) return false;
-          if (Array.isArray(tasks) && tasks.length > 0 && data.length !== tasks.length) return false;
-          return data.every((taskResult) => {
-            if (!taskResult || typeof taskResult.output !== 'object') return false;
-            const taskKey = Object.keys(taskResult.output)[0];
-            if (!taskKey) return false;
-            const taskData = taskResult.output[taskKey];
-            return taskData && (typeof taskData.corrections_taches === 'string' || Array.isArray(taskData.pointsForts));
-          });
+        // Helper: attendre N ms entre deux tentatives
+        const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        // Retry seulement pour erreurs temporaires
+        const isRetryableError = (apiError) => {
+          const status = apiError?.response?.status;
+          if (!status) return true;
+          return [408, 425, 429, 500, 502, 503, 504].includes(status);
         };
 
-        // Fonction pour effectuer l'appel API avec retry
+        // Fonction pour effectuer l'appel API avec retry contrôlé
         const makeAPICall = async (retryCount = 0) => {
           try {
             // Appel réel à l'API de correction
             const response = await axios.post(
               `${API_BASE_URL}/proxy/correction`,
               payload,
-              { headers: { 'Content-Type': 'application/json' } }
+              {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 360000, // 6 min max (n8n peut prendre du temps)
+              }
             );
             
             // Traiter la réponse de l'API
             if (response.data && Array.isArray(response.data)) {
-              if (!isValidResults(response.data, subjectData.tasks)) {
-                throw new Error('Format de réponse invalide');
-              }
               setResults(response.data);
               
               // Calculer la note moyenne
@@ -604,17 +602,19 @@ function TCFResultsInterface() {
             }
           } catch (apiError) {
             console.error(`Tentative ${retryCount + 1} échouée:`, apiError);
-            
-            if (retryCount < 6) { // Retry jusqu'à 7 fois (0-6)
-              console.log(`Nouvelle tentative dans 2 secondes... (${retryCount + 2}/7)`);
-              setTimeout(() => {
-                makeAPICall(retryCount + 1);
-              }, 2000); // Attendre 2 secondes avant de réessayer
-            } else {
-              console.error('Toutes les tentatives ont échoué');
-              setError("Une erreur s'est produite lors de la correction après 5 tentatives. Veuillez réessayer.");
-              setLoading(false);
+
+            const maxRetries = 1;
+            const canRetry = retryCount < maxRetries && isRetryableError(apiError);
+
+            if (canRetry) {
+              console.log(`Nouvelle tentative dans 120 secondes... (${retryCount + 2}/${maxRetries + 1})`);
+              await delay(120000); // Attendre au moins 120 sec avant relance
+              return makeAPICall(retryCount + 1);
             }
+
+            console.error('Toutes les tentatives ont échoué');
+            setError("Une erreur s'est produite lors de la correction. Veuillez réessayer.");
+            setLoading(false);
           }
         };
         
@@ -671,10 +671,14 @@ function TCFResultsInterface() {
           }
         }
       );
-      
-      if (response.data && response.data.output && response.data.output.noteMoyenne) {
-        setNoteMoyenne(response.data.output.noteMoyenne);
-        console.log('Note moyenne calculée:', response.data.output.noteMoyenne);
+
+      const noteMoyenneValue = Array.isArray(response.data)
+        ? response.data?.[0]?.output?.noteMoyenne
+        : response.data?.output?.noteMoyenne;
+
+      if (noteMoyenneValue) {
+        setNoteMoyenne(noteMoyenneValue);
+        console.log('Note moyenne calculée:', noteMoyenneValue);
       } else {
         console.error('Format de réponse invalide pour la note moyenne:', response.data);
       }
@@ -1012,7 +1016,8 @@ function TCFResultsInterface() {
                           const taskData = taskResult.output[taskKey];
                           
                           // Récupérer les données de la tâche
-                          const correction = taskData.corrections_taches || '';
+                          // Convertir les séquences \n littérales en vrais sauts de ligne pour ReactMarkdown
+                          const correction = (taskData.corrections_taches || '').replace(/\\n/g, '\n');
                           const pointsForts = taskData.pointsForts || [];
                           const pointsAmeliorer = taskData.pointsAmeliorer || [];
                           const noteExam = taskData.NoteExam || '';
