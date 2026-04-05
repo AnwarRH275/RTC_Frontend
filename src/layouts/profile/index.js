@@ -121,16 +121,16 @@ function Overview() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          username: userInfo.username,
-          password: passwordData.newPassword
+          current_password: passwordData.currentPassword,
+          new_password: passwordData.newPassword
         })
       });
 

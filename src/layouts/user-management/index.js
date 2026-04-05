@@ -320,14 +320,14 @@ function UserManagement() {
   };
 
   const handleSubmit = async () => {
-    const adminEditingPassword = editMode && userInfo?.role === "admin" && (formData.password || confirmPassword);
+    const staffEditingPassword = editMode && ['admin', 'moderator'].includes(userInfo?.role) && (formData.password || confirmPassword);
 
-    if ((!editMode || adminEditingPassword) && formData.password !== confirmPassword) {
+    if ((!editMode || staffEditingPassword) && formData.password !== confirmPassword) {
       showSnackbar("Les mots de passe ne correspondent pas", "error");
       return;
     }
 
-    if ((!editMode || adminEditingPassword) && formData.password && formData.password.length < 6) {
+    if ((!editMode || staffEditingPassword) && formData.password && formData.password.length < 6) {
       showSnackbar("Le mot de passe doit contenir au moins 6 caractères", "error");
       return;
     }
@@ -341,7 +341,7 @@ function UserManagement() {
 
     try {
       if (editMode) {
-        if (userInfo?.role !== "admin" || !formData.password) {
+        if (!['admin', 'moderator'].includes(userInfo?.role) || !formData.password) {
           delete payload.password;
         }
 
@@ -794,7 +794,7 @@ function UserManagement() {
                 sx={{ mb: 2 }}
               />
             </Grid>
-            {(!editMode || (editMode && userInfo?.role === 'admin')) && (
+            {(!editMode || (editMode && ['admin', 'moderator'].includes(userInfo?.role))) && (
               <>
                 <Grid item xs={12} md={6}>
                   <MDInput

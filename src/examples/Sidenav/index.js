@@ -246,7 +246,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
           transition: 'all 0.3s ease'
         }}>
           {/* Plan Information Section */}
-          {userInfo && (
+          {userInfo && userInfo.role !== 'moderator' && (
             <MDBox sx={{
               width: '100%',
               mb: 1,
@@ -382,6 +382,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
           )}
           
           {/* Upgrade Button */}
+          {userInfo?.role !== 'moderator' && (
           <MDBox sx={{ 
             position: 'relative', 
             width: '100%',
@@ -410,6 +411,7 @@ function Sidenav({ color, brand, brandName, routes, ...rest }) {
               {miniSidenav ? 'PRO' : 'Passer au Pack Supérieur'}
             </MDButton>
           </MDBox>
+          )}
         </MDBox>
       </MDBox>
     </SidenavRoot>

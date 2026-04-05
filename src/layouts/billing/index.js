@@ -293,7 +293,7 @@ function FinancialManagement() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ reset_user_balance: resetBalance })
+        body: JSON.stringify({ resetUserBalance: resetBalance })
       });
 
       if (!response.ok) {
@@ -687,7 +687,7 @@ function FinancialManagement() {
                 <MDTypography variant="body2" mb={2}>{viewDialog.order.customerEmail}</MDTypography>
 
                 <MDTypography variant="subtitle2" color="text">Téléphone:</MDTypography>
-                <MDTypography variant="body2" mb={2}>{viewDialog.order.customer_phone || 'Non renseigné'}</MDTypography>
+                <MDTypography variant="body2" mb={2}>{viewDialog.order.customerPhone || 'Non renseigné'}</MDTypography>
               </Grid>
 
               <Grid item xs={12} sm={6}>
@@ -711,9 +711,9 @@ function FinancialManagement() {
               <Grid item xs={12}>
                 <Divider sx={{ my: 2 }} />
                 <MDTypography variant="subtitle2" color="text">Informations de paiement:</MDTypography>
-                <MDTypography variant="body2" mb={1}>Méthode: {viewDialog.order.payment_method}</MDTypography>
-                <MDTypography variant="body2" mb={1}>ID Stripe Session: {viewDialog.order.stripe_session_id}</MDTypography>
-                <MDTypography variant="body2" mb={2}>ID Payment Intent: {viewDialog.order.stripe_payment_intent_id}</MDTypography>
+                <MDTypography variant="body2" mb={1}>Méthode: {viewDialog.order.paymentMethod}</MDTypography>
+                <MDTypography variant="body2" mb={1}>ID Stripe Session: {viewDialog.order.stripeSessionId}</MDTypography>
+                <MDTypography variant="body2" mb={2}>ID Payment Intent: {viewDialog.order.stripePaymentIntentId}</MDTypography>
 
                 <MDTypography variant="subtitle2" color="text">Dates:</MDTypography>
                 <MDTypography variant="body2" mb={1}>Créée le: {formatDate(viewDialog.order.createdAt)}</MDTypography>
@@ -737,7 +737,7 @@ function FinancialManagement() {
         <DialogTitle>Annuler la commande</DialogTitle>
         <DialogContent>
           <MDTypography variant="body2" mb={2}>
-            Êtes-vous sûr de vouloir annuler la commande <strong>{cancelDialog.order?.order_number}</strong> ?
+            Êtes-vous sûr de vouloir annuler la commande <strong>{cancelDialog.order?.orderNumber}</strong> ?
           </MDTypography>
           <MDTypography variant="body2" color="warning">
             Cette action remettra à zéro le solde du client et ne peut pas être annulée.
