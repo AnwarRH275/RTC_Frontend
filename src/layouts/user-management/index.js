@@ -124,7 +124,6 @@ function UserManagement() {
 
       if (response.status === 401) {
         showSnackbar('Session expirée. Veuillez vous reconnecter.', 'error');
-        // Optionnel : rediriger ou déconnecter
         setLoading(false);
         return;
       }
@@ -135,20 +134,12 @@ function UserManagement() {
       }
 
       const data = await response.json();
-
-      // Si l'utilisateur est modérateur, filtrer pour ne montrer que les utilisateurs qu'il peut gérer
-      if (userInfo?.role === 'moderator') {
-        const filteredUsers = data.filter(user => 
-          (user.role === 'client' && user.created_by === userInfo.username) ||
-          user.username === userInfo.username
-        );
-        setUsers(filteredUsers);
-      } else {
-        setUsers(data);
-      }
+      // Le backend filtre déjà les utilisateurs accessibles pour les modérateurs
+      setUsers(data);
     } catch (error) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
       showSnackbar(error.message || 'Erreur lors du chargement des utilisateurs', 'error');
+      // Ne pas effacer la liste existante en cas d'erreur
     } finally {
       setLoading(false);
     }
@@ -177,10 +168,21 @@ function UserManagement() {
     }
   };
 
-  // Fetch users and subscription plans on component mount
+  // Fetch users and subscription plans on component mount and when userInfo changes
   useEffect(() => {
     fetchUsers();
     fetchSubscriptionPlans();
+  }, [userInfo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fetch users when the tab regains focus (e.g. after admin deletes a user in another tab/session)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUsers();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getColorFromPackId = (packId) => {

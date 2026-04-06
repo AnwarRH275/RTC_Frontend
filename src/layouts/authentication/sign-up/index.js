@@ -115,6 +115,61 @@ function Cover() {
       setActiveStep(1);
       // Pré-sélectionner le plan Pro (sera fait dans SubscriptionPlans)
     }
+
+    // Gérer le retour d'annulation Stripe : supprimer le compte pending
+    const cancelled = params.get('cancelled');
+    const cancelledUserId = params.get('userId');
+    if (cancelled === 'true' && cancelledUserId) {
+      // Supprimer le compte pending côté backend
+      fetch(`${API_BASE_URL}/stripe/cancel-registration`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: parseInt(cancelledUserId, 10) })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Compte pending nettoyé après annulation Stripe:", data);
+        })
+        .catch(err => {
+          console.warn("Erreur lors du nettoyage du compte pending:", err);
+        });
+
+      // Restaurer les champs du formulaire depuis localStorage
+      const storedData = localStorage.getItem("signupData");
+      if (storedData) {
+        try {
+          const parsed = JSON.parse(storedData);
+          if (parsed.username) setUsername(parsed.username);
+          if (parsed.email) setEmail(parsed.email);
+          if (parsed.password) setPassword(parsed.password);
+          if (parsed.nom) setNom(parsed.nom);
+          if (parsed.prenom) setPrenom(parsed.prenom);
+          if (parsed.tel) {
+            // Séparer l'indicatif du numéro
+            const parts = parsed.tel.split(' ');
+            if (parts.length >= 2) {
+              setCountryCode(parts[0]);
+              setTel(parts.slice(1).join(' '));
+            } else {
+              setTel(parsed.tel);
+            }
+          }
+        } catch (e) {
+          console.warn("Impossible de restaurer les données d'inscription:", e);
+        }
+      }
+
+      // Nettoyer les tokens et infos stockés lors de la création du compte
+      localStorage.removeItem('token');
+      localStorage.removeItem('user_info');
+
+      // Afficher un message à l'utilisateur
+      setError("Le paiement a été annulé. Vous pouvez réessayer avec le même email.");
+      setOpenSnackbar(true);
+
+      // Nettoyer l'URL
+      window.history.replaceState({}, document.title, '/inscription-tcf');
+    }
   }, [location.search]);
 
   const steps = ['Informations personnelles', 'Choisir un plan'];
@@ -1116,7 +1171,7 @@ function Cover() {
                        email: email,
                        userId: response.data.user_info?.id,
                        successUrl: `${window.location.origin}/paiement-tcf?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
-                       cancelUrl: `${window.location.origin}/inscription-tcf`
+                       cancelUrl: `${window.location.origin}/inscription-tcf?cancelled=true&userId=${response.data.user_info?.id}`
                      };
                      
                      console.log('Données envoyées au backend pour Stripe:', requestData);

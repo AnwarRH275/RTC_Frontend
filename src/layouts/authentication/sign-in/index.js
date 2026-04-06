@@ -5,7 +5,7 @@
 */
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
 
 // @mui material components
@@ -48,6 +48,7 @@ const bgImages = [
 
 function Basic() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { loadUserInfo } = useInfoUser();
   const [rememberMe, setRememberMe] = useState(false);
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
@@ -58,6 +59,17 @@ function Basic() {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Détecter la session expirée depuis les paramètres d'URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('session_expired') === 'true') {
+      setError("Votre session a expiré. Veuillez vous reconnecter.");
+      setOpenSnackbar(true);
+      // Nettoyer l'URL
+      window.history.replaceState({}, document.title, '/connexion-tcf');
+    }
+  }, [location.search]);
 
   // Animation pour changer l'image d'arrière-plan
   useEffect(() => {

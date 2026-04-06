@@ -161,6 +161,9 @@ function PaymentSuccess() {
 
         if (loginResponse.ok && loginData.access_token) {
           localStorage.setItem("token", loginData.access_token);
+          if (loginData.refresh_token) {
+            localStorage.setItem("refresh_token", loginData.refresh_token);
+          }
           if (loginData.user_info) {
             localStorage.setItem("user_info", JSON.stringify(loginData.user_info));
           }
@@ -189,6 +192,9 @@ function PaymentSuccess() {
             const retryLoginData = await retryLoginResponse.json();
             if (retryLoginResponse.ok && retryLoginData.access_token) {
               localStorage.setItem("token", retryLoginData.access_token);
+              if (retryLoginData.refresh_token) {
+                localStorage.setItem("refresh_token", retryLoginData.refresh_token);
+              }
               if (retryLoginData.user_info) {
                 localStorage.setItem("user_info", JSON.stringify(retryLoginData.user_info));
               }

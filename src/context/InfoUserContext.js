@@ -1,15 +1,29 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import authService from '../services/authService';
+import { API_BASE_URL } from '../services/config';
 
 // Création du contexte
 const InfoUserContext = createContext();
+
+// Intervalle de vérification de session (60 secondes)
+const SESSION_CHECK_INTERVAL = 60 * 1000;
 
 // Provider du contexte
 export function InfoUserProvider({ children }) {
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Fonction pour forcer la déconnexion quand le compte n'existe plus
+  const forceLogout = useCallback(() => {
+    setUserInfo(null);
+    setError(null);
+    localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_info');
+    window.location.href = '/connexion-tcf?session_expired=true';
+  }, []);
 
   // Fonction pour charger les informations utilisateur
   const loadUserInfo = async (forceRefresh = false) => {
@@ -54,6 +68,45 @@ export function InfoUserProvider({ children }) {
       setLoading(false);
     }
   }, []);
+
+  // Vérification périodique de la validité de la session (compte toujours existant)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const checkSession = async () => {
+      const currentToken = localStorage.getItem('token');
+      if (!currentToken) return;
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+
+        if (response.status === 401 || response.status === 422 || response.status === 404) {
+          // Token invalide ou compte supprimé → déconnexion
+          console.warn('Session invalide détectée, déconnexion...');
+          forceLogout();
+        } else if (response.status === 500) {
+          // Possible compte supprimé (flask-restx peut retourner 500)
+          try {
+            const data = await response.json();
+            if (data?.msg?.includes('Session') || data?.msg?.includes('revoked')) {
+              console.warn('Token révoqué détecté (500), déconnexion...');
+              forceLogout();
+            }
+          } catch (e) { /* ignore */ }
+        }
+      } catch (err) {
+        // Erreur réseau, ignorer (l'utilisateur est peut-être hors ligne)
+        console.warn('Vérification de session échouée (réseau):', err);
+      }
+    };
+
+    const interval = setInterval(checkSession, SESSION_CHECK_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [forceLogout]);
 
   // Valeur du contexte
   const contextValue = {

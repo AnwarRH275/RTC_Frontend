@@ -22,6 +22,7 @@ import { Routes, Route, Navigate, useLocation, useSearchParams } from "react-rou
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import axios from "axios";
+import { API_BASE_URL } from './services/config';
 
 // Simulateur TCF Canada React components
 import MDBox from "components/MDBox";
@@ -156,6 +157,104 @@ function AppContent() {
     }
   }, []);
 
+  // Intercepteur axios global : refresh token automatique ou déconnexion en cas de session expirée
+  useEffect(() => {
+    let isRefreshing = false;
+    let failedQueue = [];
+
+    const processQueue = (error, token = null) => {
+      failedQueue.forEach((prom) => {
+        if (token) {
+          prom.resolve(token);
+        } else {
+          prom.reject(error);
+        }
+      });
+      failedQueue = [];
+    };
+
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        // Ne pas intercepter les requêtes de login, signup, refresh ou cancel-registration
+        if (
+          originalRequest.url?.includes('/auth/login') ||
+          originalRequest.url?.includes('/auth/signup') ||
+          originalRequest.url?.includes('/auth/refresh') ||
+          originalRequest.url?.includes('/stripe/cancel-registration')
+        ) {
+          return Promise.reject(error);
+        }
+
+        if ((error.response?.status === 401 || error.response?.status === 500) && !originalRequest._retry) {
+          // Pour les erreurs 500, vérifier si c'est un token révoqué
+          if (error.response?.status === 500) {
+            const errData = error.response?.data;
+            const isRevoked = errData?.msg?.includes('Session') || errData?.msg?.includes('revoked') || errData?.message?.includes('revoked');
+            if (!isRevoked) {
+              return Promise.reject(error);
+            }
+          }
+
+          // Tenter un refresh du token
+          const refreshToken = localStorage.getItem('refresh_token');
+          if (refreshToken && !isRefreshing) {
+            isRefreshing = true;
+            originalRequest._retry = true;
+
+            try {
+              const { data } = await axios.post(
+                `${API_BASE_URL}/auth/refresh`,
+                {},
+                { headers: { Authorization: `Bearer ${refreshToken}` } }
+              );
+
+              const newToken = data.access_token;
+              localStorage.setItem('token', newToken);
+              processQueue(null, newToken);
+
+              originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+              return axios(originalRequest);
+            } catch (refreshError) {
+              processQueue(refreshError, null);
+              // Refresh échoué : session vraiment expirée ou compte supprimé
+              localStorage.removeItem('token');
+              localStorage.removeItem('refresh_token');
+              localStorage.removeItem('user_info');
+              window.location.href = '/connexion-tcf?session_expired=true';
+              return Promise.reject(refreshError);
+            } finally {
+              isRefreshing = false;
+            }
+          } else if (refreshToken && isRefreshing) {
+            // Mettre en file d'attente pendant le refresh
+            return new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            }).then((token) => {
+              originalRequest.headers['Authorization'] = `Bearer ${token}`;
+              return axios(originalRequest);
+            });
+          } else {
+            // Pas de refresh token : déconnecter directement
+            localStorage.removeItem('token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user_info');
+            window.location.href = '/connexion-tcf?session_expired=true';
+            return Promise.reject(error);
+          }
+        }
+
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
   // Vérifier l'état de l'examen depuis localStorage
   useEffect(() => {
     const checkExamStatus = () => {
@@ -244,6 +343,40 @@ function AppContent() {
     if (!isExamRoute) {
       localStorage.removeItem('examStarted');
       setIsExamStarted(false);
+    }
+
+    // Vérifier la validité de la session à chaque changement de route
+    const token = localStorage.getItem('token');
+    if (token && isAuthenticated) {
+      fetch(`${API_BASE_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(response => {
+        if (response.status === 401 || response.status === 422) {
+          // Token révoqué ou invalide
+          localStorage.removeItem('token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('user_info');
+          window.location.href = '/connexion-tcf?session_expired=true';
+        } else if (response.status === 500) {
+          // Possible compte supprimé (flask-restx peut retourner 500 pour token révoqué)
+          response.json().then(data => {
+            if (data?.msg?.includes('Session') || data?.msg?.includes('revoked') || data?.message?.includes('User not found')) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('refresh_token');
+              localStorage.removeItem('user_info');
+              window.location.href = '/connexion-tcf?session_expired=true';
+            }
+          }).catch(() => {});
+        } else if (response.status === 404) {
+          // User not found
+          localStorage.removeItem('token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('user_info');
+          window.location.href = '/connexion-tcf?session_expired=true';
+        }
+      }).catch(() => {
+        // Erreur réseau, ignorer
+      });
     }
   }, [pathname]);
 

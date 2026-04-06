@@ -211,7 +211,7 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
         email: email,
         userId: userId, // Inclure l'ID utilisateur si disponible
         successUrl: `${window.location.origin}/paiement-tcf?session_id={CHECKOUT_SESSION_ID}&plan=${plan.id}`,
-        cancelUrl: `${window.location.origin}/inscription-tcf`
+        cancelUrl: `${window.location.origin}/inscription-tcf${userId ? `?cancelled=true&userId=${userId}` : ''}`
       };
       
       // Ajouter le code de coupon si le plan en a un

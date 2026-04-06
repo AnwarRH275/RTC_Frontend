@@ -23,6 +23,9 @@ const signup = async (userData) => {
     const response = await axios.post(`${API_URL}/signup`, userData, { headers });
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token);
+      if (response.data.refresh_token) {
+        localStorage.setItem('refresh_token', response.data.refresh_token);
+      }
     }
     return response;
   } catch (error) {
@@ -49,6 +52,9 @@ const login = async (credentials) => {
     const response = await axios.post(`${API_URL}/login`, credentials);
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token);
+      if (response.data.refresh_token) {
+        localStorage.setItem('refresh_token', response.data.refresh_token);
+      }
       
       // Stocker les informations utilisateur si disponibles
       if (response.data.user_info) {
