@@ -21,7 +21,8 @@ const signup = async (userData) => {
     const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
     
     const response = await axios.post(`${API_URL}/signup`, userData, { headers });
-    if (response.data.access_token) {
+    // Ne pas écraser le token existant si un staff est déjà connecté (création de compte pour un autre utilisateur)
+    if (response.data.access_token && !token) {
       localStorage.setItem('token', response.data.access_token);
       if (response.data.refresh_token) {
         localStorage.setItem('refresh_token', response.data.refresh_token);

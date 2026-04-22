@@ -9,8 +9,12 @@ import MDButton from 'components/MDButton';
 import { API_BASE_URL } from '../../../services/config';
 import { Divider } from '@mui/material';
 
-// Clé publique Stripe
-const stripePromise = loadStripe('pk_test_51RPoNkGbR6tCbwFHGpmyQJHVvFNdqbZABAA5hJPvCnQsPR9C8dDXkiojPusno6ow5CngADJHkRdVnrtOwHeFTCNe00VVxsQVJ1');
+// Clé publique Stripe — switch automatique selon REACT_APP_STRIPE_MODE (test/live)
+const stripeMode = process.env.REACT_APP_STRIPE_MODE || 'test';
+const stripeKey = stripeMode === 'live'
+  ? process.env.REACT_APP_STRIPE_LIVE_PUBLIC_KEY
+  : process.env.REACT_APP_STRIPE_TEST_PUBLIC_KEY;
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 // Styled components pour un design moderne
 const PlanCard = styled(Card)(({ theme, isPopular }) => ({
