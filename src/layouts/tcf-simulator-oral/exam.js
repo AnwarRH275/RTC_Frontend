@@ -299,7 +299,7 @@ const TCFOralExam = () => {
         console.warn(`🌐 Navigateur ${browserName} détecté - Seul Google Chrome est autorisé pour l'examen oral.`);
         setShowBrowserWarning(true);
       } else {
-        console.log(`🌐 Navigateur Chrome détecté - Reconnaissance vocale disponible`);
+        // console.log(`🌐 Navigateur Chrome détecté - Reconnaissance vocale disponible`);
       }
     };
 
@@ -319,7 +319,7 @@ const TCFOralExam = () => {
 
     // Désactiver le microphone si on passe à la phase 'objective' et qu'il est actif
     if (currentPhase === 'objective' && isRecording) {
-      console.log('🔇 Désactivation automatique du microphone lors du passage à la phase objective');
+      // console.log('🔇 Désactivation automatique du microphone lors du passage à la phase objective');
       setTimeout(() => handleStopRecording(), 100);
     }
   }, [currentPhase, isRecording]);
@@ -335,7 +335,7 @@ const TCFOralExam = () => {
 
       // Démarrer un nouveau timeout de 3 secondes
       confirmationTimeoutRef.current = setTimeout(() => {
-        console.log('⏰ Timeout de confirmation atteint - continuation automatique');
+        // console.log('⏰ Timeout de confirmation atteint - continuation automatique');
         // Simuler une réponse "oui" automatique
         simulateMicrophoneClick();
         handleUserResponse('oui');
@@ -387,8 +387,8 @@ const TCFOralExam = () => {
 
         // Debug: Afficher la structure des interactions pour la tâche 2
         if (transformedData.tasks[1]) {
-          console.log('🔍 Structure de la tâche 2:', transformedData.tasks[1]);
-          console.log('🔍 Interactions de la tâche 2:', transformedData.tasks[1].interactions);
+          // console.log('🔍 Structure de la tâche 2:', transformedData.tasks[1]);
+          // console.log('🔍 Interactions de la tâche 2:', transformedData.tasks[1].interactions);
         }
 
         // Générer les URLs audio pour l'objectif et le trigger de chaque tâche
@@ -567,7 +567,7 @@ const TCFOralExam = () => {
   // Fonction pour récupérer une question de relance dynamique pour la tâche 1
   const getTask1FollowUpQuestion = async (scenario, userResponse = '') => {
     try {
-      console.log('[Task1] Récupération question de relance pour:', scenario);
+      // console.log('[Task1] Récupération question de relance pour:', scenario);
 
       // Construire le message pour l'agent IA
       let promptMessage = '';
@@ -637,8 +637,8 @@ const TCFOralExam = () => {
   // Fonction pour vérifier la durée audio et retourner le bon scénario
   const checkAudioDurationAndGetScenario = async (audioDuration, taskIndex = currentTaskIndex, userResponse = '') => {
     if (taskIndex === 0) { // Tâche 1
-      console.log("=============" + audioDuration)
-      console.log("Temps total cumulé:", totalRecordingTime + audioDuration)
+      // console.log("=============" + audioDuration)
+      // console.log("Temps total cumulé:", totalRecordingTime + audioDuration)
 
       const cumulativeTime = totalRecordingTime + audioDuration;
 
@@ -835,7 +835,7 @@ const TCFOralExam = () => {
 
     // Sauvegarder la conversation formatée dans localStorage
     localStorage.setItem(`formatted_conversation_task_${taskIndex + 1}`, taskFormattedConversation);
-    console.log(`Conversation formatée sauvegardée pour la tâche ${taskIndex + 1}:`, taskFormattedConversation);
+    // console.log(`Conversation formatée sauvegardée pour la tâche ${taskIndex + 1}:`, taskFormattedConversation);
 
     return taskFormattedConversation;
   }, []);
@@ -854,7 +854,7 @@ const TCFOralExam = () => {
     };
 
     setChatMessages(prevMessages => [...prevMessages, newMessage]);
-    console.log()
+    // console.log()
 
     // Jouer l'audio automatiquement pour les messages de l'examinateur ou si c'est un objectif de tâche
     if (audioUrl &&
@@ -867,12 +867,12 @@ const TCFOralExam = () => {
         setTimeout(async () => {
           if (audioPlayerRef.current) {
             try {
-              console.log('Tentative de lecture audio automatique:', audioUrl);
+              // console.log('Tentative de lecture audio automatique:', audioUrl);
               audioPlayerRef.current.src = audioUrl;
               audioPlayerRef.current.load();
 
               const handleAudioPlay = () => {
-                console.log('Audio a commencé à jouer.');
+                // console.log('Audio a commencé à jouer.');
                 setAudioPlaying(true);
                 if (audioPlayerRef.current) {
                   audioPlayerRef.current.removeEventListener('playing', handleAudioPlay);
@@ -880,7 +880,7 @@ const TCFOralExam = () => {
               };
 
               const handleAudioEnd = () => {
-                console.log('Audio terminé');
+                // console.log('Audio terminé');
                 setAudioPlaying(false);
                 if (audioPlayerRef.current) {
                   audioPlayerRef.current.removeEventListener('ended', handleAudioEnd);
@@ -894,7 +894,7 @@ const TCFOralExam = () => {
               const playPromise = audioPlayerRef.current.play();
               if (playPromise !== undefined) {
                 await playPromise;
-                console.log('La promesse de lecture audio est résolue.');
+                // console.log('La promesse de lecture audio est résolue.');
               }
             } catch (error) {
               console.error('Erreur lecture audio:', error);
@@ -1101,12 +1101,12 @@ const TCFOralExam = () => {
   useEffect(() => {
     if (chatMessages.length > 0) {
       const lastMessage = chatMessages[chatMessages.length - 1];
-      console.log('💬 Message échangé:', {
-        sender: lastMessage.sender,
-        content: lastMessage.content,
-        timestamp: lastMessage.timestamp,
-        audioUrl: lastMessage.audioUrl
-      });
+      // console.log('💬 Message échangé:', {
+        // sender: lastMessage.sender,
+        // content: lastMessage.content,
+        // timestamp: lastMessage.timestamp,
+        // audioUrl: lastMessage.audioUrl
+      // });
     }
   }, [chatMessages]);
 
@@ -1429,7 +1429,7 @@ const TCFOralExam = () => {
   const setupMediaRecorder = async () => {
     try {
       if (!streamRef.current || streamRef.current.getTracks().length === 0) {
-        console.log("Stream non disponible, tentative d'initialisation...");
+        // console.log("Stream non disponible, tentative d'initialisation...");
         const streamInitialized = await initializeStream();
         if (!streamInitialized) return false;
       }
@@ -1457,7 +1457,7 @@ const TCFOralExam = () => {
         mimeType = 'audio/ogg;codecs=opus';
       }
 
-      console.log('Utilisation du format MIME:', mimeType);
+      // console.log('Utilisation du format MIME:', mimeType);
 
       const mediaRecorder = new MediaRecorder(streamRef.current, {
         mimeType,
@@ -1614,19 +1614,19 @@ const TCFOralExam = () => {
         lastUpdateTime = Date.now();
 
         // DEBUG: Affichage en temps réel pour diagnostic
-        console.log('🎤 TRANSCRIPTION TEMPS RÉEL:', {
-          finalTranscript,
-          interimTranscript,
-          fullTranscript,
-          currentTranscript,
-          storedTranscript,
-          lastUpdateTime: new Date(lastUpdateTime).toLocaleTimeString(),
-          timeSinceLastUpdate: Date.now() - lastUpdateTime
-        });
+        // console.log('🎤 TRANSCRIPTION TEMPS RÉEL:', {
+          // finalTranscript,
+          // interimTranscript,
+          // fullTranscript,
+          // currentTranscript,
+          // storedTranscript,
+          // lastUpdateTime: new Date(lastUpdateTime).toLocaleTimeString(),
+          // timeSinceLastUpdate: Date.now() - lastUpdateTime
+        // });
       };
 
       recognition.onstart = () => {
-        console.log('Reconnaissance vocale démarrée');
+        // console.log('Reconnaissance vocale démarrée');
         setIsTranscribing(true);
         if (restartTimeout) {
           clearTimeout(restartTimeout);
@@ -1652,28 +1652,28 @@ const TCFOralExam = () => {
             const timeSinceUpdate = now - lastUpdateTime;
 
             // DEBUG: Affichage détaillé de l'état de la vérification
-            console.log('🔍 VÉRIFICATION TRANSCRIPTION:', {
-              isRecording,
-              currentTaskIndex,
-              currentPhase,
-              timeSinceUpdate,
-              COMPARISON_DELAY,
-              shouldCompare: timeSinceUpdate >= COMPARISON_DELAY,
-              currentTranscript: `"${currentTranscript}"`,
-              storedTranscript: `"${storedTranscript}"`,
-              areIdentical: currentTranscript === storedTranscript,
-              isNotEmpty: currentTranscript.trim() !== ''
-            });
+            // console.log('🔍 VÉRIFICATION TRANSCRIPTION:', {
+              // isRecording,
+              // currentTaskIndex,
+              // currentPhase,
+              // timeSinceUpdate,
+              // COMPARISON_DELAY,
+              // shouldCompare: timeSinceUpdate >= COMPARISON_DELAY,
+              // currentTranscript: `"${currentTranscript}"`,
+              // storedTranscript: `"${storedTranscript}"`,
+              // areIdentical: currentTranscript === storedTranscript,
+              // isNotEmpty: currentTranscript.trim() !== ''
+            // });
 
             // Si 1.5 seconde s'est écoulée depuis la dernière mise à jour
             if (timeSinceUpdate >= COMPARISON_DELAY) {
               // Comparer la transcription actuelle avec celle stockée
               if (currentTranscript === storedTranscript && currentTranscript.trim() !== '') {
-                console.log('✅ ARRÊT AUTOMATIQUE: Transcriptions identiques détectées après 1.5s');
+                // console.log('✅ ARRÊT AUTOMATIQUE: Transcriptions identiques détectées après 1.5s');
                 simulateMicrophoneClick();
               } else {
                 // Stocker la transcription actuelle pour la prochaine comparaison
-                console.log('📝 MISE À JOUR: Stockage nouvelle transcription pour comparaison');
+                // console.log('📝 MISE À JOUR: Stockage nouvelle transcription pour comparaison');
                 storedTranscript = currentTranscript;
                 lastUpdateTime = now;
               }
@@ -1690,7 +1690,7 @@ const TCFOralExam = () => {
           console.warn('Erreur réseau de reconnaissance vocale, tentative de redémarrage...');
         } else if (event.error === 'no-speech') {
           // Afficher immédiatement la popup de test du microphone
-          console.log('🎤 Erreur no-speech détectée - Affichage de la popup de test du microphone');
+          // console.log('🎤 Erreur no-speech détectée - Affichage de la popup de test du microphone');
 
           // Arrêter l'enregistrement en cours
           if (isRecordingRef.current) {
@@ -1705,7 +1705,7 @@ const TCFOralExam = () => {
       };
 
       recognition.onend = () => {
-        console.log('Reconnaissance vocale terminée');
+        // console.log('Reconnaissance vocale terminée');
         setIsTranscribing(false);
 
         if (transcriptCheckTimer) {
@@ -1715,7 +1715,7 @@ const TCFOralExam = () => {
 
         // Vérifier si l'utilisateur n'a pas parlé (aucune transcription accumulée)
         if (isRecordingRef.current && accumulatedTranscriptRef.current.trim() === '') {
-          console.log('🎤 Aucune parole détectée - gestion auto-dialogue microphone');
+          // console.log('🎤 Aucune parole détectée - gestion auto-dialogue microphone');
           // Arrêter l'enregistrement
           handleStopRecording();
 
@@ -1740,7 +1740,7 @@ const TCFOralExam = () => {
           restartTimeout = setTimeout(() => {
             try {
               if (recognition.state === 'inactive' || recognition.state === undefined) {
-                console.log(`Redémarrage automatique de la reconnaissance vocale (Safari: ${isSafariRef})`);
+                // console.log(`Redémarrage automatique de la reconnaissance vocale (Safari: ${isSafariRef})`);
                 recognition.start();
               } else {
                 console.warn('Reconnaissance vocale déjà active lors du redémarrage, état:', recognition.state);
@@ -1790,7 +1790,7 @@ const TCFOralExam = () => {
 
           // Décrémenter le solde de 1
           const newSold = currentSold - 1;
-          console.log(newSold);
+          // console.log(newSold);
           // Mettre à jour le solde dans le backend via API
           await authService.updateSold(userInfo.username, newSold);
 
@@ -1818,7 +1818,7 @@ const TCFOralExam = () => {
           // Réinitialiser les sessions des agents IA pour un nouvel examen propre
           task1AgentService.resetSessionId();
           task2AgentServiceRef.current.resetSessionId();
-          console.log('[Exam] Sessions IA réinitialisées pour le nouvel examen');
+          // console.log('[Exam] Sessions IA réinitialisées pour le nouvel examen');
 
           // Sauvegarder les données du sujet dès le début de l'examen
           localStorage.setItem(`exam_subject_${subjectId}`, JSON.stringify(examData));
@@ -1896,7 +1896,7 @@ const TCFOralExam = () => {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.2);
     } catch (error) {
-      console.log('Impossible de jouer le son de notification:', error);
+      // console.log('Impossible de jouer le son de notification:', error);
     }
   };
 
@@ -2053,15 +2053,15 @@ const TCFOralExam = () => {
 
   // Démarrer l'enregistrement
   const handleStartRecording = async () => {
-    console.log('🚀 DÉMARRAGE ENREGISTREMENT - État initial:', {
-      audioPlaying,
-      isRecording,
-      isTranscribing,
-      currentTaskIndex,
-      currentPhase,
-      mediaRecorderState: mediaRecorderRef.current?.state,
-      recognitionState: recognitionRef.current?.state
-    });
+    // console.log('🚀 DÉMARRAGE ENREGISTREMENT - État initial:', {
+      // audioPlaying,
+      // isRecording,
+      // isTranscribing,
+      // currentTaskIndex,
+      // currentPhase,
+      // mediaRecorderState: mediaRecorderRef.current?.state,
+      // recognitionState: recognitionRef.current?.state
+    // });
 
     if (currentPhase === 'objective') {
       console.warn("⚠️ BLOCAGE: Impossible de démarrer l'enregistrement pendant la présentation de l'objectif.");
@@ -2109,7 +2109,7 @@ const TCFOralExam = () => {
           // Vérifier l'état de la reconnaissance vocale avant de la démarrer
           if (recognitionRef.current.state === 'inactive' || recognitionRef.current.state === undefined) {
             recognitionRef.current.start();
-            console.log('Reconnaissance vocale démarrée');
+            // console.log('Reconnaissance vocale démarrée');
           } else {
             console.warn('Reconnaissance vocale déjà active, état:', recognitionRef.current.state);
           }
@@ -2117,7 +2117,7 @@ const TCFOralExam = () => {
           console.warn('Erreur lors du démarrage de la reconnaissance:', error);
           // Tenter de réinitialiser la reconnaissance vocale
           if (error.message && error.message.includes('already started')) {
-            console.log('Tentative de réinitialisation de la reconnaissance vocale...');
+            // console.log('Tentative de réinitialisation de la reconnaissance vocale...');
             resetSpeechRecognition();
           }
           setIsRecording(false);
@@ -2130,7 +2130,7 @@ const TCFOralExam = () => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
           try {
             mediaRecorderRef.current.start(1000);
-            console.log('Enregistrement démarré avec succès');
+            // console.log('Enregistrement démarré avec succès');
           } catch (startError) {
             console.error('Erreur lors du start():', startError);
             setIsRecording(false);
@@ -2151,17 +2151,17 @@ const TCFOralExam = () => {
   // Arrêter l'enregistrement
   const handleStopRecording = async () => {
     try {
-      console.log('🛑 ARRÊT ENREGISTREMENT - État initial:', {
-        isRecording: isRecordingRef.current, // Utiliser la ref pour l'état le plus à jour
-        isTranscribing,
-        recordingTime,
-        transcript: `"${transcript}"`,
-        transcriptLength: transcript.length,
-        currentTaskIndex: currentTaskIndexRef.current,
-        currentPhase: currentPhaseRef.current,
-        mediaRecorderState: mediaRecorderRef.current?.state,
-        recognitionState: recognitionRef.current?.state
-      });
+      // console.log('🛑 ARRÊT ENREGISTREMENT - État initial:', {
+        // isRecording: isRecordingRef.current, // Utiliser la ref pour l'état le plus à jour
+        // isTranscribing,
+        // recordingTime,
+        // transcript: `"${transcript}"`,
+        // transcriptLength: transcript.length,
+        // currentTaskIndex: currentTaskIndexRef.current,
+        // currentPhase: currentPhaseRef.current,
+        // mediaRecorderState: mediaRecorderRef.current?.state,
+        // recognitionState: recognitionRef.current?.state
+      // });
 
       // Bloquer si aucun enregistrement n'est en cours (vérification avec la ref)
       if (!isRecordingRef.current) {
@@ -2170,11 +2170,11 @@ const TCFOralExam = () => {
       }
 
       const finalRecordingTime = recordingTime;
-      console.log('📊 STATISTIQUES FINALES:', {
-        finalRecordingTime,
-        finalTranscript: `"${transcript}"`,
-        finalTranscriptLength: transcript.length
-      });
+      // console.log('📊 STATISTIQUES FINALES:', {
+        // finalRecordingTime,
+        // finalTranscript: `"${transcript}"`,
+        // finalTranscriptLength: transcript.length
+      // });
       setIsRecording(false);
 
       // Jouer le son de fin d'enregistrement
@@ -2183,11 +2183,11 @@ const TCFOralExam = () => {
       // Arrêter le MediaRecorder
       if (mediaRecorderRef.current) {
         const state = mediaRecorderRef.current.state;
-        console.log('État MediaRecorder:', state);
+        // console.log('État MediaRecorder:', state);
 
         if (state === 'recording') {
           mediaRecorderRef.current.stop();
-          console.log('MediaRecorder arrêté');
+          // console.log('MediaRecorder arrêté');
         } else if (state === 'paused') {
           mediaRecorderRef.current.resume();
           mediaRecorderRef.current.stop();
@@ -2199,13 +2199,13 @@ const TCFOralExam = () => {
         try {
           // Vérifier l'état avant d'arrêter
           const currentState = recognitionRef.current.state;
-          console.log('État actuel de la reconnaissance vocale:', currentState);
+          // console.log('État actuel de la reconnaissance vocale:', currentState);
 
           if (currentState !== 'inactive') {
             recognitionRef.current.stop();
-            console.log('Reconnaissance vocale arrêtée');
+            // console.log('Reconnaissance vocale arrêtée');
           } else {
-            console.log('Reconnaissance vocale déjà inactive');
+            // console.log('Reconnaissance vocale déjà inactive');
           }
           setIsTranscribing(false);
         } catch (recognitionError) {
@@ -2317,7 +2317,7 @@ const TCFOralExam = () => {
 
             // Traitement spécial pour la tâche 2 en phase conversation (arrêt automatique)
             if (currentTaskIndexRef.current === 1 && currentPhaseRef.current === 'conversation') {
-              console.log('🤖 TRAITEMENT AUTOMATIQUE TÂCHE 2: Envoi de la transcription à l\'agent');
+              // console.log('🤖 TRAITEMENT AUTOMATIQUE TÂCHE 2: Envoi de la transcription à l\'agent');
 
               // Sauvegarder la réponse utilisateur dans localStorage (comme pour l'arrêt manuel)
               const examSession = JSON.parse(localStorage.getItem(`exam_session_${subjectId}_task_${currentTaskIndexRef.current}`) || '{}');
@@ -2333,8 +2333,8 @@ const TCFOralExam = () => {
 
               // Concaténer l'objectif avec le trigger pour former le prompt complet
               const combinedObjective = currentTask.trigger ? `${currentTask.objective} ${currentTask.trigger}` : currentTask.objective;
-              console.log('🎯 Objectif combiné (auto):', combinedObjective);
-              console.log('🔗 Trigger utilisé (auto):', currentTask.trigger);
+              // console.log('🎯 Objectif combiné (auto):', combinedObjective);
+              // console.log('🔗 Trigger utilisé (auto):', currentTask.trigger);
 
               const agentResponse = await task2AgentServiceRef.current.sendMessage(transcript.trim(), combinedObjective);
 
@@ -2453,20 +2453,20 @@ const TCFOralExam = () => {
 
         if (currentTaskIndex === 1) { // Tâche 2 - Interaction avec l'agent IA
           const currentTask = examData.tasks[currentTaskIndex];
-          console.log('currentTask')
-          console.log(currentTask)
+          // console.log('currentTask')
+          // console.log(currentTask)
           setCurrentPhase('conversation');
 
           // Concaténer l'objectif avec le trigger
-          console.log('🔍 Debug currentTask:', currentTask);
-          console.log('🔍 Debug currentTask.trigger:', currentTask.trigger);
+          // console.log('🔍 Debug currentTask:', currentTask);
+          // console.log('🔍 Debug currentTask.trigger:', currentTask.trigger);
 
           let combinedObjective = currentTask.objective;
           if (currentTask.trigger) {
             combinedObjective = currentTask.objective + "   " + currentTask.trigger;
-            console.log('🔗 Objectif concaténé avec trigger:', combinedObjective);
+            // console.log('🔗 Objectif concaténé avec trigger:', combinedObjective);
           } else {
-            console.log('⚠️ Aucun trigger trouvé, envoi de l\'objectif seul:', combinedObjective);
+            // console.log('⚠️ Aucun trigger trouvé, envoi de l\'objectif seul:', combinedObjective);
           }
 
           const agentResponse = await task2AgentServiceRef.current.sendMessage(userMessage, combinedObjective);
@@ -2592,9 +2592,9 @@ const TCFOralExam = () => {
         let combinedObjective = currentTask.objective;
         if (currentTask.trigger) {
           combinedObjective = currentTask.objective + "\n\n" + currentTask.trigger;
-          console.log('🔗 Objectif concaténé avec trigger (conversation):', combinedObjective);
+          // console.log('🔗 Objectif concaténé avec trigger (conversation):', combinedObjective);
         } else {
-          console.log('⚠️ Aucun trigger trouvé (conversation), envoi de l\'objectif seul:', combinedObjective);
+          // console.log('⚠️ Aucun trigger trouvé (conversation), envoi de l\'objectif seul:', combinedObjective);
         }
 
         const agentResponse = await task2AgentServiceRef.current.sendMessage(userMessage, combinedObjective);
@@ -2633,7 +2633,7 @@ const TCFOralExam = () => {
           }
         } else if (agentResponse && agentResponse.text) {
           // Si la conversation n'est plus active, enregistrer la réponse sans jouer l'audio
-          console.log('Réponse tardive ignorée car la conversation est terminée:', agentResponse.text);
+          // console.log('Réponse tardive ignorée car la conversation est terminée:', agentResponse.text);
         }
       }
     } catch (error) {
@@ -2672,7 +2672,7 @@ const TCFOralExam = () => {
     if (currentTaskIndex < examData.tasks.length - 1) {
       // Utiliser la fonction formatAndSaveConversation pour sauvegarder la conversation
       formatAndSaveConversation(chatMessagesRef.current, currentTaskIndex);
-      console.log(`Conversation formatée sauvegardée pour la tâche ${currentTaskIndex + 1} dans handleNextTask`);
+      // console.log(`Conversation formatée sauvegardée pour la tâche ${currentTaskIndex + 1} dans handleNextTask`);
 
       // Sauvegarder la session complète de la tâche actuelle
       const completeSession = {
@@ -2702,7 +2702,7 @@ const TCFOralExam = () => {
       if (conversationTimerRef.current) {
         clearInterval(conversationTimerRef.current);
       }
-      console.log(chatMessages);
+      // console.log(chatMessages);
       if (isRecording) {
         setTimeout(() => {
           simulateMicrophoneClick();
@@ -2745,13 +2745,13 @@ const TCFOralExam = () => {
   const handleExamEnd = () => {
     // Utiliser la fonction formatAndSaveConversation pour sauvegarder la conversation
     formatAndSaveConversation(chatMessagesRef.current, currentTaskIndex);
-    console.log(`Conversation formatée sauvegardée pour la tâche ${currentTaskIndex + 1} dans handleExamEnd`);
+    // console.log(`Conversation formatée sauvegardée pour la tâche ${currentTaskIndex + 1} dans handleExamEnd`);
 
     // Vérifier que toutes les conversations formatées sont bien sauvegardées
     for (let i = 0; i < examData.tasks.length; i++) {
       const key = `formatted_conversation_task_${i + 1}`;
       const saved = localStorage.getItem(key);
-      console.log(`Vérification de la conversation formatée pour la tâche ${i + 1}:`, saved || 'Non trouvée');
+      // console.log(`Vérification de la conversation formatée pour la tâche ${i + 1}:`, saved || 'Non trouvée');
     }
 
     // Sauvegarder la session complète de la dernière tâche

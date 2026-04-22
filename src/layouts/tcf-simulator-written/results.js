@@ -318,7 +318,7 @@ function TCFResultsInterface() {
           type_exam: 'écrit'
         };
         
-        console.log('Envoi de la réponse utilisateur:', payload.reponse_utilisateur);
+        // console.log('Envoi de la réponse utilisateur:', payload.reponse_utilisateur);
         
         return axios.post(`${API_BASE_URL}/exam/exams/user`, payload, {
           headers: {
@@ -330,7 +330,7 @@ function TCFResultsInterface() {
       });
       
       await Promise.all(savePromises);
-      console.log('Résultats enregistrés avec succès');
+      // console.log('Résultats enregistrés avec succès');
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement des résultats:', error);
     } finally {
@@ -421,7 +421,7 @@ function TCFResultsInterface() {
         console.error(`Tentative de traduction ${retryCount + 1} échouée:`, apiError);
         
         if (retryCount < 1) { // Un seul retry
-          console.log(`Nouvelle tentative de traduction dans 2 secondes... (${retryCount + 2}/2)`);
+          // console.log(`Nouvelle tentative de traduction dans 2 secondes... (${retryCount + 2}/2)`);
           setTimeout(() => {
             makeTranslationAPICall(retryCount + 1);
           }, 2000); // Attendre 2 secondes avant de réessayer
@@ -607,7 +607,7 @@ function TCFResultsInterface() {
             const canRetry = retryCount < maxRetries && isRetryableError(apiError);
 
             if (canRetry) {
-              console.log(`Nouvelle tentative dans 120 secondes... (${retryCount + 2}/${maxRetries + 1})`);
+              // console.log(`Nouvelle tentative dans 120 secondes... (${retryCount + 2}/${maxRetries + 1})`);
               await delay(120000); // Attendre au moins 120 sec avant relance
               return makeAPICall(retryCount + 1);
             }
@@ -653,12 +653,12 @@ function TCFResultsInterface() {
       
       // Vérifier qu'on a au moins une note
       if (Object.keys(noteExams).length === 0) {
-        console.log('Aucune note d\'examen trouvée');
+        // console.log('Aucune note d\'examen trouvée');
         setLoadingNoteMoyenne(false);
         return;
       }
       
-      console.log('Notes extraites pour le calcul de moyenne:', noteExams);
+      // console.log('Notes extraites pour le calcul de moyenne:', noteExams);
       
       // Appeler l'API note_moyenne_proxy
       const response = await axios.post(
@@ -678,7 +678,7 @@ function TCFResultsInterface() {
 
       if (noteMoyenneValue) {
         setNoteMoyenne(noteMoyenneValue);
-        console.log('Note moyenne calculée:', noteMoyenneValue);
+        // console.log('Note moyenne calculée:', noteMoyenneValue);
       } else {
         console.error('Format de réponse invalide pour la note moyenne:', response.data);
       }

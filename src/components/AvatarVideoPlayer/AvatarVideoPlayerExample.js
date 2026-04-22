@@ -17,7 +17,7 @@ const AvatarVideoPlayerExample = () => {
     const event = `Audio terminé à ${new Date().toLocaleTimeString()}`;
     setLastEvent(event);
     setEventHistory(prev => [...prev, event]);
-    console.log('Audio playback ended');
+    // console.log('Audio playback ended');
   };
 
   // Gestionnaire d'erreurs

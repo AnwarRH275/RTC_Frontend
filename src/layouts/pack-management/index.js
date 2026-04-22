@@ -131,14 +131,14 @@ function PackManagement() {
   const loadPacks = async () => {
     try {
       setLoading(true);
-      console.log('Loading packs...');
+      // console.log('Loading packs...');
       const data = await subscriptionPackService.getAllPacks();
-      console.log('Loaded packs data:', data);
+      // console.log('Loaded packs data:', data);
       
       // Vérifier que les données sont valides
       if (Array.isArray(data)) {
         setPacks(data);
-        console.log('Packs set successfully:', data.length, 'packs');
+        // console.log('Packs set successfully:', data.length, 'packs');
       } else {
         console.error('Invalid packs data format:', data);
         showSnackbar('Format de données invalide reçu du serveur', 'error');
@@ -249,7 +249,7 @@ function PackManagement() {
 
   // Open dialog for editing pack
   const handleEditPack = (pack) => {
-    console.log('Editing pack:', pack);
+    // console.log('Editing pack:', pack);
     
     // Traitement sécurisé des features
     let processedFeatures = [''];
@@ -308,7 +308,7 @@ function PackManagement() {
   // Save pack (create or update)
   const handleSavePack = async () => {
     try {
-      console.log('Saving pack with form data:', formData);
+      // console.log('Saving pack with form data:', formData);
       
       // Validation basique côté client
       if (!formData.pack_id.trim()) {
@@ -350,26 +350,26 @@ function PackManagement() {
         features: validFeatures.map(f => ({ featureText: f.trim() }))
       };
       
-      console.log('Formatted pack data for API:', packData);
+      // console.log('Formatted pack data for API:', packData);
 
       if (editingPack) {
         // Update existing pack
         const packId = editingPack.id || editingPack.pack_id;
-        console.log('Updating pack with ID:', packId);
+        // console.log('Updating pack with ID:', packId);
         await subscriptionPackService.updatePack(packId, packData);
         showSnackbar('Pack mis à jour avec succès');
         
         // Synchroniser automatiquement les usages des utilisateurs après la mise à jour
         try {
           const syncResult = await syncService.syncAllUserUsages();
-          console.log('Synchronisation automatique réussie:', syncResult);
+          // console.log('Synchronisation automatique réussie:', syncResult);
         } catch (syncError) {
           console.error('Erreur lors de la synchronisation automatique:', syncError);
           // Ne pas bloquer le processus si la synchronisation échoue
         }
       } else {
         // Create new pack
-        console.log('Creating new pack');
+        // console.log('Creating new pack');
         await subscriptionPackService.createPack(packData);
         showSnackbar('Pack créé avec succès');
       }
@@ -401,7 +401,7 @@ function PackManagement() {
   // Toggle pack status
   const handleToggleStatus = async (packId) => {
     try {
-      console.log('Toggling status for pack:', packId);
+      // console.log('Toggling status for pack:', packId);
       await subscriptionPackService.togglePackStatus(packId);
       showSnackbar('Statut du pack modifié');
       await loadPacks(); // Attendre le rechargement

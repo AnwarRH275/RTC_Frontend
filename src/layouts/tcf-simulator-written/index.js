@@ -148,7 +148,7 @@ function TCFSimulatorWritten() {
           }
         });
       }
-      console.log('Réponses utilisateur récupérées depuis le backend:', userResponses);
+      // console.log('Réponses utilisateur récupérées depuis le backend:', userResponses);
       
       if (subjectExams.length > 0) {
         // Grouper les examens par sujet et tâche pour reconstituer les résultats complets
@@ -311,8 +311,8 @@ function TCFSimulatorWritten() {
       const userSubscriptionPlan = await authService.getCurrentUserPlan();
       // Récupérer les examens passés par l'utilisateur
       const userExams = await authService.getUserExams();
-      console.log(userSubscriptionPlan);
-      console.log('Examens utilisateur:', userExams);
+      // console.log(userSubscriptionPlan);
+      // console.log('Examens utilisateur:', userExams);
       
       // Créer un Set des IDs de sujets déjà passés par l'utilisateur pour les examens écrits
       // Utiliser un Set pour éviter les doublons
@@ -325,7 +325,7 @@ function TCFSimulatorWritten() {
         }
       });
       
-      console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
+      // console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
       
       // Transformer les données pour correspondre au format attendu
       const formattedSubjects = writtenData.map(subject => {

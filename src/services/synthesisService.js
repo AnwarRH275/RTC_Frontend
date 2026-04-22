@@ -58,7 +58,7 @@ class SynthesisService {
         return { filename: null, audioUrl: null };
       }
       
-      console.log(`Envoi de la requête de synthèse pour: "${text.substring(0, 30)}..."`);
+      // console.log(`Envoi de la requête de synthèse pour: "${text.substring(0, 30)}..."`);
       const payload = { text };
       if (sessionId) {
         payload.session_id = sessionId;
@@ -73,7 +73,7 @@ class SynthesisService {
       
       // Extraire les données de la réponse
       const { filename, audioUrl } = response.data;
-      console.log(`Réponse de synthèse reçue: filename=${filename}, audioUrl=${audioUrl}`);
+      // console.log(`Réponse de synthèse reçue: filename=${filename}, audioUrl=${audioUrl}`);
       
       // Si nous avons un filename mais pas d'audioUrl, générer l'URL
       if (filename && !audioUrl) {
@@ -114,7 +114,7 @@ class SynthesisService {
       // Vérifier que l'URL construite est valide
       new URL(url); // Ceci lancera une erreur si l'URL est invalide
       
-      console.log(`URL audio créée avec succès: ${url}`);
+      // console.log(`URL audio créée avec succès: ${url}`);
       return url;
     } catch (error) {
       console.error('Erreur lors de la création de l\'URL audio:', error, 'filename:', filename);

@@ -128,7 +128,7 @@ function Cover() {
       })
         .then(res => res.json())
         .then(data => {
-          console.log("Compte pending nettoyé après annulation Stripe:", data);
+          // console.log("Compte pending nettoyé après annulation Stripe:", data);
         })
         .catch(err => {
           console.warn("Erreur lors du nettoyage du compte pending:", err);
@@ -241,7 +241,7 @@ function Cover() {
       };
       
       localStorage.setItem("signupData", JSON.stringify(formData));
-      console.log("Données d'inscription sauvegardées dans localStorage:", formData);
+      // console.log("Données d'inscription sauvegardées dans localStorage:", formData);
     }
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
@@ -1134,7 +1134,7 @@ function Cover() {
                 preSelectedPlan={new URLSearchParams(location.search).get('upgrade')}
                 onSelectPlan={async (plan) => {
                   setSelectedPlan(plan);
-                  console.log("Plan sélectionné:", plan);
+                  // console.log("Plan sélectionné:", plan);
                   
                   // Créer d'abord le compte utilisateur
                   try {
@@ -1149,9 +1149,9 @@ function Cover() {
                       sold: 0, // Sera mis à jour après le paiement
                     };
 
-                    console.log("Création du compte utilisateur:", userData);
+                    // console.log("Création du compte utilisateur:", userData);
                     const response = await authService.signup(userData);
-                    console.log("Compte créé avec succès:", response.data);
+                    // console.log("Compte créé avec succès:", response.data);
                     
                     // Sauvegarder les informations de connexion
                     if (response.data.access_token) {
@@ -1174,7 +1174,7 @@ function Cover() {
                        cancelUrl: `${window.location.origin}/inscription-tcf?cancelled=true&userId=${response.data.user_info?.id}`
                      };
                      
-                     console.log('Données envoyées au backend pour Stripe:', requestData);
+                     // console.log('Données envoyées au backend pour Stripe:', requestData);
                      
                      const stripeResponse = await fetch(`${API_BASE_URL}/stripe/create-checkout-session`, {
                        method: 'POST',

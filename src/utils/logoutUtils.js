@@ -57,7 +57,7 @@ export const clearAllStorage = () => {
       document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
     });
     
-    console.log('Tous les stockages ont été nettoyés');
+    // console.log('Tous les stockages ont été nettoyés');
   } catch (error) {
     console.error('Erreur lors du nettoyage des stockages:', error);
   }

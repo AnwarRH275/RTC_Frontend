@@ -279,7 +279,7 @@ function TCFExamInterface() {
          
           // Décrémenter le solde de 1
           const newSold = currentSold - 1;
-          console.log(newSold)
+          // console.log(newSold)
           // Mettre à jour le solde dans le backend via API
           await authService.updateSold(userInfo.username, newSold);
           

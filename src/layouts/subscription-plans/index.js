@@ -60,7 +60,7 @@ function SubscriptionPlansPage() {
       // Ajouter le code de coupon si le plan en a un
       if (plan.hasCoupon && plan.couponCode) {
         requestData.couponCode = plan.couponCode;
-        console.log(`Coupon appliqué: ${plan.couponCode}`);
+        // console.log(`Coupon appliqué: ${plan.couponCode}`);
       }
       
       const response = await fetch(`${API_BASE_URL}/stripe/create-checkout-session`, {

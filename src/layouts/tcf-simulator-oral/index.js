@@ -243,7 +243,7 @@ function TCFSimulatorOral() {
 
           // Décrémenter le solde de 1
           const newSold = currentSold - 1;
-          console.log(newSold)
+          // console.log(newSold)
           // Mettre à jour le solde dans le backend via API
           await authService.updateSold(userInfo.username, newSold);
 
@@ -326,8 +326,8 @@ function TCFSimulatorOral() {
       const userSubscriptionPlan = await authService.getCurrentUserPlan();
       // Récupérer les examens passés par l'utilisateur
       const userExams = await authService.getUserExams();
-      console.log(userSubscriptionPlan);
-      console.log('Examens utilisateur:', userExams);
+      // console.log(userSubscriptionPlan);
+      // console.log('Examens utilisateur:', userExams);
 
       // Créer un Set des IDs de sujets déjà passés par l'utilisateur pour les examens oraux
       // Utiliser un Set pour éviter les doublons
@@ -340,7 +340,7 @@ function TCFSimulatorOral() {
         }
       });
 
-      console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
+      // console.log('IDs de sujets complétés:', Array.from(completedSubjectIds));
 
       // Transformer les données pour correspondre au format attendu
       const formattedSubjects = oralData.map(subject => {

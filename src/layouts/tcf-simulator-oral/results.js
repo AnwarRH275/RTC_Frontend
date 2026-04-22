@@ -292,7 +292,7 @@ function TCFResultsInterface() {
       });
       
       await Promise.all(savePromises);
-      console.log('Résultats enregistrés avec succès');
+      // console.log('Résultats enregistrés avec succès');
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement des résultats:', error);
     } finally {
@@ -386,7 +386,7 @@ function TCFResultsInterface() {
         console.error(`Tentative de traduction ${retryCount + 1} échouée:`, apiError);
         
         if (retryCount < 1) { // Un seul retry
-          console.log(`Nouvelle tentative de traduction dans 2 secondes... (${retryCount + 2}/2)`);
+          // console.log(`Nouvelle tentative de traduction dans 2 secondes... (${retryCount + 2}/2)`);
           setTimeout(() => {
             makeTranslationAPICall(retryCount + 1);
           }, 2000); // Attendre 2 secondes avant de réessayer
@@ -429,7 +429,7 @@ function TCFResultsInterface() {
         if (storedSubjectData) {
           subjectData = JSON.parse(storedSubjectData);
           setSubject(subjectData);
-          console.log('Données du sujet récupérées:', subjectData);
+          // console.log('Données du sujet récupérées:', subjectData);
         } else {
           throw new Error('Données du sujet non trouvées dans localStorage');
         }
@@ -438,7 +438,7 @@ function TCFResultsInterface() {
         for (let i = 0; i < 3; i++) { // Vérifier les 3 tâches
           const formattedKey = `formatted_conversation_task_${i + 1}`;
           const formattedConversation = localStorage.getItem(formattedKey);
-          console.log(`Vérification de la conversation formatée pour la tâche ${i + 1}:`, formattedConversation || 'Non trouvée');
+          // console.log(`Vérification de la conversation formatée pour la tâche ${i + 1}:`, formattedConversation || 'Non trouvée');
         }
         
         // Récupérer les réponses depuis localStorage
@@ -457,7 +457,7 @@ function TCFResultsInterface() {
           if (formattedConversation) {
             // Utiliser directement la conversation formatée
             responsesData[i] = formattedConversation;
-            console.log(`Conversation formatée récupérée pour la tâche ${i + 1}:`, formattedConversation);
+            // console.log(`Conversation formatée récupérée pour la tâche ${i + 1}:`, formattedConversation);
           } else {
             // Priorité 2: Vérifier s'il y a des sessions complètes
             const sessionKey = `exam_session_${subjectId}_task_${i}_complete`;
@@ -489,7 +489,7 @@ function TCFResultsInterface() {
         
         // Mettre à jour le state avec toutes les données récupérées
         setResponses(responsesData);
-        console.log('Données de réponses finales:', responsesData);
+        // console.log('Données de réponses finales:', responsesData);
         
         // Préparer les données pour l'API de correction
         const chatInputArray = [];
@@ -505,15 +505,15 @@ function TCFResultsInterface() {
             // Utiliser directement la conversation formatée
             // Remplacer tacheX: par repenseTaskX: pour la compatibilité avec l'API
             taskConversation = formattedConversation.replace(`tache${i + 1}:`, `repenseTask${i + 1}:`);
-            console.log(`Conversation formatée trouvée pour la tâche ${i + 1}:`, taskConversation);
+            // console.log(`Conversation formatée trouvée pour la tâche ${i + 1}:`, taskConversation);
           } else if (responsesData[i]) {
             // Fallback: utiliser les anciennes données si la conversation formatée n'existe pas
-            console.log(`Aucune conversation formatée trouvée pour la tâche ${i + 1}, utilisation du format de secours`);
+            // console.log(`Aucune conversation formatée trouvée pour la tâche ${i + 1}, utilisation du format de secours`);
             const formattedResponse = responsesData[i].replace(/\n/g, ',');
             taskConversation = `repenseTask${i + 1}:${formattedResponse}`;
           } else {
             // Format par défaut si pas de réponse
-            console.log(`Aucune donnée trouvée pour la tâche ${i + 1}, utilisation du format par défaut`);
+            // console.log(`Aucune donnée trouvée pour la tâche ${i + 1}, utilisation du format par défaut`);
             taskConversation = `repenseTask${i + 1}:Agent:textAgent,User:TextUser`;
           }
           
@@ -558,7 +558,7 @@ function TCFResultsInterface() {
                   { session_id: subjectId },
                   { headers: { 'Content-Type': 'application/json' } }
                 );
-                console.log('Nettoyage des fichiers audio:', cleanupResp.data);
+                // console.log('Nettoyage des fichiers audio:', cleanupResp.data);
               } catch (cleanupError) {
                 console.warn('Erreur lors du nettoyage des fichiers audio via API:', cleanupError);
               }
@@ -571,7 +571,7 @@ function TCFResultsInterface() {
             console.error(`Tentative ${retryCount + 1} échouée:`, apiError);
             
             if (retryCount < 1) { // 1 seul retry pour ne pas consommer les tokens inutilement
-              console.log(`Nouvelle tentative dans 10 secondes... (${retryCount + 2}/2)`);
+              // console.log(`Nouvelle tentative dans 10 secondes... (${retryCount + 2}/2)`);
               await delay(10000); // 10 sec entre les tentatives
               return makeAPICall(retryCount + 1);
             } else {
@@ -619,12 +619,12 @@ function TCFResultsInterface() {
       
       // Vérifier qu'on a au moins une note
       if (Object.keys(noteExams).length === 0) {
-        console.log('Aucune note d\'examen trouvée');
+        // console.log('Aucune note d\'examen trouvée');
         setLoadingNoteMoyenne(false);
         return;
       }
       
-      console.log('Notes extraites pour le calcul de moyenne:', noteExams);
+      // console.log('Notes extraites pour le calcul de moyenne:', noteExams);
       
       // Appeler l'API note_moyenne_proxy
       const response = await axios.post(
@@ -644,7 +644,7 @@ function TCFResultsInterface() {
 
       if (noteMoyenneValue) {
         setNoteMoyenne(noteMoyenneValue);
-        console.log('Note moyenne calculée:', noteMoyenneValue);
+        // console.log('Note moyenne calculée:', noteMoyenneValue);
       } else {
         console.error('Format de réponse invalide pour la note moyenne:', response.data);
       }

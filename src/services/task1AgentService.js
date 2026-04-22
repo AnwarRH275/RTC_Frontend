@@ -78,7 +78,7 @@ class Task1AgentService {
     // Supprimer l'ancien sessionId du localStorage
     localStorage.removeItem('task1_session_id');
     this.sessionId = this.generateSessionId();
-    console.log('[Task1AgentService] Session réinitialisée:', this.sessionId);
+    // console.log('[Task1AgentService] Session réinitialisée:', this.sessionId);
     return this.sessionId;
   }
 
@@ -111,7 +111,7 @@ class Task1AgentService {
       // S'assurer que le sessionId est initialisé
       const currentSessionId = this.getSessionId();
 
-      console.log('[Task1AgentService] Envoi du message avec sessionId:', currentSessionId);
+      // console.log('[Task1AgentService] Envoi du message avec sessionId:', currentSessionId);
       const payload = {
         chatInput: message,
         sessionId: currentSessionId
@@ -125,7 +125,7 @@ class Task1AgentService {
       const response = await this.apiClient.post('/agent-vocal', payload);
 
       const data = response.data;
-      console.log('[Task1AgentService] Réponse brute de l\'API:', data);
+      // console.log('[Task1AgentService] Réponse brute de l\'API:', data);
 
       // Extraire et normaliser l'URL audio
       const rawAudioUrl = data.audio_url || data.audioUrl || '';

@@ -59,7 +59,7 @@ const login = async (credentials) => {
       
       // Stocker les informations utilisateur si disponibles
       if (response.data.user_info) {
-        console.log('User info received from backend:', response.data.user_info); // Added console.log
+        // console.log('User info received from backend:', response.data.user_info); // Added console.log
         localStorage.setItem('user_info', JSON.stringify(response.data.user_info));
       }
     }

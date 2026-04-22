@@ -13,7 +13,7 @@ const getAuthHeader = () => {
     throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
   }
   
-  console.log('Token trouvé dans localStorage:', token.substring(0, 20) + '...');
+  // console.log('Token trouvé dans localStorage:', token.substring(0, 20) + '...');
   
   return {
     headers: {
@@ -28,9 +28,9 @@ class SubscriptionPackService {
   async getAllPacks(activeOnly = false) {
     try {
       const url = activeOnly ? `${API_URL}/packs?active_only=true` : `${API_URL}/packs`;
-      console.log('Fetching packs from:', url);
+      // console.log('Fetching packs from:', url);
       const response = await axios.get(url, getAuthHeader());
-      console.log('Packs response:', response.data);
+      // console.log('Packs response:', response.data);
       
       // Vérifier si la réponse est un tableau
       if (!Array.isArray(response.data)) {
@@ -59,9 +59,9 @@ class SubscriptionPackService {
   // Get a specific pack by ID
   async getPackById(id) {
     try {
-      console.log('Fetching pack by ID:', id);
+      // console.log('Fetching pack by ID:', id);
       const response = await axios.get(`${API_URL}/packs/${id}`, getAuthHeader());
-      console.log('Pack response:', response.data);
+      // console.log('Pack response:', response.data);
       
       // Vérifier si la réponse contient les données attendues
       if (!response.data || typeof response.data !== 'object') {
@@ -79,9 +79,9 @@ class SubscriptionPackService {
   // Create a new subscription pack (admin only)
   async createPack(packData) {
     try {
-      console.log('Creating pack with data:', packData);
+      // console.log('Creating pack with data:', packData);
       const response = await axios.post(`${API_URL}/packs`, packData, getAuthHeader());
-      console.log('Create pack response:', response.data);
+      // console.log('Create pack response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error creating pack:', error.response?.data || error.message);
@@ -92,9 +92,9 @@ class SubscriptionPackService {
   // Update an existing pack (admin only)
   async updatePack(id, packData) {
     try {
-      console.log('Updating pack ID:', id, 'with data:', packData);
+      // console.log('Updating pack ID:', id, 'with data:', packData);
       const response = await axios.put(`${API_URL}/packs/${id}`, packData, getAuthHeader());
-      console.log('Update pack response:', response.data);
+      // console.log('Update pack response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error updating pack:', error.response?.data || error.message);
@@ -116,9 +116,9 @@ class SubscriptionPackService {
   // Toggle pack status (activate/deactivate)
   async togglePackStatus(id) {
     try {
-      console.log('Toggling status for pack ID:', id);
+      // console.log('Toggling status for pack ID:', id);
       const response = await axios.patch(`${API_URL}/packs/${id}/toggle-status`, {}, getAuthHeader());
-      console.log('Toggle status response:', response.data);
+      // console.log('Toggle status response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error toggling pack status:', error.response?.data || error.message);

@@ -221,10 +221,10 @@ const SubscriptionPlans = ({ email, onSelectPlan, preSelectedPlan = null }) => {
       // Ajouter le code de coupon si le plan en a un
       if (plan.hasCoupon && plan.couponCode) {
         requestData.couponCode = plan.couponCode;
-        console.log(`Coupon appliqué: ${plan.couponCode}`);
+        // console.log(`Coupon appliqué: ${plan.couponCode}`);
       }
       
-      console.log('Données envoyées au backend:', requestData);
+      // console.log('Données envoyées au backend:', requestData);
       
       const response = await axios.post(`${API_BASE_URL}/stripe/create-checkout-session`, requestData, {
         headers: {

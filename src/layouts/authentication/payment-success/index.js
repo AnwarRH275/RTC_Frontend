@@ -107,7 +107,7 @@ function PaymentSuccess() {
         // Vérifier si c'est un utilisateur existant (upgrade) ou un nouvel utilisateur
         if (isLoggedIn) {
           // Utilisateur existant - mise à jour du plan seulement
-          console.log("Utilisateur existant détecté - mise à jour du plan");
+          // console.log("Utilisateur existant détecté - mise à jour du plan");
           
           try {
             // Recharger les informations utilisateur après la mise à jour du plan
@@ -139,7 +139,7 @@ function PaymentSuccess() {
         try {
           const planInfo = planName || "standard";
           userData.plan = planInfo;
-          console.log("Données utilisateur avec plan:", userData);
+          // console.log("Données utilisateur avec plan:", userData);
           localStorage.setItem("signupData", JSON.stringify(userData));
         } catch (planError) {
           console.error("Erreur lors de la récupération des informations du plan:", planError);

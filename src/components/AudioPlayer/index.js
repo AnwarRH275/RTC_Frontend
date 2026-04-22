@@ -38,7 +38,7 @@ const AudioPlayer = React.forwardRef(({
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
       setIsLoading(false);
-      console.log('Audio metadata loaded, duration:', audio.duration);
+      // console.log('Audio metadata loaded, duration:', audio.duration);
     };
 
     const handleTimeUpdate = () => {
@@ -61,7 +61,7 @@ const AudioPlayer = React.forwardRef(({
 
     const handleCanPlay = () => {
       setIsLoading(false);
-      console.log('Audio can play');
+      // console.log('Audio can play');
       
       // Tenter l'autoplay dès que l'audio est prêt
       if (autoPlay && !hasTriedAutoplay) {
@@ -73,12 +73,12 @@ const AudioPlayer = React.forwardRef(({
     const handlePlay = () => {
       setIsPlaying(true);
       setCanAutoplay(true);
-      console.log('Audio started playing');
+      // console.log('Audio started playing');
     };
 
     const handlePause = () => {
       setIsPlaying(false);
-      console.log('Audio paused');
+      // console.log('Audio paused');
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -105,7 +105,7 @@ const AudioPlayer = React.forwardRef(({
     if (!audioRef.current || !autoPlay) return;
 
     try {
-      console.log('Attempting autoplay for:', audioUrl);
+      // console.log('Attempting autoplay for:', audioUrl);
       
       // Configuration optimale pour l'autoplay
       audioRef.current.currentTime = 0;
@@ -115,7 +115,7 @@ const AudioPlayer = React.forwardRef(({
       // Tenter la lecture
       await audioRef.current.play();
       setCanAutoplay(true);
-      console.log('Autoplay successful');
+      // console.log('Autoplay successful');
       
     } catch (error) {
       console.warn('Autoplay blocked:', error.name);

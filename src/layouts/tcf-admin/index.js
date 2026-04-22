@@ -391,10 +391,10 @@ useEffect(() => {
 
   const handleOpenDialog = (isEdit = false, subject = null) => {
     if (isEdit && subject) {
-      console.log('=== DEBUG: handleOpenDialog en mode édition ===');
-      console.log('subject reçu:', JSON.stringify(subject, null, 2));
-      console.log('tabValue actuel:', tabValue);
-      console.log('subject.tasks:', subject.tasks);
+      // console.log('=== DEBUG: handleOpenDialog en mode édition ===');
+      // console.log('subject reçu:', JSON.stringify(subject, null, 2));
+      // console.log('tabValue actuel:', tabValue);
+      // console.log('subject.tasks:', subject.tasks);
       
       // Assurez-vous que chaque tâche a tous les champs nécessaires
       const updatedTasks = subject.tasks.map(task => ({
@@ -411,8 +411,8 @@ useEffect(() => {
         points: task.points || 20
       }));
       
-      console.log('=== DEBUG: updatedTasks après mapping ===');
-      console.log('updatedTasks:', JSON.stringify(updatedTasks, null, 2));
+      // console.log('=== DEBUG: updatedTasks après mapping ===');
+      // console.log('updatedTasks:', JSON.stringify(updatedTasks, null, 2));
       
       setFormData({
         ...subject,
@@ -423,13 +423,13 @@ useEffect(() => {
         tasks: updatedTasks,
       });
       
-      console.log('=== DEBUG: formData défini avec ===');
-      console.log('tasks dans formData:', updatedTasks);
+      // console.log('=== DEBUG: formData défini avec ===');
+      // console.log('tasks dans formData:', updatedTasks);
       
       setCurrentSubject(subject);
       setIsEditing(true);
       
-      console.log('=== DEBUG: États définis - isEditing: true, currentSubject défini ===');
+      // console.log('=== DEBUG: États définis - isEditing: true, currentSubject défini ===');
     } else {
       // Configuration différente selon l'onglet (Écrit vs Oral)
       let defaultTasks;
@@ -547,8 +547,8 @@ const handleSaveSubject = async () => {
 
   try {
     // Préparer les données pour l'API
-    console.log('=== DEBUG: Données formData avant traitement ===');
-    console.log('formData.tasks:', JSON.stringify(formData.tasks, null, 2));
+    // console.log('=== DEBUG: Données formData avant traitement ===');
+    // console.log('formData.tasks:', JSON.stringify(formData.tasks, null, 2));
     
     const apiData = {
       ...formData,
@@ -588,8 +588,8 @@ const handleSaveSubject = async () => {
       })
     };
 
-    console.log('=== DEBUG: Données apiData après transformation ===');
-    console.log('apiData:', JSON.stringify(apiData, null, 2));
+    // console.log('=== DEBUG: Données apiData après transformation ===');
+    // console.log('apiData:', JSON.stringify(apiData, null, 2));
 
     if (isEditing && currentSubject) {
       // Mise à jour d'un sujet existant
